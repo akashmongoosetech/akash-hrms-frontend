@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search, Calendar, List } from 'lucide-react';
 import EventCalendar from './EventCalendar';
+import DeleteModal from '../Common/DeleteModal';
 
 interface Event {
   _id: string;
@@ -15,6 +16,8 @@ export default function EventTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', date: '' });
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('calendar');
 
@@ -90,18 +93,25 @@ export default function EventTable() {
     setShowAddModal(true);
   };
 
-  const handleDelete = async (eventId: string) => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
+  const handleDelete = (eventId: string) => {
+    setDeleteEventId(eventId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteEventId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/events/${eventId}`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/events/${deleteEventId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
-        setEvents(events.filter(event => event._id !== eventId));
+        setEvents(events.filter(event => event._id !== deleteEventId));
+        setShowDeleteModal(false);
+        setDeleteEventId(null);
       } else {
         console.error('Failed to delete event');
       }
@@ -308,6 +318,14 @@ export default function EventTable() {
           </div>
         </div>
       )}
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Event"
+        message="Are you sure you want to delete this event? This action cannot be undone."
+      />
     </div>
   );
 }

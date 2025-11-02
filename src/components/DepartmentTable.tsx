@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
+import DeleteModal from '../Common/DeleteModal';
 
 interface Department {
   _id: string;
@@ -14,6 +15,8 @@ export default function DepartmentTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteDepartmentId, setDeleteDepartmentId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', head: '' });
 
   useEffect(() => {
@@ -86,18 +89,25 @@ export default function DepartmentTable() {
     setShowAddModal(true);
   };
 
-  const handleDelete = async (departmentId: string) => {
-    if (!confirm('Are you sure you want to delete this department?')) return;
+  const handleDelete = (departmentId: string) => {
+    setDeleteDepartmentId(departmentId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDepartmentId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/departments/${departmentId}`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/departments/${deleteDepartmentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
-        setDepartments(departments.filter(dept => dept._id !== departmentId));
+        setDepartments(departments.filter(dept => dept._id !== deleteDepartmentId));
+        setShowDeleteModal(false);
+        setDeleteDepartmentId(null);
       } else {
         console.error('Failed to delete department');
       }
@@ -260,6 +270,14 @@ export default function DepartmentTable() {
           </div>
         </div>
       )}
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Department"
+        message="Are you sure you want to delete this department? This action cannot be undone."
+      />
     </div>
   );
 }

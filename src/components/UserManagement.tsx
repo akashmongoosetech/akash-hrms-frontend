@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API from '../utils/api';
+import DeleteModal from '../Common/DeleteModal';
 
 interface User {
   _id: string;
@@ -16,6 +17,8 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -73,13 +76,20 @@ export default function UserManagement() {
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+  const handleDelete = (userId: string) => {
+    setDeleteUserId(userId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteUserId) return;
 
     try {
-      await API.delete(`/users/${userId}`);
+      await API.delete(`/users/${deleteUserId}`);
       alert('User deleted successfully');
       fetchUsers();
+      setShowDeleteModal(false);
+      setDeleteUserId(null);
     } catch (err: any) {
       alert('Failed to delete user: ' + err?.response?.data?.message);
     }
@@ -328,6 +338,14 @@ export default function UserManagement() {
           </tbody>
         </table>
       </div>
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete User"
+        message="Are you sure you want to delete this user? This action cannot be undone."
+      />
     </div>
   );
 }

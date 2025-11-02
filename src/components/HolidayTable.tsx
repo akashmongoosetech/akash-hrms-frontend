@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
+import DeleteModal from '../Common/DeleteModal';
 
 interface Holiday {
   _id: string;
@@ -14,6 +15,8 @@ export default function HolidayTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteHolidayId, setDeleteHolidayId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', date: '' });
 
   useEffect(() => {
@@ -85,18 +88,25 @@ export default function HolidayTable() {
     setShowAddModal(true);
   };
 
-  const handleDelete = async (holidayId: string) => {
-    if (!confirm('Are you sure you want to delete this holiday?')) return;
+  const handleDelete = (holidayId: string) => {
+    setDeleteHolidayId(holidayId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteHolidayId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays/${holidayId}`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays/${deleteHolidayId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
-        setHolidays(holidays.filter(holiday => holiday._id !== holidayId));
+        setHolidays(holidays.filter(holiday => holiday._id !== deleteHolidayId));
+        setShowDeleteModal(false);
+        setDeleteHolidayId(null);
       } else {
         console.error('Failed to delete holiday');
       }
@@ -259,6 +269,14 @@ export default function HolidayTable() {
           </div>
         </div>
       )}
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Holiday"
+        message="Are you sure you want to delete this holiday? This action cannot be undone."
+      />
     </div>
   );
 }

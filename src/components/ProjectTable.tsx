@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Edit, Trash2, Plus, Search, MoreHorizontal, Eye, Users, Calendar } from 'lucide-react';
+import DeleteModal from '../Common/DeleteModal';
 
 interface Client {
   _id: string;
@@ -36,6 +37,8 @@ export default function ProjectTable() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [viewProject, setViewProject] = useState<Project | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Safe helpers
@@ -174,11 +177,16 @@ export default function ProjectTable() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+  const handleDelete = (id: string) => {
+    setDeleteProjectId(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteProjectId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/projects/${id}`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/projects/${deleteProjectId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -187,6 +195,8 @@ export default function ProjectTable() {
 
       if (response.ok) {
         fetchProjects();
+        setShowDeleteModal(false);
+        setDeleteProjectId(null);
       } else {
         setError('Failed to delete project');
       }
@@ -550,6 +560,14 @@ export default function ProjectTable() {
           </div>
         </div>
       )}
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Project"
+        message="Are you sure you want to delete this project? This action cannot be undone."
+      />
     </div>
   );
 }

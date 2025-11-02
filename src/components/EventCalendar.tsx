@@ -3,6 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Edit, Trash2, Cake } from 'lucide-react';
+import DeleteModal from '../Common/DeleteModal';
 
 interface Event {
   _id: string;
@@ -39,6 +40,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
   const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -210,9 +213,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (onDeleteEvent && confirm('Are you sure you want to delete this event?')) {
-                              onDeleteEvent(event._id);
-                            }
+                            setDeleteEventId(event._id);
+                            setShowDeleteModal(true);
                           }}
                           className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
                           title="Delete event"
@@ -267,6 +269,20 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
           moreLinkClick="popover"
         />
       </div>
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => {
+          if (onDeleteEvent && deleteEventId) {
+            onDeleteEvent(deleteEventId);
+            setShowDeleteModal(false);
+            setDeleteEventId(null);
+          }
+        }}
+        title="Delete Event"
+        message="Are you sure you want to delete this event? This action cannot be undone."
+      />
     </div>
   );
 }

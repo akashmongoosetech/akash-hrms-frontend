@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
+import DeleteModal from '../Common/DeleteModal';
 
 interface User {
   _id: string;
@@ -18,6 +19,8 @@ export default function UserTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -54,18 +57,25 @@ export default function UserTable() {
     (user.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+  const handleDelete = (userId: string) => {
+    setDeleteUserId(userId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteUserId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users/${userId}`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users/${deleteUserId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
-        setUsers(users.filter(user => user._id !== userId));
+        setUsers(users.filter(user => user._id !== deleteUserId));
+        setShowDeleteModal(false);
+        setDeleteUserId(null);
       } else {
         console.error('Failed to delete user');
       }
@@ -207,6 +217,14 @@ export default function UserTable() {
           <p className="text-gray-500">No users found matching your search.</p>
         </div>
       )}
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete User"
+        message="Are you sure you want to delete this user? This action cannot be undone."
+      />
     </div>
   );
 }

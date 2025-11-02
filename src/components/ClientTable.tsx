@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Edit, Trash2, Plus, Search, MoreHorizontal, Eye } from 'lucide-react';
+import DeleteModal from '../Common/DeleteModal';
 
 interface Client {
   _id: string;
@@ -22,6 +23,8 @@ export default function ClientTable() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [viewClient, setViewClient] = useState<Client | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -119,11 +122,16 @@ export default function ClientTable() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this client?')) return;
+  const handleDelete = (id: string) => {
+    setDeleteClientId(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteClientId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/clients/${id}`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/clients/${deleteClientId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -132,6 +140,8 @@ export default function ClientTable() {
 
       if (response.ok) {
         fetchClients();
+        setShowDeleteModal(false);
+        setDeleteClientId(null);
       } else {
         setError('Failed to delete client');
       }
@@ -569,6 +579,14 @@ export default function ClientTable() {
           </div>
         </div>
       )}
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Client"
+        message="Are you sure you want to delete this client? This action cannot be undone."
+      />
     </div>
   );
 }
