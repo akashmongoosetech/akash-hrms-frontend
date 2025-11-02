@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -78,44 +78,53 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     }
   };
 
-  // Generate birthday events for current year
-  const generateBirthdayEvents = (): BirthdayEvent[] => {
-    const currentYear = new Date().getFullYear();
-    const birthdayEvents: BirthdayEvent[] = [];
-
-    console.log('Generating birthdays for users:', users);
-
-    users.forEach(user => {
-      if (user.dateOfBirth) {
-        console.log('Processing user:', user.firstName, user.lastName, 'DOB:', user.dateOfBirth);
-        const dob = new Date(user.dateOfBirth);
-        const birthdayThisYear = new Date(currentYear, dob.getMonth(), dob.getDate());
-        const birthdayDate = birthdayThisYear.toISOString().split('T')[0];
-
-        console.log('Birthday date for', user.firstName, ':', birthdayDate);
-
-        birthdayEvents.push({
-          _id: `birthday-${user._id}-${currentYear}`,
-          name: `${user.firstName} ${user.lastName}'s Birthday`,
-          date: birthdayDate,
-          type: 'birthday',
-          user: user
-        });
-      }
-    });
-
-    console.log('Generated birthday events:', birthdayEvents);
-    return birthdayEvents;
+  // Helper to format YYYY-MM-DD without timezone issues
+  const formatYMD = (y: number, m: number, d: number) => {
+    const mm = String(m + 1).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    return `${y}-${mm}-${dd}`;
   };
 
-  const birthdayEvents = generateBirthdayEvents();
+  // Generate birthday events for current year (memoized)
+  const birthdayEvents: BirthdayEvent[] = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+
+    const list: BirthdayEvent[] = users
+      .filter(u => !!u.dateOfBirth)
+      .map((user) => {
+        // Try to parse DOB robustly; fall back to splitting string
+        let dob = new Date(user.dateOfBirth);
+        if (isNaN(dob.getTime())) {
+          // Expected format: YYYY-MM-DD
+          const parts = user.dateOfBirth.split(/[-/]/).map(Number);
+          if (parts.length >= 3) {
+            dob = new Date(parts[0], parts[1] - 1, parts[2]);
+          }
+        }
+        const month = dob.getMonth();
+        const day = dob.getDate();
+        const date = formatYMD(currentYear, month, day);
+
+        return {
+          _id: `birthday-${user._id}-${currentYear}`,
+          name: `${user.firstName} ${user.lastName}'s Birthday`,
+          date,
+          type: 'birthday' as const,
+          user,
+        };
+      })
+      .filter(e => !!e.date);
+
+    return list;
+  }, [users]);
   const allEvents = [...events, ...birthdayEvents];
 
   const calendarEvents = allEvents.map(event => ({
     id: event._id,
     title: event.name,
-    date: event.date.split('T')[0], // Ensure date is in YYYY-MM-DD format
-    backgroundColor: 'type' in event && event.type === 'birthday' ? '#10B981' : '#3B82F6', // Green for birthdays, blue for regular events
+    // Ensure date is in YYYY-MM-DD format and avoid timezone shifts
+    date: (event.date.includes('T') ? event.date.split('T')[0] : event.date),
+    backgroundColor: 'type' in event && event.type === 'birthday' ? '#10B981' : '#3B82F6',
     extendedProps: {
       originalEvent: event
     }

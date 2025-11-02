@@ -22,6 +22,8 @@ import UserTable from "./UserTable";
 import DepartmentTable from "./DepartmentTable";
 import HolidayTable from "./HolidayTable";
 import EventTable from "./EventTable";
+import ClientTable from "./ClientTable";
+import ProjectTable from "./ProjectTable";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -179,7 +181,18 @@ export default function Dashboard() {
       id: "recruitment",
       name: "Recruitment",
       icon: <TrendingUp className="h-5 w-5" />,
-    }
+    },
+    {
+      id: "client",
+      name: "Client",
+      icon: <TrendingUp className="h-5 w-5" />,
+    },
+    {
+      id: "project",
+      name: "Project",
+      icon: <Users className="h-5 w-5" />,
+    },
+
   ];
 
   const navItems = allNavItems.filter(
@@ -579,6 +592,10 @@ export default function Dashboard() {
           {activeTab === "holidays" && <HolidayTable />}
 
           {activeTab === "events" && <EventTable />}
+
+          {activeTab === "client" && <ClientTable />}
+
+          {activeTab === "project" && <ProjectTable />}
         </main>
       </div>
     </div>
