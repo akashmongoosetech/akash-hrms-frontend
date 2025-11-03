@@ -1,5 +1,5 @@
 import React from "react";
-import ProjectTable from "../components/ProjectTable";
+import ProjectTable from "../../components/project/ProjectTable";
 
 export default function ProjectPage() {
   return (

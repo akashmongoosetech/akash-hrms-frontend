@@ -1,5 +1,5 @@
 import React from "react";
-import EmployeeTable from "../components/EmployeeTable";
+import EmployeeTable from "../../components/employee/EmployeeTable";
 
 export default function EmployeesPage() {
   return (

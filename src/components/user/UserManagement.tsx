@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import API from '../utils/api';
-import DeleteModal from '../Common/DeleteModal';
+import API from '../../utils/api';
+import DeleteModal from '../../Common/DeleteModal';
 
 interface User {
   _id: string;

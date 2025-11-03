@@ -1,5 +1,5 @@
 import React from "react";
-import DepartmentTable from "../components/DepartmentTable";
+import DepartmentTable from "../../components/department/DepartmentTable";
 
 export default function DepartmentPage() {
   return (

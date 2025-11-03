@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search, Calendar, List } from 'lucide-react';
 import EventCalendar from './EventCalendar';
-import DeleteModal from '../Common/DeleteModal';
+import DeleteModal from '../../Common/DeleteModal';
 
 interface Event {
   _id: string;

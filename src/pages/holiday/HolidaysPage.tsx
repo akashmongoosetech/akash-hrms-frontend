@@ -1,5 +1,5 @@
 import React from "react";
-import HolidayTable from "../components/HolidayTable";
+import HolidayTable from "../../components/holiday/HolidayTable";
 
 export default function HolidaysPage() {
   return (

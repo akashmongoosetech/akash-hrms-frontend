@@ -1,5 +1,5 @@
 import React from "react";
-import EventTable from "../components/EventTable";
+import EventTable from "../../components/event/EventTable";
 
 export default function EventsPage() {
   return (

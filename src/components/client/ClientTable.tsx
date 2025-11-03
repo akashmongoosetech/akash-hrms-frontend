@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Edit, Trash2, Plus, Search, MoreHorizontal, Eye } from 'lucide-react';
-import DeleteModal from '../Common/DeleteModal';
+import DeleteModal from '../../Common/DeleteModal';
 
 interface Client {
   _id: string;

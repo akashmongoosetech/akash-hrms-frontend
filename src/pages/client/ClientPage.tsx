@@ -1,5 +1,5 @@
 import React from "react";
-import ClientTable from "../components/ClientTable";
+import ClientTable from "../../components/client/ClientTable";
 
 export default function ClientPage() {
   return (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
-import DeleteModal from '../Common/DeleteModal';
+import DeleteModal from '../../Common/DeleteModal';
 
 interface Holiday {
   _id: string;

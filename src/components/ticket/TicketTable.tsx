@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, Plus, Search, MoreHorizontal, Eye, User, Calendar, AlertCircle } from 'lucide-react';
-import DeleteModal from '../Common/DeleteModal';
+import DeleteModal from '../../Common/DeleteModal';
 
 interface Employee {
   _id: string;

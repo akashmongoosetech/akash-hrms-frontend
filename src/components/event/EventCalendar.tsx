@@ -3,7 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Edit, Trash2, Cake } from 'lucide-react';
-import DeleteModal from '../Common/DeleteModal';
+import DeleteModal from '../../Common/DeleteModal';
 
 interface Event {
   _id: string;

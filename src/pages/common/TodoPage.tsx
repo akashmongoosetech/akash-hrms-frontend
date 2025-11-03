@@ -11,7 +11,7 @@ import {
   Search,
   Filter,
 } from "lucide-react";
-import DeleteModal from "../Common/DeleteModal";
+import DeleteModal from "../../Common/DeleteModal";
 
 interface Todo {
   _id: string;
