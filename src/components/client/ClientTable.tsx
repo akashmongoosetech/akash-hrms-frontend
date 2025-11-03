@@ -25,7 +25,7 @@ export default function ClientTable() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -215,7 +215,9 @@ export default function ClientTable() {
   // Close menus on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const isOutside = Object.values(menuRef.current).every(ref => !ref || !ref.contains(target));
+      if (isOutside) {
         setOpenMenuId(null);
       }
     };
@@ -280,7 +282,7 @@ export default function ClientTable() {
                   <p className="text-xs text-gray-500">{client.email}</p>
                 </div>
               </div>
-              <div className="relative" ref={menuRef}>
+              <div className="relative" ref={(el) => menuRef.current[client._id] = el}>
                 <button
                   onClick={() => setOpenMenuId(openMenuId === client._id ? null : client._id)}
                   className="p-2 rounded hover:bg-gray-100"
@@ -425,7 +427,7 @@ export default function ClientTable() {
                             const initials = fullName
                               ? fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()
                               : (m?.email ? m.email[0].toUpperCase() : 'U');
-                            const photo = m?.photo ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${m.photo}` : null;
+                            const photo = m?.photo ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/../${m.photo}` : null;
                             return (
                               <div key={m._id || m} className="relative group">
                                 {photo ? (
