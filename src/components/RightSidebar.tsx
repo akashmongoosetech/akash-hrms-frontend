@@ -104,7 +104,7 @@ export default function LeftSidebar() {
       name: "Ticket",
       icon: <Users className="h-5 w-5" />,
       path: "/tickets",
-      roles: ["Admin", "SuperAdmin"],
+      roles: ["Admin", "SuperAdmin", "Employee"],
     },
     {
       id: "attendance",
@@ -130,12 +130,14 @@ export default function LeftSidebar() {
       name: "Client",
       icon: <TrendingUp className="h-5 w-5" />,
       path: "/client",
+      roles: ["Admin", "SuperAdmin"],
     },
     {
       id: "project",
       name: "Project",
       icon: <Users className="h-5 w-5" />,
       path: "/project",
+      roles: ["Admin", "SuperAdmin"],
     },
   ];
 

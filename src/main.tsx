@@ -90,24 +90,24 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/tickets" element={
-            <ProtectedRoute requiredRole="Admin">
+            // <ProtectedRoute requiredRole="Admin">
               <TicketPage/>
-            </ProtectedRoute>
+            // </ProtectedRoute>
           } />
           <Route path="/tickets/add" element={
-            <ProtectedRoute requiredRole="Admin">
+            // <ProtectedRoute requiredRole="Admin">
               <TicketAddPage/>
-            </ProtectedRoute>
+            // </ProtectedRoute>
           } />
           <Route path="/tickets/edit/:id" element={
-            <ProtectedRoute requiredRole="Admin">
+            // <ProtectedRoute requiredRole="Admin">
               <TicketEditPage/>
-            </ProtectedRoute>
+            // </ProtectedRoute>
           } />
           <Route path="/tickets/view/:id" element={
-            <ProtectedRoute requiredRole="Admin">
+            // <ProtectedRoute requiredRole="Admin">
               <TicketViewPage/>
-            </ProtectedRoute>
+            // </ProtectedRoute>
           } />
           <Route path="/attendance" element={<AttendancePage/>} />
           <Route path="/leave" element={<LeavePage/>} />
