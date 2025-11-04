@@ -62,7 +62,7 @@ export default function ClientTable() {
 
       if (response.ok) {
         const data = await response.json();
-        setClients(data);
+        setClients(data.clients);
       } else {
         setError('Failed to fetch clients');
       }
@@ -427,7 +427,7 @@ export default function ClientTable() {
                             const initials = fullName
                               ? fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()
                               : (m?.email ? m.email[0].toUpperCase() : 'U');
-                            const photo = m?.photo ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/../${m.photo}` : null;
+                            const photo = m?.photo ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${m.photo}` : null;
                             return (
                               <div key={m._id || m} className="relative group">
                                 {photo ? (
@@ -476,7 +476,7 @@ export default function ClientTable() {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">
               {editingClient ? 'Edit Client' : 'Add Client'}
             </h3>

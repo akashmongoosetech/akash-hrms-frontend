@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Employee {
   _id: string;
@@ -24,7 +25,6 @@ export default function TicketEditPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -52,7 +52,7 @@ export default function TicketEditPage() {
       if (response.ok) {
         const data = await response.json();
         // Filter only employees
-        const employeesOnly = data.filter((user: any) => user.role === 'Employee');
+        const employeesOnly = data.users.filter((user: any) => user.role === 'Employee');
         setEmployees(employeesOnly);
       }
     } catch (err) {
@@ -80,10 +80,10 @@ export default function TicketEditPage() {
           description: ticket.description
         });
       } else {
-        setError('Failed to fetch ticket');
+        toast.error('Failed to fetch ticket');
       }
     } catch (err) {
-      setError('Error fetching ticket');
+      toast.error('Error fetching ticket');
     } finally {
       setFetchLoading(false);
     }
@@ -94,7 +94,6 @@ export default function TicketEditPage() {
     if (!id) return;
 
     setLoading(true);
-    setError(null);
 
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/tickets/${id}`, {
@@ -107,13 +106,14 @@ export default function TicketEditPage() {
       });
 
       if (response.ok) {
+        toast.success('Ticket updated successfully');
         navigate('/tickets');
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to update ticket');
+        toast.error(errorData.message || 'Failed to update ticket');
       }
     } catch (err) {
-      setError('Error updating ticket');
+      toast.error('Error updating ticket');
     } finally {
       setLoading(false);
     }
@@ -142,11 +142,6 @@ export default function TicketEditPage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>

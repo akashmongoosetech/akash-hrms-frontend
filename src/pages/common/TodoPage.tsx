@@ -12,6 +12,7 @@ import {
   Filter,
 } from "lucide-react";
 import DeleteModal from "../../Common/DeleteModal";
+import { formatDate } from '../../Common/Commonfunction';
 
 interface Todo {
   _id: string;
@@ -38,6 +39,7 @@ interface Employee {
   firstName: string;
   lastName: string;
   email: string;
+  role: string;
 }
 
 export default function TodoPage() {
@@ -100,7 +102,7 @@ export default function TodoPage() {
       );
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data);
+        setEmployees(data.users);
       }
     } catch (error) {
       console.error("Error fetching employees:", error);
@@ -358,7 +360,7 @@ export default function TodoPage() {
 
       {/* Todo List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-96">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -406,7 +408,7 @@ export default function TodoPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center text-sm text-gray-900">
                       <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                      {new Date(todo.dueDate).toLocaleDateString()}
+                      {formatDate(todo.dueDate)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -505,7 +507,7 @@ export default function TodoPage() {
                     required
                   >
                     <option value="">Select Employee</option>
-                    {employees.map((employee) => (
+                    {employees.filter(employee => employee.role !== 'Admin' && employee.role !== 'SuperAdmin').map((employee) => (
                       <option key={employee._id} value={employee._id}>
                         {employee.firstName} {employee.lastName} ({employee.email})
                       </option>

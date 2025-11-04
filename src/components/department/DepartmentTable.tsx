@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
+import { formatDate } from '../../Common/Commonfunction';
 
 interface Department {
   _id: string;
@@ -32,7 +33,7 @@ export default function DepartmentTable() {
       });
       if (response.ok) {
         const data = await response.json();
-        setDepartments(data);
+        setDepartments(data.departments);
       } else {
         console.error('Failed to fetch departments');
         setDepartments([]);
@@ -186,7 +187,7 @@ export default function DepartmentTable() {
                     {department.head}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(department.createdAt).toLocaleDateString()}
+                    {formatDate(department.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">

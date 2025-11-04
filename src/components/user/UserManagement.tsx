@@ -38,7 +38,9 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       const res = await API.get('/users');
-      setUsers(res.data);
+      // Filter to show only Admin and SuperAdmin users
+      const filteredData = res.data.users.filter((user: User) => user.role === 'Admin' || user.role === 'SuperAdmin');
+      setUsers(filteredData);
     } catch (err: any) {
       alert('Failed to fetch users: ' + err?.response?.data?.message);
     } finally {

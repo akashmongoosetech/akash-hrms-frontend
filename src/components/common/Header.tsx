@@ -9,6 +9,8 @@ import {
   Search,
   Mail,
 } from "lucide-react";
+import socket from "../../utils/socket";
+import { formatDate } from "../../Common/Commonfunction";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -16,7 +18,22 @@ export default function Header() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const userId = localStorage.getItem("userId");
+
+  // Load notifications from localStorage on mount
+  useEffect(() => {
+    if (userId) {
+      const savedNotifications = localStorage.getItem(`notifications-${userId}`);
+      if (savedNotifications) {
+        const parsedNotifications = JSON.parse(savedNotifications);
+        setNotifications(parsedNotifications);
+        const unread = parsedNotifications.filter((n: any) => !n.read).length;
+        setUnreadCount(unread);
+      }
+    }
+  }, [userId]);
 
   useEffect(() => {
     // Fetch user profile data from backend
@@ -64,6 +81,52 @@ export default function Header() {
     };
 
     fetchUserProfile();
+
+    // Socket.io listener for real-time notifications
+    if (userId) {
+      socket.on(`todo-notification-${userId}`, (notification) => {
+        setNotifications((prev) => {
+          const newNotifications = [{ ...notification, read: false }, ...prev];
+          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
+          return newNotifications;
+        });
+        setUnreadCount((prev) => prev + 1);
+      });
+
+      socket.on(`ticket-notification-${userId}`, (notification) => {
+        setNotifications((prev) => {
+          const newNotifications = [{ ...notification, read: false }, ...prev];
+          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
+          return newNotifications;
+        });
+        setUnreadCount((prev) => prev + 1);
+      });
+
+      socket.on(`event-notification-${userId}`, (notification) => {
+        setNotifications((prev) => {
+          const newNotifications = [{ ...notification, read: false }, ...prev];
+          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
+          return newNotifications;
+        });
+        setUnreadCount((prev) => prev + 1);
+      });
+
+      socket.on(`holiday-notification-${userId}`, (notification) => {
+        setNotifications((prev) => {
+          const newNotifications = [{ ...notification, read: false }, ...prev];
+          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
+          return newNotifications;
+        });
+        setUnreadCount((prev) => prev + 1);
+      });
+    }
+
+    return () => {
+      socket.off(`todo-notification-${userId}`);
+      socket.off(`ticket-notification-${userId}`);
+      socket.off(`event-notification-${userId}`);
+      socket.off(`holiday-notification-${userId}`);
+    };
   }, [userId, navigate]);
 
   // Get user info from API response or fallback to localStorage
@@ -71,9 +134,10 @@ export default function Header() {
   const userName = userData
     ? `${userData.firstName} ${userData.lastName}`
     : localStorage.getItem("userName") || "User";
+  const baseUrl = ((import.meta as any).env.VITE_API_URL || "http://localhost:5000").replace('', '');
   const userPhoto = userData?.photo
-    ? `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/${
-        userData.photo
+    ? `${baseUrl}/uploads/${
+        userData.photo.split(/[/\\]/).pop()
       }`
     : null;
 
@@ -134,7 +198,7 @@ export default function Header() {
               >
                 <Bell className="h-5 w-5" />
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  3
+                  {unreadCount}
                 </span>
               </button>
 
@@ -146,26 +210,48 @@ export default function Header() {
                     </h3>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    {[1, 2, 3].map((item) => (
-                      <div
-                        key={item}
-                        className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="bg-blue-100 p-2 rounded-full">
-                            <Mail className="h-4 w-4 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              New leave request
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              2 hours ago
-                            </p>
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500">
+                        No new notifications
+                      </div>
+                    ) : (
+                      notifications.map((notification, index) => (
+                        <div
+                          key={index}
+                          className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                          onClick={() => {
+                            // Mark this notification as read
+                            if (!notification.read) {
+                              setNotifications((prev) => {
+                                const updatedNotifications = prev.map((n, i) =>
+                                  i === index ? { ...n, read: true } : n
+                                );
+                                localStorage.setItem(`notifications-${userId}`, JSON.stringify(updatedNotifications));
+                                return updatedNotifications;
+                              });
+                              setUnreadCount((prev) => Math.max(0, prev - 1));
+                            }
+                          }}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className="bg-blue-100 p-2 rounded-full">
+                              <Mail className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className={`text-sm font-medium ${notification.read ? 'text-gray-600' : 'text-gray-900'}`}>
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Just now
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -206,13 +292,38 @@ export default function Header() {
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                   <div className="p-4 border-b border-gray-200">
-                    <p className="font-medium text-gray-900">{userName}</p>
-                    <p className="text-sm text-gray-500">{role}</p>
+                    <div className="flex items-center space-x-3">
+                      {/* {userPhoto ? (
+                        <img
+                          src={userPhoto}
+                          alt="Profile"
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-medium">
+                            {userName
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium text-gray-900">{userName}</p>
+                        <p className="text-sm text-gray-500">{role}</p>
+                      </div> */}
+                      <p></p>
+                    </div>
                   </div>
                   <div className="p-2">
-                    <button className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-                      <Settings className="h-4 w-4" />
-                      <span>Settings</span>
+                    <button
+                      onClick={() => navigate(`/employees/view/${userId}`)}
+                      className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <Users className="h-4 w-4" />
+                      <span>Profile</span>
                     </button>
                     <button
                       onClick={handleLogout}

@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Edit, Trash2, Cake } from 'lucide-react';
+import { Edit, Trash2, Cake, Calendar } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
+import { formatDate } from '../../Common/Commonfunction';
 
 interface Event {
   _id: string;
@@ -16,7 +17,7 @@ interface User {
   _id: string;
   firstName: string;
   lastName: string;
-  dateOfBirth: string;
+  dob: string;
   role: string;
 }
 
@@ -28,6 +29,13 @@ interface BirthdayEvent {
   user: User;
 }
 
+interface HolidayEvent {
+  _id: string;
+  name: string;
+  date: string;
+  type: 'holiday';
+}
+
 interface EventCalendarProps {
   events: Event[];
   onEventClick?: (event: Event) => void;
@@ -37,14 +45,16 @@ interface EventCalendarProps {
 }
 
 export default function EventCalendar({ events, onEventClick, onEditEvent, onDeleteEvent, userRole }: EventCalendarProps) {
-  const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | HolidayEvent | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [holidays, setHolidays] = useState<HolidayEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
+    fetchHolidays();
   }, []);
 
   const fetchUsers = async () => {
@@ -65,9 +75,10 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
       // console.log('Response headers:', response.headers);
 
       if (response.ok) {
-        const usersData = await response.json();
+        const data = await response.json();
+        const usersData = data.users;
         console.log('Fetched users:', usersData);
-        console.log('Users with DOB:', usersData.filter((u: User) => u.dateOfBirth));
+        console.log('Users with DOB:', usersData.filter((u: User) => u.dob));
         console.log('First user sample:', usersData[0]);
         setUsers(usersData);
       } else {
@@ -76,8 +87,41 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchHolidays = async () => {
+    try {
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Holidays response status:', response.status);
+
+      if (response.ok) {
+        const holidaysData = await response.json();
+        console.log('Fetched holidays:', holidaysData);
+
+        // Transform holidays to HolidayEvent format
+        const holidayEvents: HolidayEvent[] = holidaysData.map((holiday: any) => ({
+          _id: holiday._id,
+          name: holiday.name,
+          date: holiday.date.split('T')[0], // Ensure YYYY-MM-DD format
+          type: 'holiday' as const,
+        }));
+
+        setHolidays(holidayEvents);
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to fetch holidays, status:', response.status, 'error:', errorText);
+      }
+    } catch (error) {
+      console.error('Error fetching holidays:', error);
     }
   };
 
@@ -93,13 +137,13 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     const currentYear = new Date().getFullYear();
 
     const list: BirthdayEvent[] = users
-      .filter(u => !!u.dateOfBirth)
+      .filter(u => !!u.dob)
       .map((user) => {
         // Try to parse DOB robustly; fall back to splitting string
-        let dob = new Date(user.dateOfBirth);
+        let dob = new Date(user.dob);
         if (isNaN(dob.getTime())) {
           // Expected format: YYYY-MM-DD
-          const parts = user.dateOfBirth.split(/[-/]/).map(Number);
+          const parts = user.dob.split(/[-/]/).map(Number);
           if (parts.length >= 3) {
             dob = new Date(parts[0], parts[1] - 1, parts[2]);
           }
@@ -120,14 +164,28 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
 
     return list;
   }, [users]);
-  const allEvents = [...events, ...birthdayEvents];
+  const allEvents = [...events, ...birthdayEvents, ...holidays];
+
+  // Create day colors map with priority: holiday > birthday > event
+  const dayColors: { [date: string]: string } = {};
+  allEvents.forEach(event => {
+    const date = event.date.includes('T') ? event.date.split('T')[0] : event.date;
+    const color = 'type' in event && event.type === 'birthday' ? '#3B82F6' : ('type' in event && event.type === 'holiday' ? '#EF4444' : '#10B981');
+    if (!dayColors[date]) {
+      dayColors[date] = color;
+    } else if ('type' in event && event.type === 'holiday') {
+      dayColors[date] = color; // Holiday takes priority
+    } else if ('type' in event && event.type === 'birthday' && dayColors[date] === '#10B981') {
+      dayColors[date] = color; // Birthday takes priority over event
+    }
+  });
 
   const calendarEvents = allEvents.map(event => ({
     id: event._id,
     title: event.name,
     // Ensure date is in YYYY-MM-DD format and avoid timezone shifts
     date: (event.date.includes('T') ? event.date.split('T')[0] : event.date),
-    backgroundColor: 'type' in event && event.type === 'birthday' ? '#10B981' : '#3B82F6',
+    backgroundColor: 'type' in event && event.type === 'birthday' ? '#3B82F6' : ('type' in event && event.type === 'holiday' ? '#EF4444' : '#10B981'),
     extendedProps: {
       originalEvent: event
     }
@@ -142,9 +200,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     }
   };
 
-  const handleListEventClick = (event: Event | BirthdayEvent) => {
+  const handleListEventClick = (event: Event | BirthdayEvent | HolidayEvent) => {
     setSelectedEvent(event);
-    // Only call onEventClick for regular events, not birthdays
+    // Only call onEventClick for regular events, not birthdays or holidays
     if (onEventClick && !('type' in event)) {
       onEventClick(event);
     }
@@ -158,16 +216,6 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
   // Check if user can manage events (Admin or SuperAdmin)
   const canManageEvents = userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin');
 
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-full">
@@ -189,12 +237,30 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                 className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
                   selectedEvent?._id === event._id
                     ? 'border-blue-500 bg-blue-50 shadow-sm'
-                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                    : 'border-gray-200 ' + (
+                        'type' in event && event.type === 'birthday'
+                          ? 'hover:border-blue-300 hover:bg-gray-50'
+                          : 'type' in event && event.type === 'holiday'
+                          ? 'hover:border-red-300 hover:bg-gray-50'
+                          : 'hover:border-green-300 hover:bg-gray-50'
+                      )
+                } ${
+                  'type' in event && event.type === 'birthday'
+                    ? 'border-l-[8px] border-l-blue-500'
+                    : 'type' in event && event.type === 'holiday'
+                    ? 'border-l-[8px] border-l-red-500'
+                    : 'border-l-[8px] border-l-green-500'
                 }`}
                 onClick={() => handleListEventClick(event)}
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium text-gray-900 line-clamp-2 pr-2">
+                  <h3 className={`font-medium line-clamp-2 pr-2 ${
+                    'type' in event && event.type === 'birthday'
+                      ? 'text-blue-600'
+                      : 'type' in event && event.type === 'holiday'
+                      ? 'text-red-600'
+                      : 'text-green-600'
+                  }`}>
                     {event.name}
                   </h3>
                   <div className="flex items-center space-x-2 flex-shrink-0">
@@ -223,26 +289,36 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                         </button>
                       </>
                     )}
-                    <span className={`w-3 h-3 rounded-full ${'type' in event && event.type === 'birthday' ? 'bg-green-500' : 'bg-blue-500'}`}></span>
+                    <span className={`w-3 h-3 rounded-full ${
+                      'type' in event && event.type === 'birthday' ? 'bg-blue-500' :
+                      ('type' in event && event.type === 'holiday' ? 'bg-red-500' : 'bg-green-500')
+                    }`}></span>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600">
                   {formatDate(event.date)}
                 </p>
-                {'type' in event && event.type === 'birthday' ? (
+                {/* {'type' in event && event.type === 'birthday' ? (
                   <div className="flex items-center mt-1">
-                    <Cake className="h-3 w-3 text-green-600 mr-1" />
-                    <p className="text-xs text-green-600">
+                    <Cake className="h-3 w-3 text-blue-600 mr-1" />
+                    <p className="text-xs text-blue-600">
                       Birthday - {event.user.role}
+                    </p>
+                  </div>
+                ) : 'type' in event && event.type === 'holiday' ? (
+                  <div className="flex items-center mt-1">
+                    <Calendar className="h-3 w-3 text-red-600 mr-1" />
+                    <p className="text-xs text-red-600">
+                      Holiday
                     </p>
                   </div>
                 ) : (
                   'createdAt' in event && event.createdAt && (
                     <p className="text-xs text-gray-400 mt-1">
-                      Created: {new Date(event.createdAt).toLocaleDateString()}
+                      Created: {formatDate(event.createdAt)}
                     </p>
                   )
-                )}
+                )} */}
               </div>
             ))
           )}
@@ -267,6 +343,12 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
           eventTextColor="#FFFFFF"
           dayMaxEvents={true}
           moreLinkClick="popover"
+          dayCellDidMount={(info) => {
+            const date = info.date.toISOString().split('T')[0];
+            if (dayColors[date]) {
+              info.el.style.setProperty('background-color', dayColors[date], 'important');
+            }
+          }}
         />
       </div>
 

@@ -36,7 +36,7 @@ export default function UserTable() {
       if (response.ok) {
         const data = await response.json();
         // Filter to show only Admin and SuperAdmin users
-        const filteredData = data.filter((user: User) => user.role === 'Admin' || user.role === 'SuperAdmin');
+        const filteredData = data.users.filter((user: User) => user.role === 'Admin' || user.role === 'SuperAdmin');
         setUsers(filteredData);
       } else {
         console.error('Failed to fetch users');

@@ -9,6 +9,9 @@ import ProfileManagement from './components/user/ProfileManagement';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/common/Layout';
 import EmployeesPage from './pages/employee/EmployeesPage';
+import EmployeeAddPage from './pages/employee/EmployeeAddPage';
+import EmployeeEditPage from './pages/employee/EmployeeEditPage';
+import EmployeeViewPage from './pages/employee/EmployeeViewPage';
 import DepartmentPage from './pages/department/DepartmentPage';
 import HolidaysPage from './pages/holiday/HolidaysPage';
 import EventsPage from './pages/event/EventsPage';
@@ -49,18 +52,33 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/profile" element={<ProfileManagement/>} />
-          <Route path="/employees" element={<EmployeesPage/>} />
+          <Route path="/employees" element={
+            <ProtectedRoute requiredRole="Admin">
+              <EmployeesPage/>
+            </ProtectedRoute>
+          } />
+          <Route path="/employees/add" element={
+            <ProtectedRoute requiredRole="Admin">
+              <EmployeeAddPage/>
+            </ProtectedRoute>
+          } />
+          <Route path="/employees/edit/:id" element={
+            // <ProtectedRoute requiredRole="Admin">
+              <EmployeeEditPage/>
+            // </ProtectedRoute>
+          } />
+          <Route path="/employees/view/:id" element={
+            // <ProtectedRoute requiredRole="Admin">
+              <EmployeeViewPage/>
+            // </ProtectedRoute>
+          } />
           <Route path="/department" element={
             <ProtectedRoute requiredRole="Admin">
               <DepartmentPage/>
             </ProtectedRoute>
           } />
           <Route path="/holidays" element={<HolidaysPage/>} />
-          <Route path="/events" element={
-            <ProtectedRoute requiredRole="Admin">
-              <EventsPage/>
-            </ProtectedRoute>
-          } />
+          <Route path="/events" element={<EventsPage/>} />
           <Route path="/client" element={<ClientPage/>} />
           <Route path="/project" element={<ProjectPage/>} />
           <Route path="/statistics" element={
@@ -69,7 +87,7 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/activities" element={
-            <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute requiredRole="Employee">
               <ActivitiesPage/>
             </ProtectedRoute>
           } />
@@ -90,24 +108,24 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/tickets" element={
-            // <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute requiredRole="Employee">
               <TicketPage/>
-            // </ProtectedRoute>
+            </ProtectedRoute>
           } />
           <Route path="/tickets/add" element={
-            // <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute requiredRole="Admin">
               <TicketAddPage/>
-            // </ProtectedRoute>
+            </ProtectedRoute>
           } />
           <Route path="/tickets/edit/:id" element={
-            // <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute requiredRole="Employee">
               <TicketEditPage/>
-            // </ProtectedRoute>
+            </ProtectedRoute>
           } />
           <Route path="/tickets/view/:id" element={
-            // <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute requiredRole="Employee">
               <TicketViewPage/>
-            // </ProtectedRoute>
+            </ProtectedRoute>
           } />
           <Route path="/attendance" element={<AttendancePage/>} />
           <Route path="/leave" element={<LeavePage/>} />

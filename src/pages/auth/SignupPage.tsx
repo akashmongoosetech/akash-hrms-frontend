@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import API from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../../components/common/Loader';
+import toast from 'react-hot-toast';
 
 export default function SignupPage() {
   const [form, setForm] = useState<any>({ role: 'Employee' });
@@ -48,11 +49,11 @@ export default function SignupPage() {
       });
 
       const res = await API.post('/auth/signup', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      alert('Signup success — you can now login');
+      toast.success('Signup success — you can now login');
       navigate('/login');
     } catch (err: any) {
       console.error(err);
-      alert(err?.response?.data?.message || 'Signup error');
+      toast.error(err?.response?.data?.message || 'Signup error');
     } finally { setLoading(false); }
   };
 

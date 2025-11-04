@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Edit, Trash2, Plus, Search, MoreHorizontal, Eye, Users, Calendar } from 'lucide-react';
+import { Edit, Trash2, Plus, Search, MoreHorizontal, Eye, Users, Calendar, Code } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
+import { formatDate } from '../../Common/Commonfunction';
 
 interface Client {
   _id: string;
@@ -39,7 +40,7 @@ export default function ProjectTable() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Safe helpers
   const getClientName = (p?: Project | null): string => {
@@ -66,12 +67,6 @@ export default function ProjectTable() {
     if (!Array.isArray(m)) return [] as TeamMember[];
     if (m.length === 0) return [] as TeamMember[];
     return typeof m[0] === 'string' ? [] as TeamMember[] : (m.filter((x: any) => x && x._id) as TeamMember[]);
-  };
-
-  const formatDateSafe = (s?: string): string => {
-    if (!s) return '—';
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
   };
 
   const [formData, setFormData] = useState({
@@ -121,7 +116,7 @@ export default function ProjectTable() {
 
       if (response.ok) {
         const data = await response.json();
-        setClients(data);
+        setClients(data.clients);
       }
     } catch (err) {
       console.error('Error fetching clients:', err);
@@ -139,7 +134,7 @@ export default function ProjectTable() {
       if (response.ok) {
         const data = await response.json();
         // Filter only employees
-        const employeesOnly = data.filter((user: any) => user.role === 'Employee');
+        const employeesOnly = data.users.filter((user: any) => user.role === 'Employee');
         setEmployees(employeesOnly);
       }
     } catch (err) {
@@ -256,7 +251,9 @@ export default function ProjectTable() {
   // Close menus on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const isOutside = Object.values(menuRef.current).every(ref => !ref || !ref.contains(target));
+      if (isOutside) {
         setOpenMenuId(null);
       }
     };
@@ -275,7 +272,7 @@ export default function ProjectTable() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Projects</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Projects</h3> 
         <button
           onClick={() => openModal()}
           className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -306,7 +303,7 @@ export default function ProjectTable() {
                 <h4 className="text-sm font-semibold text-gray-900">{project.name}</h4>
                 <p className="text-xs text-gray-500 mt-1">{getClientName(project)}</p>
               </div>
-              <div className="relative" ref={menuRef}>
+              <div className="relative" ref={(el) => menuRef.current[project._id] = el}>
                 <button
                   onClick={() => setOpenMenuId(openMenuId === project._id ? null : project._id)}
                   className="p-2 rounded hover:bg-gray-100"
@@ -344,15 +341,32 @@ export default function ProjectTable() {
               {project.description}
             </div>
             <div className="mt-3 text-xs text-gray-500">
+              <div className="flex flex-wrap gap-1">
+                {project.technology.split(',').map((tech, index) => (
+                  <span key={index} className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                    {tech.trim()}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-gray-500">
               <div className="flex items-center space-x-1">
+                <p className="font-bold">Start date:</p>
                 <Calendar className="h-3 w-3" />
-                <span>{formatDateSafe(project.startDate as any)}</span>
+                <span>{formatDate(project.startDate as any)}</span>
               </div>
             </div>
             <div className="mt-2 text-xs text-gray-500">
               <div className="flex items-center space-x-1">
+                <p className="font-bold">Team:</p>
                 <Users className="h-3 w-3" />
-                <span>{getMemberCount(project)} members</span>
+                <div className="flex flex-wrap gap-1">
+                  {project.teamMembers.map((member) => (
+                    <span key={member._id} className="bg-gray-100 px-1 py-0.5 rounded text-xs">
+                      {member.firstName} {member.lastName}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="mt-3">
@@ -399,12 +413,18 @@ export default function ProjectTable() {
               </div>
               <div>
                 <div className="text-gray-500">Technology</div>
-                <div className="text-gray-800">{viewProject.technology}</div>
+                <div className="flex flex-wrap gap-1">
+                  {viewProject.technology.split(',').map((tech, index) => (
+                    <span key={index} className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                      {tech.trim()}
+                    </span>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-gray-500">Start Date</div>
-                  <div className="text-gray-800">{formatDateSafe(viewProject.startDate as any)}</div>
+                  <div className="text-gray-800">{formatDate(viewProject.startDate as any)}</div>
                 </div>
                 <div>
                   <div className="text-gray-500">Status</div>

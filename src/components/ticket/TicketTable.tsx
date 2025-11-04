@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, Trash2, Plus, Search, MoreHorizontal, Eye, User, Calendar, AlertCircle } from 'lucide-react';
+import { Edit, Trash2, Plus, Search, Eye, User, Calendar, AlertCircle } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
+import toast from 'react-hot-toast';
 
 interface Employee {
   _id: string;
@@ -18,6 +19,7 @@ interface Ticket {
   dueDate: string;
   description: string;
   createdAt: string;
+  currentProgress: number;
 }
 
 export default function TicketTable() {
@@ -25,12 +27,9 @@ export default function TicketTable() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTicketId, setDeleteTicketId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const formatDateSafe = (s?: string): string => {
     if (!s) return '—';
@@ -56,10 +55,10 @@ export default function TicketTable() {
         const data = await response.json();
         setTickets(data);
       } else {
-        setError('Failed to fetch tickets');
+        toast.error('Failed to fetch tickets');
       }
     } catch (err) {
-      setError('Error fetching tickets');
+      toast.error('Error fetching tickets');
     } finally {
       setLoading(false);
     }
@@ -76,7 +75,7 @@ export default function TicketTable() {
       if (response.ok) {
         const data = await response.json();
         // Filter only employees
-        const employeesOnly = data.filter((user: any) => user.role === 'Employee');
+        const employeesOnly = data.users.filter((user: any) => user.role === 'Employee');
         setEmployees(employeesOnly);
       }
     } catch (err) {
@@ -104,11 +103,12 @@ export default function TicketTable() {
         fetchTickets();
         setShowDeleteModal(false);
         setDeleteTicketId(null);
+        toast.success('Ticket deleted successfully');
       } else {
-        setError('Failed to delete ticket');
+        toast.error('Failed to delete ticket');
       }
     } catch (err) {
-      setError('Error deleting ticket');
+      toast.error('Error deleting ticket');
     }
   };
 
@@ -120,23 +120,9 @@ export default function TicketTable() {
     return titleHit || employeeHit;
   });
 
-  // Close menus on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenuId(null);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   if (loading) {
     return <div className="text-center py-8">Loading tickets...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center py-8 text-red-600">{error}</div>;
   }
 
   return (
@@ -187,6 +173,9 @@ export default function TicketTable() {
                 Created Date
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Progress
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -222,40 +211,43 @@ export default function TicketTable() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {formatDateSafe(ticket.createdAt)}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${ticket.currentProgress || 0}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm text-gray-600 min-w-[3rem]">
+                      {ticket.currentProgress || 0}%
+                    </span>
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="relative" ref={menuRef}>
+                  <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => setOpenMenuId(openMenuId === ticket._id ? null : ticket._id)}
-                      className="text-gray-400 hover:text-gray-600"
+                      onClick={() => navigate(`/tickets/view/${ticket._id}`)}
+                      className="text-gray-600 hover:text-gray-800 p-1"
+                      title="View"
                     >
-                      <MoreHorizontal className="h-5 w-5" />
+                      <Eye className="h-4 w-4" />
                     </button>
-                    {openMenuId === ticket._id && (
-                      <div className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                        <button
-                          onClick={() => { navigate(`/tickets/view/${ticket._id}`); setOpenMenuId(null); }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2"
-                        >
-                          <Eye className="h-4 w-4 text-gray-600" />
-                          <span>View</span>
-                        </button>
-                        <button
-                          onClick={() => { navigate(`/tickets/edit/${ticket._id}`); setOpenMenuId(null); }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2"
-                        >
-                          <Edit className="h-4 w-4 text-blue-600" />
-                          <span>Edit</span>
-                        </button>
-                        {localStorage.getItem('role') !== 'Employee' && (
-                          <button
-                            onClick={() => { handleDelete(ticket._id); setOpenMenuId(null); }}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                            <span>Delete</span>
-                          </button>
-                        )}
-                      </div>
+                    <button
+                      onClick={() => navigate(`/tickets/edit/${ticket._id}`)}
+                      className="text-blue-600 hover:text-blue-800 p-1"
+                      title="Edit"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    {localStorage.getItem('role') !== 'Employee' && (
+                      <button
+                        onClick={() => handleDelete(ticket._id)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     )}
                   </div>
                 </td>

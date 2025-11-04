@@ -116,10 +116,11 @@ export default function Dashboard() {
 
   ];
 
+  const role = localStorage.getItem("role") || "Employee";
   const navItems = allNavItems.filter(
     (item) =>
       !item.roles ||
-      item.roles.some((r) => r.toLowerCase() === "Employee".toLowerCase())
+      item.roles.some((r) => r.toLowerCase() === role.toLowerCase())
   );
 
   // Mock data for dashboard
@@ -137,7 +138,6 @@ export default function Dashboard() {
   });
 
   const [recentActivities, setRecentActivities] = useState([]);
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
 
   useEffect(() => {
     // Fetch real user statistics
@@ -149,7 +149,8 @@ export default function Dashboard() {
           }
         });
         if (response.ok) {
-          const users = await response.json();
+          const data = await response.json();
+          const users = data.users;
           const totalEmployees = users.filter((user: any) => user.role === 'Employee').length;
           const totalAdmins = users.filter((user: any) => user.role === 'Admin').length;
           const totalSuperAdmins = users.filter((user: any) => user.role === 'SuperAdmin').length;
@@ -181,59 +182,7 @@ export default function Dashboard() {
       pendingRequests: 12
     }));
 
-    setRecentActivities([
-      {
-        id: 1,
-        user: "Sarah Johnson",
-        action: "Leave request submitted",
-        time: "2 hours ago",
-        type: "leave",
-      },
-      {
-        id: 2,
-        user: "Mike Chen",
-        action: "Profile updated",
-        time: "4 hours ago",
-        type: "profile",
-      },
-      {
-        id: 3,
-        user: "Lisa Wang",
-        action: "Document uploaded",
-        time: "6 hours ago",
-        type: "document",
-      },
-      {
-        id: 4,
-        user: "David Kim",
-        action: "Performance review completed",
-        time: "1 day ago",
-        type: "review",
-      },
-    ]);
-
-    setUpcomingEvents([
-      {
-        id: 1,
-        title: "Team Meeting",
-        date: "2024-01-15",
-        time: "10:00 AM",
-        type: "meeting",
-      },
-      {
-        id: 2,
-        title: "Payroll Processing",
-        date: "2024-01-20",
-        type: "deadline",
-      },
-      {
-        id: 3,
-        title: "Training Session",
-        date: "2024-01-18",
-        time: "2:00 PM",
-        type: "training",
-      },
-    ]);
+   
   }, []);
 
 

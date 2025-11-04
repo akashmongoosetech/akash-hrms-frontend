@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../utils/api';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
 
   const onSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
@@ -21,7 +29,7 @@ export default function LoginPage() {
       localStorage.setItem('userName', res.data.firstName + ' ' + res.data.lastName);
       navigate('/dashboard');
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Login failed');
+      toast.error(err?.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }

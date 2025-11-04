@@ -38,7 +38,7 @@ export default function TicketAddPage() {
       if (response.ok) {
         const data = await response.json();
         // Filter only employees
-        const employeesOnly = data.filter((user: any) => user.role === 'Employee');
+        const employeesOnly = data.users.filter((user: any) => user.role === 'Employee');
         setEmployees(employeesOnly);
       }
     } catch (err) {

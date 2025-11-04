@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
+import toast from 'react-hot-toast';
 import DeleteModal from '../../Common/DeleteModal';
+import { formatDate, formatDay } from '../../Common/Commonfunction';
 
 interface Holiday {
   _id: string;
@@ -18,21 +20,23 @@ export default function HolidayTable() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteHolidayId, setDeleteHolidayId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', date: '' });
+  const role = localStorage.getItem('role');
 
   useEffect(() => {
     fetchHolidays();
-  }, []);
+  }, [searchTerm]);
 
   const fetchHolidays = async () => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays`, {
+      const searchParam = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '';
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays${searchParam}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setHolidays(data);
+        setHolidays(data || []);
       } else {
         console.error('Failed to fetch holidays');
         setHolidays([]);
@@ -45,9 +49,6 @@ export default function HolidayTable() {
     }
   };
 
-  const filteredHolidays = holidays.filter(holiday =>
-    (holiday.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,13 +73,14 @@ export default function HolidayTable() {
         setShowAddModal(false);
         setEditingHoliday(null);
         setFormData({ name: '', date: '' });
+        toast.success(editingHoliday ? 'Holiday updated successfully!' : 'Holiday added successfully!');
       } else {
         const error = await response.json();
-        alert(error.message || 'Failed to save holiday');
+        toast.error(error.message || 'Failed to save holiday');
       }
     } catch (error) {
       console.error('Error saving holiday:', error);
-      alert('Error saving holiday');
+      toast.error('Error saving holiday');
     }
   };
 
@@ -107,11 +109,14 @@ export default function HolidayTable() {
         setHolidays(holidays.filter(holiday => holiday._id !== deleteHolidayId));
         setShowDeleteModal(false);
         setDeleteHolidayId(null);
+        toast.success('Holiday deleted successfully!');
       } else {
         console.error('Failed to delete holiday');
+        toast.error('Failed to delete holiday');
       }
     } catch (error) {
       console.error('Error deleting holiday:', error);
+      toast.error('Error deleting holiday');
     }
   };
 
@@ -133,14 +138,16 @@ export default function HolidayTable() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Holiday Management</h2>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-        >
-          <UserPlus className="h-5 w-5" />
-          <span>Add Holiday</span>
-        </button>
+        <h2 className="text-2xl font-bold text-gray-900">Holidays</h2>
+        {role !== 'Employee' && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+          >
+            <UserPlus className="h-5 w-5" />
+            <span>Add Holiday</span>
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -168,40 +175,44 @@ export default function HolidayTable() {
                   Holiday Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created Date
+                  Day
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                {role !== 'Employee' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredHolidays.map((holiday) => (
+              {holidays.map((holiday) => (
                 <tr key={holiday._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {holiday.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(holiday.date).toLocaleDateString()}
+                    {formatDate(holiday.date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(holiday.createdAt).toLocaleDateString()}
+                    {formatDay(holiday.date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(holiday)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Edit className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(holiday._id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
-                    </div>
+                    {role !== 'Employee' && (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(holiday)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(holiday._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -210,7 +221,7 @@ export default function HolidayTable() {
         </div>
       </div>
 
-      {filteredHolidays.length === 0 && (
+      {holidays.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500">No holidays found matching your search.</p>
         </div>
