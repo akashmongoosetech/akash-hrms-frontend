@@ -103,7 +103,7 @@ export default function LeftSidebar() {
       name: "Todo",
       icon: <Users className="h-5 w-5" />,
       path: "/todo",
-      roles: ["Admin", "SuperAdmin"],
+      roles: ["Employee", "Admin", "SuperAdmin"],
     },
     {
       id: "link",

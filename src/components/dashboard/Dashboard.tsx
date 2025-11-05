@@ -11,117 +11,21 @@ import {
   Building,
 } from "lucide-react";
 import DashboardTable from "./DashboardTable";
+import EmployeeTodos from "./EmployeeTodos";
 
+interface Todo {
+  _id: string;
+  employeeName: string;
+  employeePhoto?: string;
+  title: string;
+  dueDate: string;
+  status: string;
+  priority: string;
+}
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("overview");
-
-  const allNavItems = [
-    {
-      id: "overview",
-      name: "Dashboard",
-      icon: <BarChart3 className="h-5 w-5" />,
-    },
-    {
-      id: "user",
-      name: "User",
-      icon: <Users className="h-5 w-5" />,
-      roles: ["Admin", "SuperAdmin"],
-    },
-    {
-      id: "employees",
-      name: "Employees",
-      icon: <Users className="h-5 w-5" />,
-      roles: ["Employee", "Admin", "SuperAdmin"],
-    },
-    {
-      id: "department",
-      name: "Department",
-      icon: <Building className="h-5 w-5" />,
-      roles: ["Admin", "SuperAdmin"],
-    },
-    {
-      id: "statistics",
-      name: "Statistics",
-      icon: <Users className="h-5 w-5" />,
-      roles: ["Admin", "SuperAdmin"],
-    },
-    {
-      id: "activities",
-      name: "Activities",
-      icon: <Users className="h-5 w-5" />,
-      roles: ["Admin", "SuperAdmin"],
-    },
-    {
-      id: "holidays",
-      name: "Holidays",
-      icon: <Users className="h-5 w-5" />,
-    },
-    {
-      id: "events",
-      name: "Events",
-      icon: <Calendar className="h-5 w-5" />,
-      roles: ["Admin", "SuperAdmin"],
-    },
-    { id: "reports", name: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
-    {
-      id: "gallery",
-      name: "Gallery",
-      icon: <Users className="h-5 w-5" />,
-      roles: ["Admin", "SuperAdmin"],
-    },
-    {
-      id: "todo",
-      name: "Todo",
-      icon: <Users className="h-5 w-5" />,
-      roles: ["Admin", "SuperAdmin"],
-    },
-    {
-      id: "link",
-      name: "Link",
-      icon: <Users className="h-5 w-5" />,
-      roles: ["Admin", "SuperAdmin"],
-    },
-    {
-      id: "ticket",
-      name: "Ticket",
-      icon: <Users className="h-5 w-5" />,
-      roles: ["Admin", "SuperAdmin"],
-    },
-    {
-      id: "attendance",
-      name: "Attendance",
-      icon: <Clock className="h-5 w-5" />,
-    },
-    {
-      id: "leave",
-      name: "Leave Management",
-      icon: <Calendar className="h-5 w-5" />,
-    },
-    { id: "payroll", name: "Payroll", icon: <FileText className="h-5 w-5" /> },
-    {
-      id: "recruitment",
-      name: "Recruitment",
-      icon: <TrendingUp className="h-5 w-5" />,
-    },
-    {
-      id: "client",
-      name: "Client",
-      icon: <TrendingUp className="h-5 w-5" />,
-    },
-    {
-      id: "project",
-      name: "Project",
-      icon: <Users className="h-5 w-5" />,
-    },
-
-  ];
-
   const role = localStorage.getItem("role") || "Employee";
-  const navItems = allNavItems.filter(
-    (item) =>
-      !item.roles ||
-      item.roles.some((r) => r.toLowerCase() === role.toLowerCase())
-  );
+
+  const [todos, setTodos] = useState<Todo[]>([]);
 
   // Mock data for dashboard
   const [stats, setStats] = useState({
@@ -172,7 +76,35 @@ export default function Dashboard() {
       }
     };
 
+    // Fetch todos
+    const fetchTodos = async () => {
+      try {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/todos`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (response.ok) {
+          const todosData = await response.json();
+          // Transform the data to match the Todo interface
+          const transformedTodos: Todo[] = todosData.map((todo: any) => ({
+            _id: todo._id,
+            employeeName: `${todo.employee.firstName} ${todo.employee.lastName}`,
+            employeePhoto: todo.employee.photo,
+            title: todo.title,
+            dueDate: new Date(todo.dueDate).toLocaleDateString(),
+            status: todo.status,
+            priority: todo.priority
+          }));
+          setTodos(transformedTodos);
+        }
+      } catch (error) {
+        console.error('Error fetching todos:', error);
+      }
+    };
+
     fetchUserStats();
+    fetchTodos();
 
     // Set other mock data
     setStats(prevStats => ({
@@ -182,7 +114,7 @@ export default function Dashboard() {
       pendingRequests: 12
     }));
 
-   
+
   }, []);
 
 
@@ -253,11 +185,10 @@ export default function Dashboard() {
                     {card.value}
                   </p>
                   <p
-                    className={`text-xs mt-1 ${
-                      card.change.startsWith("+")
+                    className={`text-xs mt-1 ${card.change.startsWith("+")
                         ? "text-green-600"
                         : "text-red-600"
-                    }`}
+                      }`}
                   >
                     {/* {card.change} from last month */}
                   </p>
@@ -278,6 +209,13 @@ export default function Dashboard() {
         <div className="mb-8">
           <DashboardTable />
         </div>
+
+
+        <div className="p-6">
+          <h1 className="text-2xl font-bold mb-4">Employee Todos Overview</h1>
+          <EmployeeTodos todos={todos} />
+        </div>
+
       </main>
     </div>
   );

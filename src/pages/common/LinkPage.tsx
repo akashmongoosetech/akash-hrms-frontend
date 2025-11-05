@@ -183,7 +183,6 @@ export default function LinkPage() {
       case 'crt':
       case 'cer':
       case 'pem':
-      case 'key':
       case 'pub':
       case 'pfx':
       case 'p12':

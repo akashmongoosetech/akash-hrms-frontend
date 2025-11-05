@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Plus,
   Edit,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import DeleteModal from "../../Common/DeleteModal";
 import { formatDate } from '../../Common/Commonfunction';
+import socket from '../../utils/socket';
 
 interface Todo {
   _id: string;
@@ -43,6 +45,9 @@ interface Employee {
 }
 
 export default function TodoPage() {
+  const [searchParams] = useSearchParams();
+  const employeeNameFilter = searchParams.get('employeeName');
+
   const [todos, setTodos] = useState<Todo[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,9 +55,11 @@ export default function TodoPage() {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTodoId, setDeleteTodoId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(employeeNameFilter || "");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const role = localStorage.getItem('role');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -67,7 +74,53 @@ export default function TodoPage() {
   useEffect(() => {
     fetchTodos();
     fetchEmployees();
+    fetchCurrentUser();
+
+    // Socket listeners for real-time updates
+    socket.on('todo-created', (data) => {
+      setTodos(prevTodos => [data.todo, ...prevTodos]);
+    });
+
+    socket.on('todo-updated', (data) => {
+      setTodos(prevTodos =>
+        prevTodos.map(todo =>
+          todo._id === data.todo._id ? data.todo : todo
+        )
+      );
+    });
+
+    socket.on('todo-deleted', (data) => {
+      setTodos(prevTodos =>
+        prevTodos.filter(todo => todo._id !== data.todoId)
+      );
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      socket.off('todo-created');
+      socket.off('todo-updated');
+      socket.off('todo-deleted');
+    };
   }, []);
+
+  // Separate useEffect for personal notifications that depends on currentUser
+  useEffect(() => {
+    if (currentUser?._id) {
+      const handlePersonalNotification = (data: any) => {
+        if (data.type === 'new_todo') {
+          // Show notification to the employee
+          alert(`New Todo Assigned: ${data.message}`);
+        }
+      };
+
+      socket.on(`todo-notification-${currentUser._id}`, handlePersonalNotification);
+
+      // Cleanup this specific listener
+      return () => {
+        socket.off(`todo-notification-${currentUser._id}`, handlePersonalNotification);
+      };
+    }
+  }, [currentUser]);
 
   const fetchTodos = async () => {
     try {
@@ -109,6 +162,25 @@ export default function TodoPage() {
     }
   };
 
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch(
+        `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/auth/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUser(data.user);
+      }
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -134,7 +206,7 @@ export default function TodoPage() {
       });
 
       if (response.ok) {
-        fetchTodos();
+        // fetchTodos(); // Removed to rely on socket updates
         setShowModal(false);
         resetForm();
         setEditingTodo(null);
@@ -152,7 +224,7 @@ export default function TodoPage() {
     setEditingTodo(todo);
     setFormData({
       title: todo.title,
-      employee: todo.employee._id,
+      employee: todo.employee ? todo.employee._id : '',
       dueDate: todo.dueDate.split('T')[0], // Format for date input
       priority: todo.priority,
       description: todo.description || "",
@@ -181,7 +253,7 @@ export default function TodoPage() {
       );
 
       if (response.ok) {
-        fetchTodos();
+        // fetchTodos(); // Removed to rely on socket updates
         setShowDeleteModal(false);
         setDeleteTodoId(null);
       } else {
@@ -208,7 +280,7 @@ export default function TodoPage() {
       );
 
       if (response.ok) {
-        fetchTodos();
+        // fetchTodos(); // Removed to rely on socket updates
       } else {
         const error = await response.json();
         alert(error.message || "Error updating status");
@@ -233,8 +305,8 @@ export default function TodoPage() {
   const filteredTodos = todos.filter((todo) => {
     const matchesSearch =
       todo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      todo.employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      todo.employee.lastName.toLowerCase().includes(searchTerm.toLowerCase());
+      (todo.employee && (todo.employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      todo.employee.lastName.toLowerCase().includes(searchTerm.toLowerCase())));
 
     const matchesStatus = statusFilter === "all" || todo.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || todo.priority === priorityFilter;
@@ -295,17 +367,19 @@ export default function TodoPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Todo Management</h1>
-        <button
-          onClick={() => {
-            resetForm();
-            setEditingTodo(null);
-            setShowModal(true);
-          }}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Add Todo</span>
-        </button>
+        {role !== 'Employee' && (
+          <button
+            onClick={() => {
+              resetForm();
+              setEditingTodo(null);
+              setShowModal(true);
+            }}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Add Todo</span>
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -367,9 +441,11 @@ export default function TodoPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Title
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Employee
-                </th>
+                {role !== 'Employee' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Employee
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Due Date
                 </th>
@@ -379,9 +455,11 @@ export default function TodoPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                {role !== 'Employee' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -397,14 +475,16 @@ export default function TodoPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 text-gray-400 mr-2" />
-                      <div className="text-sm text-gray-900">
-                        {todo.employee.firstName} {todo.employee.lastName}
+                  {role !== 'Employee' && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <User className="h-4 w-4 text-gray-400 mr-2" />
+                        <div className="text-sm text-gray-900">
+                          {todo.employee ? `${todo.employee.firstName} ${todo.employee.lastName}` : 'Unknown Employee'}
+                        </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center text-sm text-gray-900">
                       <Calendar className="h-4 w-4 text-gray-400 mr-2" />
@@ -434,22 +514,24 @@ export default function TodoPage() {
                       <option value="Completed">Completed</option>
                     </select>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleEdit(todo)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(todo._id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {role !== 'Employee' && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleEdit(todo)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(todo._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

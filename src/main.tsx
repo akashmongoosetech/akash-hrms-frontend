@@ -98,9 +98,9 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/todo" element={
-            <ProtectedRoute requiredRole="Admin">
+            // <ProtectedRoute requiredRole="Admin">
               <TodoPage/>
-            </ProtectedRoute>
+            // </ProtectedRoute>
           } />
           <Route path="/link" element={
             <ProtectedRoute requiredRole="Admin">

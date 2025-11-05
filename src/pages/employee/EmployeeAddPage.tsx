@@ -113,13 +113,20 @@ export default function EmployeeAddPage() {
       });
 
       if (response.ok) {
-        const departmentsData: Department[] = await response.json();
-        setDepartments(departmentsData);
+        const data = await response.json();
+        if (data && Array.isArray(data.departments)) {
+          setDepartments(data.departments);
+        } else {
+          toast.error('Invalid departments data received');
+          setDepartments([]);
+        }
       } else {
         toast.error('Failed to fetch departments');
+        setDepartments([]);
       }
     } catch (err) {
       toast.error('Error fetching departments');
+      setDepartments([]);
     }
   };
 

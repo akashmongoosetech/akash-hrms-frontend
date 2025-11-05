@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search, Calendar, List } from 'lucide-react';
 import EventCalendar from './EventCalendar';
 import DeleteModal from '../../Common/DeleteModal';
+import toast from 'react-hot-toast';
 
 interface Event {
   _id: string;
@@ -77,13 +78,14 @@ export default function EventTable() {
         setShowAddModal(false);
         setEditingEvent(null);
         setFormData({ name: '', date: '' });
+        toast.success(editingEvent ? 'Event updated successfully' : 'Event added successfully');
       } else {
         const error = await response.json();
-        alert(error.message || 'Failed to save event');
+        toast.error(error.message || 'Failed to save event');
       }
     } catch (error) {
       console.error('Error saving event:', error);
-      alert('Error saving event');
+      toast.error('Error saving event');
     }
   };
 
@@ -98,25 +100,24 @@ export default function EventTable() {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = async () => {
-    if (!deleteEventId) return;
-
+  const confirmDelete = async (eventId: string) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/events/${deleteEventId}`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/events/${eventId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
-        setEvents(events.filter(event => event._id !== deleteEventId));
-        setShowDeleteModal(false);
-        setDeleteEventId(null);
+        setEvents(events.filter(event => event._id !== eventId));
+        toast.success('Event deleted successfully');
       } else {
-        console.error('Failed to delete event');
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to delete event');
       }
     } catch (error) {
       console.error('Error deleting event:', error);
+      toast.error('Error deleting event');
     }
   };
 
@@ -263,6 +264,7 @@ export default function EventTable() {
           }}
           onEditEvent={handleEdit}
           onDeleteEvent={handleDelete}
+          onDeleteConfirm={confirmDelete}
           userRole={role}
         />
       )}
@@ -324,7 +326,13 @@ export default function EventTable() {
       <DeleteModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={confirmDelete}
+        onConfirm={() => {
+          if (deleteEventId) {
+            confirmDelete(deleteEventId);
+            setShowDeleteModal(false);
+            setDeleteEventId(null);
+          }
+        }}
         title="Delete Event"
         message="Are you sure you want to delete this event? This action cannot be undone."
       />

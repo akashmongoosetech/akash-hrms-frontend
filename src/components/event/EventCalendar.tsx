@@ -5,6 +5,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { Edit, Trash2, Cake, Calendar } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate } from '../../Common/Commonfunction';
+import toast from 'react-hot-toast';
 
 interface Event {
   _id: string;
@@ -41,10 +42,11 @@ interface EventCalendarProps {
   onEventClick?: (event: Event) => void;
   onEditEvent?: (event: Event) => void;
   onDeleteEvent?: (eventId: string) => void;
+  onDeleteConfirm?: (eventId: string) => Promise<void>;
   userRole?: string;
 }
 
-export default function EventCalendar({ events, onEventClick, onEditEvent, onDeleteEvent, userRole }: EventCalendarProps) {
+export default function EventCalendar({ events, onEventClick, onEditEvent, onDeleteEvent, onDeleteConfirm, userRole }: EventCalendarProps) {
   const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | HolidayEvent | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [holidays, setHolidays] = useState<HolidayEvent[]>([]);
@@ -137,7 +139,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     const currentYear = new Date().getFullYear();
 
     const list: BirthdayEvent[] = users
-      .filter(u => !!u.dob)
+      .filter(u => !!u.dob && ['employee', 'admin', 'superadmin'].includes(u.role.toLowerCase()))
       .map((user) => {
         // Try to parse DOB robustly; fall back to splitting string
         let dob = new Date(user.dob);
@@ -166,26 +168,13 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
   }, [users]);
   const allEvents = [...events, ...birthdayEvents, ...holidays];
 
-  // Create day colors map with priority: holiday > birthday > event
-  const dayColors: { [date: string]: string } = {};
-  allEvents.forEach(event => {
-    const date = event.date.includes('T') ? event.date.split('T')[0] : event.date;
-    const color = 'type' in event && event.type === 'birthday' ? '#3B82F6' : ('type' in event && event.type === 'holiday' ? '#EF4444' : '#10B981');
-    if (!dayColors[date]) {
-      dayColors[date] = color;
-    } else if ('type' in event && event.type === 'holiday') {
-      dayColors[date] = color; // Holiday takes priority
-    } else if ('type' in event && event.type === 'birthday' && dayColors[date] === '#10B981') {
-      dayColors[date] = color; // Birthday takes priority over event
-    }
-  });
-
-  const calendarEvents = allEvents.map(event => ({
+  // Prepare events for FullCalendar
+  const calendarEvents: any[] = allEvents.map(event => ({
     id: event._id,
     title: event.name,
-    // Ensure date is in YYYY-MM-DD format and avoid timezone shifts
-    date: (event.date.includes('T') ? event.date.split('T')[0] : event.date),
-    backgroundColor: 'type' in event && event.type === 'birthday' ? '#3B82F6' : ('type' in event && event.type === 'holiday' ? '#EF4444' : '#10B981'),
+    date: event.date,
+    color: 'type' in event && event.type === 'birthday' ? '#3B82F6' :
+           ('type' in event && event.type === 'holiday' ? '#EF4444' : '#10B981'),
     extendedProps: {
       originalEvent: event
     }
@@ -298,7 +287,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                 <p className="text-sm text-gray-600">
                   {formatDate(event.date)}
                 </p>
-                {/* {'type' in event && event.type === 'birthday' ? (
+                {'type' in event && event.type === 'birthday' ? (
                   <div className="flex items-center mt-1">
                     <Cake className="h-3 w-3 text-blue-600 mr-1" />
                     <p className="text-xs text-blue-600">
@@ -318,7 +307,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                       Created: {formatDate(event.createdAt)}
                     </p>
                   )
-                )} */}
+                )}
               </div>
             ))
           )}
@@ -343,21 +332,15 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
           eventTextColor="#FFFFFF"
           dayMaxEvents={true}
           moreLinkClick="popover"
-          dayCellDidMount={(info) => {
-            const date = info.date.toISOString().split('T')[0];
-            if (dayColors[date]) {
-              info.el.style.setProperty('background-color', dayColors[date], 'important');
-            }
-          }}
         />
       </div>
 
       <DeleteModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => {
-          if (onDeleteEvent && deleteEventId) {
-            onDeleteEvent(deleteEventId);
+        onConfirm={async () => {
+          if (onDeleteConfirm && deleteEventId) {
+            await onDeleteConfirm(deleteEventId);
             setShowDeleteModal(false);
             setDeleteEventId(null);
           }
