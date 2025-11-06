@@ -341,137 +341,194 @@ export default function ClientTable() {
 
       {/* View Modal */}
       {viewClient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-            <div className="flex items-start justify-between">
-              <h3 className="text-lg font-semibold">Client Details</h3>
-              <button onClick={() => setViewClient(null)} className="text-gray-500 hover:text-gray-700">✕</button>
-            </div>
-            <div className="mt-4 space-y-4 text-sm">
-              <div className="flex items-center space-x-3">
-                {viewClient.profile ? (
-                  <img
-                    src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${viewClient.profile}`}
-                    alt="Profile"
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-                    <span className="text-gray-600 text-sm font-medium">
-                      {viewClient.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </span>
-                  </div>
-                )}
-                <div>
-                  <div className="font-semibold text-gray-900">{viewClient.name}</div>
-                  <div className="text-gray-600">{viewClient.email}</div>
-                </div>
-              </div>
-              <div>
-                <div className="text-gray-500">About</div>
-                <div className="text-gray-800">{viewClient.about || '-'}</div>
-              </div>
-              <div>
-                <div className="text-gray-500">Location</div>
-                <div className="text-gray-800">{[viewClient.city, viewClient.state, viewClient.country].filter(Boolean).join(', ') || '-'}</div>
-              </div>
-              <div>
-                <div className="text-gray-500">Status</div>
-                <div>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    viewClient.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {viewClient.status}
-                  </span>
-                </div>
-              </div>
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md text-sm">
+      {/* Header */}
+      <div className="flex items-start justify-between border-b pb-2">
+        <h3 className="text-base font-semibold text-gray-900">Client Details</h3>
+        <button
+          onClick={() => setViewClient(null)}
+          className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+        >
+          ✕
+        </button>
+      </div>
 
-              {/* Projects Section */}
-              <div className="pt-2 border-t border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-gray-900 font-semibold">Projects</div>
-                  <div className="text-xs text-gray-500">
-                    {clientProjectsLoading ? 'Loading…' : `${clientProjects.length} project(s)`}
-                  </div>
-                </div>
-                {clientProjectsError && (
-                  <div className="text-xs text-red-600">{clientProjectsError}</div>
-                )}
-                {!clientProjectsLoading && clientProjects.length === 0 && !clientProjectsError && (
-                  <div className="text-xs text-gray-500">No projects for this client.</div>
-                )}
-                <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                  {clientProjects.map((p: any) => (
-                    <div key={p._id} className="border border-gray-200 rounded-md p-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{p.name}</div>
-                          <div className="text-xs text-gray-500">Start: {formatDateSafe(p.startDate)}</div>
-                        </div>
-                        <span className={`inline-flex px-2 py-1 text-[10px] font-semibold rounded-full ${
-                          p.status === 'Active' ? 'bg-green-100 text-green-800' :
-                          p.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {p.status}
-                        </span>
-                      </div>
-                      {p.description && (
-                        <div className="mt-2 text-xs text-gray-700 line-clamp-2">{p.description}</div>
-                      )}
-                      <div className="mt-2">
-                        <div className="text-xs text-gray-500 mb-1">Team Members ({Array.isArray(p.teamMembers) ? p.teamMembers.length : 0})</div>
-                        <div className="flex -space-x-2">
-                          {(Array.isArray(p.teamMembers) ? p.teamMembers : []).map((m: any) => {
-                            const fullName = [m?.firstName, m?.lastName].filter(Boolean).join(' ').trim();
-                            const initials = fullName
-                              ? fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()
-                              : (m?.email ? m.email[0].toUpperCase() : 'U');
-                            const photo = m?.photo ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${m.photo}` : null;
-                            return (
-                              <div key={m._id || m} className="relative group">
-                                {photo ? (
-                                  <img
-                                    src={photo}
-                                    alt={fullName || 'Member'}
-                                    className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm"
-                                  />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-300 flex items-center justify-center text-[10px] font-semibold text-gray-700 shadow-sm">
-                                    {initials}
-                                  </div>
-                                )}
-                                <div className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {fullName || (m?._id || 'Unknown')}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      {/* Client Info */}
+      <div className="mt-3 flex items-center space-x-3">
+        {viewClient.profile ? (
+          <img
+            src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${viewClient.profile}`}
+            alt="Profile"
+            className="w-10 h-10 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-xs font-semibold text-gray-600">
+            {viewClient.name
+              .split(' ')
+              .map(n => n[0])
+              .join('')
+              .toUpperCase()}
+          </div>
+        )}
+        <div>
+          <div className="font-medium text-gray-900">{viewClient.name}</div>
+          <div className="text-gray-500 text-xs">{viewClient.email}</div>
+        </div>
+      </div>
 
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  onClick={() => { setViewClient(null); openModal(viewClient); }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => setViewClient(null)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
+      {/* Basic Details */}
+      <div className="mt-3 space-y-1.5">
+        <div>
+          <span className="text-gray-500 text-xs">About:</span>
+          <div className="text-gray-800">{viewClient.about || '-'}</div>
+        </div>
+        <div>
+          <span className="text-gray-500 text-xs">Location:</span>
+          <div className="text-gray-800">
+            {[viewClient.city, viewClient.state, viewClient.country].filter(Boolean).join(', ') || '-'}
           </div>
         </div>
-      )}
+        <div>
+          <span className="text-gray-500 text-xs">Status:</span>
+          <span
+            className={`ml-1 inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full ${
+              viewClient.status === 'Active'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {viewClient.status}
+          </span>
+        </div>
+      </div>
+
+      {/* Projects */}
+      <div className="mt-4 border-t pt-2">
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-semibold text-gray-800 text-sm">Projects</span>
+          <span className="text-xs text-gray-500">
+            {clientProjectsLoading
+              ? 'Loading…'
+              : `${clientProjects.length} project(s)`}
+          </span>
+        </div>
+
+        {clientProjectsError && (
+          <div className="text-xs text-red-600">{clientProjectsError}</div>
+        )}
+        {!clientProjectsLoading &&
+          clientProjects.length === 0 &&
+          !clientProjectsError && (
+            <div className="text-xs text-gray-500">No projects available.</div>
+          )}
+
+        <div className="space-y-2 max-h-48 overflow-y-auto">
+          {clientProjects.map((p: any) => (
+            <div
+              key={p._id}
+              className="border border-gray-200 rounded-md p-2 hover:bg-gray-50 transition"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="text-xs font-medium text-gray-900">
+                    {p.name}
+                  </div>
+                  <div className="text-[10px] text-gray-500">
+                    Start: {formatDateSafe(p.startDate)}
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex px-1.5 py-0.5 text-[10px] rounded-full font-medium ${
+                    p.status === 'Active'
+                      ? 'bg-green-100 text-green-700'
+                      : p.status === 'Completed'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-yellow-100 text-yellow-700'
+                  }`}
+                >
+                  {p.status}
+                </span>
+              </div>
+
+              {p.description && (
+                <div className="mt-1 text-[11px] text-gray-600 line-clamp-2">
+                  {p.description}
+                </div>
+              )}
+
+              {/* Team Members */}
+              <div className="mt-2">
+                <div className="text-[10px] text-gray-500 mb-1">
+                  Team ({Array.isArray(p.teamMembers) ? p.teamMembers.length : 0})
+                </div>
+                <div className="flex -space-x-1">
+                  {(Array.isArray(p.teamMembers) ? p.teamMembers : []).map(
+                    (m: any) => {
+                      const fullName = [m?.firstName, m?.lastName]
+                        .filter(Boolean)
+                        .join(' ')
+                        .trim();
+                      const initials = fullName
+                        ? fullName
+                            .split(' ')
+                            .map((n: string) => n[0])
+                            .join('')
+                            .slice(0, 2)
+                            .toUpperCase()
+                        : m?.email?.[0]?.toUpperCase() || 'U';
+                      const photo = m?.photo
+                        ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${m.photo}`
+                        : null;
+                      return (
+                        <div key={m._id || m} className="relative group">
+                          {photo ? (
+                            <img
+                              src={photo}
+                              alt={fullName || 'Member'}
+                              className="w-6 h-6 rounded-full border border-white object-cover shadow-sm"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full border border-white bg-gray-300 flex items-center justify-center text-[9px] font-semibold text-gray-700 shadow-sm">
+                              {initials}
+                            </div>
+                          )}
+                          <div className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-0.5 text-[9px] text-white opacity-0 group-hover:opacity-100 transition">
+                            {fullName || 'Unknown'}
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end space-x-2 mt-3 pt-2 border-t">
+        <button
+          onClick={() => {
+            setViewClient(null);
+            openModal(viewClient);
+          }}
+          className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs"
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => setViewClient(null)}
+          className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-xs"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* Add/Edit Modal */}
       {showModal && (

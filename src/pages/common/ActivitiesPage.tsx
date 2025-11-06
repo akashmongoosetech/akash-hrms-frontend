@@ -342,6 +342,8 @@ export default function ActivitiesPage() {
         const time = formatTime(activity.timestamp);
         const description = activity.reason || '';
 
+        if (!activity.employee) return null;
+
         return (
           <React.Fragment key={key}>
             {/* Date Separator */}
