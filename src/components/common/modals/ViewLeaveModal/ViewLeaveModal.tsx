@@ -11,7 +11,7 @@ interface Leave {
   };
   startDate: string;
   endDate: string;
-  leaveType: 'Vacation' | 'Sick' | 'Personal';
+  leaveType: 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal';
   reason: string;
   status: 'Pending' | 'Approved' | 'Rejected';
   approvedBy?: {

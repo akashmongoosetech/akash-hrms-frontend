@@ -5,11 +5,11 @@ interface UpdateStatusModalProps {
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   statusForm: {
-    status: 'Approved' | 'Rejected';
+    status: 'Pending' | 'Approved' | 'Rejected';
     comments: string;
   };
   setStatusForm: React.Dispatch<React.SetStateAction<{
-    status: 'Approved' | 'Rejected';
+    status: 'Pending' | 'Approved' | 'Rejected';
     comments: string;
   }>>;
 }
@@ -26,9 +26,10 @@ const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({ showModal, onClos
             <label className="block text-sm font-medium text-gray-700">Status</label>
             <select
               value={statusForm.status}
-              onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value as 'Approved' | 'Rejected' })}
+              onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value as 'Pending' | 'Approved' | 'Rejected' })}
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
             >
+              <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
               <option value="Rejected">Rejected</option>
             </select>

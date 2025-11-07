@@ -5,6 +5,8 @@ import { formatDate } from '../../Common/Commonfunction';
 import RequestLeaveModal from './modals/RequestLeaveModal/RequestLeaveModal';
 import UpdateStatusModal from './modals/UpdateStatusModal/UpdateStatusModal';
 import ViewLeaveModal from './modals/ViewLeaveModal/ViewLeaveModal';
+import EditLeaveModal from './modals/EditLeaveModal/EditLeaveModal';
+import socket from '../../utils/socket';
 
 interface Leave {
   _id: string;
@@ -16,7 +18,7 @@ interface Leave {
   };
   startDate: string;
   endDate: string;
-  leaveType: 'Vacation' | 'Sick' | 'Personal';
+  leaveType: 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal';
   reason: string;
   status: 'Pending' | 'Approved' | 'Rejected';
   approvedBy?: {
@@ -41,23 +43,52 @@ export default function LeaveTable() {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<Leave | null>(null);
+  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [requestForm, setRequestForm] = useState({
     startDate: '',
     endDate: '',
-    leaveType: 'Vacation' as 'Vacation' | 'Sick' | 'Personal',
+    leaveType: 'Vacation' as 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal',
     reason: ''
   });
   const [statusForm, setStatusForm] = useState({
-    status: 'Approved' as 'Approved' | 'Rejected',
+    status: 'Approved' as 'Pending' | 'Approved' | 'Rejected',
     comments: ''
+  });
+  const [editForm, setEditForm] = useState({
+    startDate: '',
+    endDate: '',
+    leaveType: 'Vacation' as 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal',
+    reason: ''
   });
   const role = localStorage.getItem('role');
 
   useEffect(() => {
     fetchLeaves();
     fetchCurrentUser();
+
+    // Socket listeners for real-time updates
+    socket.on('leave-created', (newLeave) => {
+      setLeaves(prev => [newLeave, ...prev]);
+    });
+
+    socket.on('leave-updated', (updatedLeave) => {
+      setLeaves(prev => prev.map(leave =>
+        leave._id === updatedLeave._id ? updatedLeave : leave
+      ));
+    });
+
+    socket.on('leave-deleted', (deletedLeaveId) => {
+      setLeaves(prev => prev.filter(leave => leave._id !== deletedLeaveId));
+    });
+
+    return () => {
+      socket.off('leave-created');
+      socket.off('leave-updated');
+      socket.off('leave-deleted');
+    };
   }, []);
 
   const fetchCurrentUser = async () => {
@@ -116,7 +147,7 @@ export default function LeaveTable() {
       if (response.ok) {
         fetchLeaves();
         setShowRequestModal(false);
-        setRequestForm({ startDate: '', endDate: '', leaveType: 'Vacation', reason: '' });
+        setRequestForm({ startDate: '', endDate: '', leaveType: 'Vacation' as 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal', reason: '' });
       } else {
         setError('Failed to request leave');
       }
@@ -142,12 +173,38 @@ export default function LeaveTable() {
         fetchLeaves();
         setShowStatusModal(false);
         setSelectedLeave(null);
-        setStatusForm({ status: 'Approved', comments: '' });
+        setStatusForm({ status: 'Approved' as 'Pending' | 'Approved' | 'Rejected', comments: '' });
       } else {
         setError('Failed to update status');
       }
     } catch (err) {
       setError('Error updating status');
+    }
+  };
+
+  const handleEditLeave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLeave) return;
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/leaves/${selectedLeave._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(editForm)
+      });
+
+      if (response.ok) {
+        fetchLeaves();
+        setShowEditModal(false);
+        setSelectedLeave(null);
+        setEditForm({ startDate: '', endDate: '', leaveType: 'Vacation' as 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal', reason: '' });
+      } else {
+        setError('Failed to update leave');
+      }
+    } catch (err) {
+      setError('Error updating leave');
     }
   };
 
@@ -179,15 +236,42 @@ export default function LeaveTable() {
     }
   };
 
-  const openStatusModal = (leave: Leave) => {
-    setSelectedLeave(leave);
-    setStatusForm({ status: 'Approved', comments: '' });
-    setShowStatusModal(true);
+  const handleStatusChange = async (leaveId: string, newStatus: 'Pending' | 'Approved' | 'Rejected') => {
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/leaves/${leaveId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status: newStatus, comments: '' })
+      });
+
+      if (response.ok) {
+        fetchLeaves();
+        setEditingStatusId(null);
+      } else {
+        setError('Failed to update status');
+      }
+    } catch (err) {
+      setError('Error updating status');
+    }
   };
 
   const openViewModal = (leave: Leave) => {
     setSelectedLeave(leave);
     setShowViewModal(true);
+  };
+
+  const openEditModal = (leave: Leave) => {
+    setSelectedLeave(leave);
+    setEditForm({
+      startDate: leave.startDate.split('T')[0],
+      endDate: leave.endDate.split('T')[0],
+      leaveType: leave.leaveType,
+      reason: leave.reason
+    });
+    setShowEditModal(true);
   };
 
   if (loading) {
@@ -221,6 +305,7 @@ export default function LeaveTable() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied Date</th>
               {role !== 'Employee' && (
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               )}
@@ -244,12 +329,41 @@ export default function LeaveTable() {
                     : leave.reason}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${leave.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                    leave.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                    {leave.status}
-                  </span>
+                  {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') ? (
+                    editingStatusId === leave._id ? (
+                      <select
+                        value={leave.status}
+                        onChange={(e) => handleStatusChange(leave._id, e.target.value as 'Pending' | 'Approved' | 'Rejected')}
+                        onBlur={() => setEditingStatusId(null)}
+                        className="px-2 py-1 rounded text-xs font-medium border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                        autoFocus
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    ) : (
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer ${leave.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                          leave.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}
+                        onClick={() => setEditingStatusId(leave._id)}
+                      >
+                        {leave.status}
+                      </span>
+                    )
+                  ) : (
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${leave.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                      leave.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                      {leave.status}
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {formatDate(leave.createdAt)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
                   <div className="flex space-x-2">
@@ -260,16 +374,14 @@ export default function LeaveTable() {
                     >
                       <Eye className="h-5 w-5" />
                     </button>
-                    {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') && leave.status === 'Pending' && (
-                      <>
-                        <button
-                          onClick={() => openStatusModal(leave)}
-                          className="p-2 rounded hover:bg-gray-100 text-green-600"
-                          title="Approve/Reject"
-                        >
-                          <Check className="h-5 w-5" />
-                        </button>
-                      </>
+                    {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') && (
+                      <button
+                        onClick={() => openEditModal(leave)}
+                        className="p-2 rounded hover:bg-gray-100 text-purple-600"
+                        title="Edit"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
                     )}
                     {currentUser && currentUser.role === 'SuperAdmin' && (
                       <button
@@ -310,6 +422,15 @@ export default function LeaveTable() {
       <ViewLeaveModal
         showModal={showViewModal}
         onClose={() => setShowViewModal(false)}
+        selectedLeave={selectedLeave}
+      />
+
+      <EditLeaveModal
+        showModal={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSubmit={handleEditLeave}
+        editForm={editForm}
+        setEditForm={setEditForm}
         selectedLeave={selectedLeave}
       />
 

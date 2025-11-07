@@ -119,6 +119,24 @@ export default function Header() {
         });
         setUnreadCount((prev) => prev + 1);
       });
+
+      socket.on(`leave-notification-${userId}`, (notification) => {
+        setNotifications((prev) => {
+          const newNotifications = [{ ...notification, read: false }, ...prev];
+          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
+          return newNotifications;
+        });
+        setUnreadCount((prev) => prev + 1);
+      });
+
+      socket.on(`leave-status-notification-${userId}`, (notification) => {
+        setNotifications((prev) => {
+          const newNotifications = [{ ...notification, read: false }, ...prev];
+          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
+          return newNotifications;
+        });
+        setUnreadCount((prev) => prev + 1);
+      });
     }
 
     return () => {
@@ -126,6 +144,8 @@ export default function Header() {
       socket.off(`ticket-notification-${userId}`);
       socket.off(`event-notification-${userId}`);
       socket.off(`holiday-notification-${userId}`);
+      socket.off(`leave-notification-${userId}`);
+      socket.off(`leave-status-notification-${userId}`);
     };
   }, [userId, navigate]);
 
