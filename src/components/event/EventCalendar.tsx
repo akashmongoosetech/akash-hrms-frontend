@@ -608,9 +608,27 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
         onClose={() => setShowDeleteModal(false)}
         onConfirm={async () => {
           if (onDeleteConfirm && deleteEventId) {
-            await onDeleteConfirm(deleteEventId);
-            setShowDeleteModal(false);
-            setDeleteEventId(null);
+            try {
+              await onDeleteConfirm(deleteEventId);
+              setShowDeleteModal(false);
+              setDeleteEventId(null);
+              // Refresh data after deletion
+              fetchUsers();
+              fetchHolidays();
+              if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
+                fetchReports();
+                fetchLeaves();
+              }
+            } catch (error) {
+              console.error('Error deleting event:', error);
+              // Refresh data even on error to ensure consistency
+              fetchUsers();
+              fetchHolidays();
+              if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
+                fetchReports();
+                fetchLeaves();
+              }
+            }
           }
         }}
         title="Delete Event"

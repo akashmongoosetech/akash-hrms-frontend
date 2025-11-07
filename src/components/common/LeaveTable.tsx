@@ -7,6 +7,7 @@ import UpdateStatusModal from './modals/UpdateStatusModal/UpdateStatusModal';
 import ViewLeaveModal from './modals/ViewLeaveModal/ViewLeaveModal';
 import EditLeaveModal from './modals/EditLeaveModal/EditLeaveModal';
 import socket from '../../utils/socket';
+import toast from 'react-hot-toast';
 
 interface Leave {
   _id: string;
@@ -148,11 +149,14 @@ export default function LeaveTable() {
         fetchLeaves();
         setShowRequestModal(false);
         setRequestForm({ startDate: '', endDate: '', leaveType: 'Vacation' as 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal', reason: '' });
+        toast.success('Leave request submitted successfully!');
       } else {
-        setError('Failed to request leave');
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to request leave');
       }
     } catch (err) {
       setError('Error requesting leave');
+      toast.error('Error requesting leave');
     }
   };
 
@@ -174,11 +178,14 @@ export default function LeaveTable() {
         setShowStatusModal(false);
         setSelectedLeave(null);
         setStatusForm({ status: 'Approved' as 'Pending' | 'Approved' | 'Rejected', comments: '' });
+        toast.success('Leave status updated successfully!');
       } else {
-        setError('Failed to update status');
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to update status');
       }
     } catch (err) {
       setError('Error updating status');
+      toast.error('Error updating status');
     }
   };
 
@@ -200,11 +207,14 @@ export default function LeaveTable() {
         setShowEditModal(false);
         setSelectedLeave(null);
         setEditForm({ startDate: '', endDate: '', leaveType: 'Vacation' as 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal', reason: '' });
+        toast.success('Leave updated successfully!');
       } else {
-        setError('Failed to update leave');
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to update leave');
       }
     } catch (err) {
       setError('Error updating leave');
+      toast.error('Error updating leave');
     }
   };
 
@@ -228,11 +238,14 @@ export default function LeaveTable() {
         fetchLeaves();
         setShowDeleteModal(false);
         setDeleteLeaveId(null);
+        toast.success('Leave deleted successfully!');
       } else {
-        setError('Failed to delete leave');
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to delete leave');
       }
     } catch (err) {
       setError('Error deleting leave');
+      toast.error('Error deleting leave');
     }
   };
 
@@ -250,11 +263,14 @@ export default function LeaveTable() {
       if (response.ok) {
         fetchLeaves();
         setEditingStatusId(null);
+        toast.success('Leave status updated successfully!');
       } else {
-        setError('Failed to update status');
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to update status');
       }
     } catch (err) {
       setError('Error updating status');
+      toast.error('Error updating status');
     }
   };
 

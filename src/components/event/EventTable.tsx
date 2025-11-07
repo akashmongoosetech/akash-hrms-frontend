@@ -114,10 +114,14 @@ export default function EventTable() {
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || 'Failed to delete event');
+        // Refresh the events list to ensure it's up to date
+        fetchEvents();
       }
     } catch (error) {
       console.error('Error deleting event:', error);
       toast.error('Error deleting event');
+      // Refresh the events list
+      fetchEvents();
     }
   };
 
