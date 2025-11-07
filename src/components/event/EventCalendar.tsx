@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Edit, Trash2, Cake, Calendar } from 'lucide-react';
+import { Edit, Trash2, Cake, Calendar, Clock } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate } from '../../Common/Commonfunction';
 import toast from 'react-hot-toast';
@@ -37,6 +37,79 @@ interface HolidayEvent {
   type: 'holiday';
 }
 
+interface Report {
+  _id: string;
+  employee: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  description: string;
+  startTime: string;
+  breakDuration: number;
+  endTime: string;
+  workingHours: string;
+  totalHours: string;
+  date: string;
+  createdAt: string;
+}
+
+interface Leave {
+  _id: string;
+  employee: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  startDate: string;
+  endDate: string;
+  leaveType: 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal';
+  reason: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  approvedBy?: {
+    firstName: string;
+    lastName: string;
+  };
+  rejectedBy?: {
+    firstName: string;
+    lastName: string;
+  };
+  comments?: string;
+  daysRequested: number;
+  createdAt: string;
+}
+
+interface ReportEvent {
+  _id: string;
+  name: string;
+  date: string;
+  type: 'report';
+  user: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  workingHours: string;
+}
+
+interface LeaveEvent {
+  _id: string;
+  name: string;
+  date: string;
+  type: 'leave';
+  employee: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  leaveType: string;
+  status: string;
+}
+
 interface EventCalendarProps {
   events: Event[];
   onEventClick?: (event: Event) => void;
@@ -47,17 +120,29 @@ interface EventCalendarProps {
 }
 
 export default function EventCalendar({ events, onEventClick, onEditEvent, onDeleteEvent, onDeleteConfirm, userRole }: EventCalendarProps) {
-  const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | HolidayEvent | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [holidays, setHolidays] = useState<HolidayEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
+   const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent | null>(null);
+   const [users, setUsers] = useState<User[]>([]);
+   const [holidays, setHolidays] = useState<HolidayEvent[]>([]);
+   const [reports, setReports] = useState<Report[]>([]);
+   const [leaves, setLeaves] = useState<Leave[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [showDeleteModal, setShowDeleteModal] = useState(false);
+   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
+   const [selectedFilter, setSelectedFilter] = useState<string>('All Events');
+   const [currentUserId, setCurrentUserId] = useState<string>('');
 
   useEffect(() => {
     fetchUsers();
     fetchHolidays();
+    fetchCurrentUser();
   }, []);
+
+  useEffect(() => {
+    if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
+      fetchReports();
+      fetchLeaves();
+    }
+  }, [selectedFilter, userRole]);
 
   const fetchUsers = async () => {
     try {
@@ -127,6 +212,64 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     }
   };
 
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const userId = payload.id;
+      setCurrentUserId(userId);
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
+
+  const fetchReports = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/reports`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setReports(data.reports || []);
+      } else {
+        console.error('Failed to fetch reports');
+        setReports([]);
+      }
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      setReports([]);
+    }
+  };
+
+  const fetchLeaves = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/leaves`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLeaves(data.leaves || []);
+      } else {
+        console.error('Failed to fetch leaves');
+        setLeaves([]);
+      }
+    } catch (error) {
+      console.error('Error fetching leaves:', error);
+      setLeaves([]);
+    }
+  };
+
   // Helper to format YYYY-MM-DD without timezone issues
   const formatYMD = (y: number, m: number, d: number) => {
     const mm = String(m + 1).padStart(2, '0');
@@ -166,7 +309,79 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
 
     return list;
   }, [users]);
-  const allEvents = [...events, ...birthdayEvents, ...holidays];
+
+  // Generate report events (memoized)
+  const reportEvents: ReportEvent[] = useMemo(() => {
+    if (selectedFilter === 'Reports' && currentUserId) {
+      // Employee selecting "Reports" - show current user's reports
+      return reports
+        .filter(report => report.employee._id === currentUserId)
+        .map(report => ({
+          _id: `report-${report._id}`,
+          name: `My Report (${report.workingHours})`,
+          date: report.date,
+          type: 'report' as const,
+          user: report.employee,
+          workingHours: report.workingHours,
+        }));
+    } else if (selectedFilter !== 'All Events' && selectedFilter !== 'Reports') {
+      // Admin/SuperAdmin selecting specific employee - show that employee's reports
+      const employeeId = selectedFilter.split(' - ')[1]; // Assuming format "Name - ID"
+      return reports
+        .filter(report => report.employee._id === employeeId)
+        .map(report => ({
+          _id: `report-${report._id}`,
+          name: `${report.employee.firstName} ${report.employee.lastName} - Report (${report.workingHours})`,
+          date: report.date,
+          type: 'report' as const,
+          user: report.employee,
+          workingHours: report.workingHours,
+        }));
+    }
+    // For "All Events", don't show any reports
+    return [];
+  }, [reports, selectedFilter, userRole, currentUserId]);
+
+  // Generate leave events (memoized)
+  const leaveEvents: LeaveEvent[] = useMemo(() => {
+    const generateLeaveEventsForPeriod = (leave: Leave, isCurrentUser: boolean) => {
+      const events: LeaveEvent[] = [];
+      const startDate = new Date(leave.startDate);
+      const endDate = new Date(leave.endDate);
+
+      // Generate an event for each day in the leave period
+      for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+        const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        events.push({
+          _id: `leave-${leave._id}-${dateString}`,
+          name: isCurrentUser
+            ? `My ${leave.leaveType} Leave`
+            : `${leave.employee.firstName} ${leave.employee.lastName} - ${leave.leaveType} Leave`,
+          date: dateString,
+          type: 'leave' as const,
+          employee: leave.employee,
+          leaveType: leave.leaveType,
+          status: leave.status,
+        });
+      }
+      return events;
+    };
+
+    if (selectedFilter === 'Reports' && currentUserId) {
+      // Employee selecting "Reports" - show current user's leaves for all days
+      const userLeaves = leaves.filter(leave => leave.employee._id === currentUserId);
+      return userLeaves.flatMap(leave => generateLeaveEventsForPeriod(leave, true));
+    } else if (selectedFilter !== 'All Events' && selectedFilter !== 'Reports') {
+      // Admin/SuperAdmin selecting specific employee - show that employee's leaves for all days
+      const employeeId = selectedFilter.split(' - ')[1];
+      const employeeLeaves = leaves.filter(leave => leave.employee._id === employeeId);
+      return employeeLeaves.flatMap(leave => generateLeaveEventsForPeriod(leave, false));
+    }
+    // For "All Events", don't show any leaves
+    return [];
+  }, [leaves, selectedFilter, userRole, currentUserId]);
+
+  const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents];
 
   // Prepare events for FullCalendar
   const calendarEvents: any[] = allEvents.map(event => ({
@@ -174,7 +389,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     title: event.name,
     date: event.date,
     color: 'type' in event && event.type === 'birthday' ? '#3B82F6' :
-           ('type' in event && event.type === 'holiday' ? '#EF4444' : '#10B981'),
+           ('type' in event && event.type === 'holiday' ? '#EF4444' :
+            'type' in event && event.type === 'report' ? '#8B5CF6' :
+            'type' in event && event.type === 'leave' ? '#F59E0B' : '#10B981'),
     extendedProps: {
       originalEvent: event
     }
@@ -189,9 +406,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     }
   };
 
-  const handleListEventClick = (event: Event | BirthdayEvent | HolidayEvent) => {
+  const handleListEventClick = (event: Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent) => {
     setSelectedEvent(event);
-    // Only call onEventClick for regular events, not birthdays or holidays
+    // Only call onEventClick for regular events, not birthdays, holidays, reports, or leaves
     if (onEventClick && !('type' in event)) {
       onEventClick(event);
     }
@@ -210,9 +427,32 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     <div className="flex flex-col lg:flex-row gap-6 h-full">
       {/* Events List Sidebar */}
       <div className="lg:w-1/3 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-3 border-b border-gray-200">
-          All Events ({allEvents.length})
-        </h2>
+        <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-800">
+            {/* {selectedFilter} */} Events
+            {/* ({allEvents.length}) */}
+          </h2>
+          <div className="relative">
+            <select
+              value={selectedFilter}
+              onChange={(e) => setSelectedFilter(e.target.value)}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="All Events">All Events</option>
+              {userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin') ? (
+                <>
+                  {users.map(user => (
+                    <option key={user._id} value={`${user.firstName} ${user.lastName} - ${user._id}`}>
+                      {user.firstName} {user.lastName}
+                    </option>
+                  ))}
+                </>
+              ) : (
+                <option value="Reports">Reports</option>
+              )}
+            </select>
+          </div>
+        </div>
         
         <div className="space-y-3 max-h-[600px] overflow-y-auto">
           {sortedEvents.length === 0 ? (
@@ -231,6 +471,10 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                           ? 'hover:border-blue-300 hover:bg-gray-50'
                           : 'type' in event && event.type === 'holiday'
                           ? 'hover:border-red-300 hover:bg-gray-50'
+                          : 'type' in event && event.type === 'report'
+                          ? 'hover:border-purple-300 hover:bg-gray-50'
+                          : 'type' in event && event.type === 'leave'
+                          ? 'hover:border-yellow-300 hover:bg-gray-50'
                           : 'hover:border-green-300 hover:bg-gray-50'
                       )
                 } ${
@@ -238,6 +482,10 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                     ? 'border-l-[8px] border-l-blue-500'
                     : 'type' in event && event.type === 'holiday'
                     ? 'border-l-[8px] border-l-red-500'
+                    : 'type' in event && event.type === 'report'
+                    ? 'border-l-[8px] border-l-purple-500'
+                    : 'type' in event && event.type === 'leave'
+                    ? 'border-l-[8px] border-l-yellow-500'
                     : 'border-l-[8px] border-l-green-500'
                 }`}
                 onClick={() => handleListEventClick(event)}
@@ -248,6 +496,10 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                       ? 'text-blue-600'
                       : 'type' in event && event.type === 'holiday'
                       ? 'text-red-600'
+                      : 'type' in event && event.type === 'report'
+                      ? 'text-purple-600'
+                      : 'type' in event && event.type === 'leave'
+                      ? 'text-yellow-600'
                       : 'text-green-600'
                   }`}>
                     {event.name}
@@ -280,7 +532,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                     )}
                     <span className={`w-3 h-3 rounded-full ${
                       'type' in event && event.type === 'birthday' ? 'bg-blue-500' :
-                      ('type' in event && event.type === 'holiday' ? 'bg-red-500' : 'bg-green-500')
+                      ('type' in event && event.type === 'holiday' ? 'bg-red-500' :
+                       'type' in event && event.type === 'report' ? 'bg-purple-500' :
+                       'type' in event && event.type === 'leave' ? 'bg-yellow-500' : 'bg-green-500')
                     }`}></span>
                   </div>
                 </div>
@@ -299,6 +553,20 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                     <Calendar className="h-3 w-3 text-red-600 mr-1" />
                     <p className="text-xs text-red-600">
                       Holiday
+                    </p>
+                  </div>
+                ) : 'type' in event && event.type === 'report' ? (
+                  <div className="flex items-center mt-1">
+                    <Clock className="h-3 w-3 text-purple-600 mr-1" />
+                    <p className="text-xs text-purple-600">
+                      Report - {event.workingHours}
+                    </p>
+                  </div>
+                ) : 'type' in event && event.type === 'leave' ? (
+                  <div className="flex items-center mt-1">
+                    <Calendar className="h-3 w-3 text-yellow-600 mr-1" />
+                    <p className="text-xs text-yellow-600">
+                      {event.leaveType} Leave - {event.status}
                     </p>
                   </div>
                 ) : (
