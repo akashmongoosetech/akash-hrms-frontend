@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../utils/api';
 import DeleteModal from '../../Common/DeleteModal';
+import toast from 'react-hot-toast';
 
 interface User {
   _id: string;
@@ -42,7 +43,7 @@ export default function UserManagement() {
       const filteredData = res.data.users.filter((user: User) => user.role === 'Admin' || user.role === 'SuperAdmin');
       setUsers(filteredData);
     } catch (err: any) {
-      alert('Failed to fetch users: ' + err?.response?.data?.message);
+      toast.error('Failed to fetch users: ' + err?.response?.data?.message);
     } finally {
       setLoading(false);
     }
@@ -70,11 +71,11 @@ export default function UserManagement() {
       if (!updateData.password) delete updateData.password; // Don't update password if empty
 
       await API.put(`/users/${editingUser._id}`, updateData);
-      alert('User updated successfully');
+      toast.success('User updated successfully');
       setEditingUser(null);
       fetchUsers();
     } catch (err: any) {
-      alert('Failed to update user: ' + err?.response?.data?.message);
+      toast.error('Failed to update user: ' + err?.response?.data?.message);
     }
   };
 
@@ -88,12 +89,12 @@ export default function UserManagement() {
 
     try {
       await API.delete(`/users/${deleteUserId}`);
-      alert('User deleted successfully');
+      toast.success('User deleted successfully');
       fetchUsers();
       setShowDeleteModal(false);
       setDeleteUserId(null);
     } catch (err: any) {
-      alert('Failed to delete user: ' + err?.response?.data?.message);
+      toast.error('Failed to delete user: ' + err?.response?.data?.message);
     }
   };
 
@@ -102,7 +103,7 @@ export default function UserManagement() {
 
     try {
       await API.post('/users', formData);
-      alert('User created successfully');
+      toast.success('User created successfully');
       setShowCreateForm(false);
       setFormData({
         firstName: '',
@@ -115,7 +116,7 @@ export default function UserManagement() {
       });
       fetchUsers();
     } catch (err: any) {
-      alert('Failed to create user: ' + err?.response?.data?.message);
+      toast.error('Failed to create user: ' + err?.response?.data?.message);
     }
   };
 
@@ -195,7 +196,8 @@ export default function UserManagement() {
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
               className="border p-2 rounded"
             >
-              <option value="Employee">Employee</option>
+              {/* <option value="Employee">Employee</option> */}
+              <option value="Admin">Admin</option>
               {currentRole === 'Admin' && <option value="Admin">Admin</option>}
               {currentRole === 'SuperAdmin' && <option value="SuperAdmin">SuperAdmin</option>}
             </select>

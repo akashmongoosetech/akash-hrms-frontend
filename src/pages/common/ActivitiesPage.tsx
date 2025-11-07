@@ -32,6 +32,7 @@ interface Employee {
 export default function ActivitiesPage() {
   const [breaks, setBreaks] = useState<BreakRecord[]>([]);
   const [isOnBreak, setIsOnBreak] = useState(false);
+  const [isPunchedIn, setIsPunchedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showReasonInput, setShowReasonInput] = useState(false);
   const [breakReason, setBreakReason] = useState('');
@@ -45,6 +46,7 @@ export default function ActivitiesPage() {
 
   useEffect(() => {
     fetchBreaks();
+    fetchPunchStatus();
 
     // Listen for new break events
     socket.on('newBreak', (newBreak: BreakRecord) => {
@@ -58,9 +60,26 @@ export default function ActivitiesPage() {
       }
     });
 
+    // Listen for punch events
+    socket.on('punch-in', (data) => {
+      const currentUserId = localStorage.getItem('userId');
+      if (data.employee._id === currentUserId) {
+        setIsPunchedIn(true);
+      }
+    });
+
+    socket.on('punch-out', (data) => {
+      const currentUserId = localStorage.getItem('userId');
+      if (data.employee._id === currentUserId) {
+        setIsPunchedIn(false);
+      }
+    });
+
     // Cleanup on unmount
     return () => {
       socket.off('newBreak');
+      socket.off('punch-in');
+      socket.off('punch-out');
     };
   }, []);
 
@@ -78,7 +97,20 @@ export default function ActivitiesPage() {
     }
   };
 
+  const fetchPunchStatus = async () => {
+    try {
+      const response = await API.get('/punches/status');
+      setIsPunchedIn(response.data.isPunchedIn);
+    } catch (error) {
+      console.error('Error fetching punch status:', error);
+    }
+  };
+
   const handleBreakAction = async () => {
+    if (!isPunchedIn) {
+      toast.error('Please Punch In before taking a break.');
+      return;
+    }
     if (!isOnBreak && !breakReason.trim()) {
       toast.error('Please enter a reason for break in.');
       return;

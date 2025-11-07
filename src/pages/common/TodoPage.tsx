@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import toast from 'react-hot-toast';
 import {
   Plus,
   Edit,
@@ -109,7 +110,7 @@ export default function TodoPage() {
       const handlePersonalNotification = (data: any) => {
         if (data.type === 'new_todo') {
           // Show notification to the employee
-          alert(`New Todo Assigned: ${data.message}`);
+          toast.success(`New Todo Assigned: ${data.message}`);
         }
       };
 
@@ -185,7 +186,7 @@ export default function TodoPage() {
     e.preventDefault();
 
     if (!formData.title || !formData.employee || !formData.dueDate) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -212,11 +213,11 @@ export default function TodoPage() {
         setEditingTodo(null);
       } else {
         const error = await response.json();
-        alert(error.message || "Error saving todo");
+        toast.error(error.message || "Error saving todo");
       }
     } catch (error) {
       console.error("Error saving todo:", error);
-      alert("Error saving todo");
+      toast.error("Error saving todo");
     }
   };
 
@@ -257,11 +258,11 @@ export default function TodoPage() {
         setShowDeleteModal(false);
         setDeleteTodoId(null);
       } else {
-        alert("Error deleting todo");
+        toast.error("Error deleting todo");
       }
     } catch (error) {
       console.error("Error deleting todo:", error);
-      alert("Error deleting todo");
+      toast.error("Error deleting todo");
     }
   };
 
@@ -283,11 +284,11 @@ export default function TodoPage() {
         // fetchTodos(); // Removed to rely on socket updates
       } else {
         const error = await response.json();
-        alert(error.message || "Error updating status");
+        toast.error(error.message || "Error updating status");
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      alert("Error updating status");
+      toast.error("Error updating status");
     }
   };
 

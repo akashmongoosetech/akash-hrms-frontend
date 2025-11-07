@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../utils/api';
+import toast from 'react-hot-toast';
 
 interface UserProfile {
   _id: string;
@@ -57,7 +58,7 @@ export default function ProfileManagement() {
         setPhotoPreview(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${res.data.photo}`);
       }
     } catch (err: any) {
-      alert('Failed to fetch profile: ' + err?.response?.data?.message);
+      toast.error('Failed to fetch profile: ' + err?.response?.data?.message);
     } finally {
       setLoading(false);
     }
@@ -109,11 +110,11 @@ export default function ProfileManagement() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      alert('Profile updated successfully');
+      toast.success('Profile updated successfully');
       setEditing(false);
       fetchProfile();
     } catch (err: any) {
-      alert('Failed to update profile: ' + err?.response?.data?.message);
+      toast.error('Failed to update profile: ' + err?.response?.data?.message);
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate } from '../../Common/Commonfunction';
+import toast from 'react-hot-toast';
 
 interface Department {
   _id: string;
@@ -76,7 +77,7 @@ export default function DepartmentTable() {
         setFormData({ name: '', head: '' });
       } else {
         const error = await response.json();
-        alert(error.message || 'Failed to save department');
+        toast.error(error.message || 'Failed to save department');
       }
     } catch (error) {
       console.error('Error saving department:', error);

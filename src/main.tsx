@@ -31,6 +31,7 @@ import AttendancePage from './pages/common/AttendancePage';
 import LeavePage from './pages/common/LeavePage';
 import PayrollPage from './pages/common/PayrollPage';
 import RecruitmentPage from './pages/common/RecruitmentPage';
+import PunchTime from './components/Punch/PunchTime';
 import './index.css';
 
 function AppRoutes() {
@@ -130,7 +131,8 @@ function AppRoutes() {
           <Route path="/attendance" element={<AttendancePage/>} />
           <Route path="/leave" element={<LeavePage/>} />
           <Route path="/payroll" element={<PayrollPage/>} />
-          <Route path="/recruitment" element={<RecruitmentPage/>} />
+          <Route path="/recruitment" element={<RecruitmentPage />} />
+          <Route path="/punchtime" element={<PunchTime/>} />
         </Route>
       </Routes>
     </BrowserRouter>
