@@ -3,8 +3,12 @@ import { Outlet } from "react-router-dom";
 import LeftSidebar from "./RightSidebar";
 import Header from "./Header";
 import Toaster from "./Toaster";
+import { usePushNotifications } from "../../hooks/usePushNotifications";
 
 export default function Layout() {
+  // Initialize push notifications
+  usePushNotifications();
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Fixed Left Sidebar */}

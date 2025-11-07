@@ -133,7 +133,7 @@ const AddReportModal: React.FC<AddReportModalProps> = ({
             </label>
             <div className="border border-gray-300 rounded-lg">
               {/* @ts-ignore */}
-              <CKEditor
+              <CKEditor<ClassicEditor>
                 editor={ClassicEditor}
                 data={formData.description}
                 onChange={(event, editor) => {
