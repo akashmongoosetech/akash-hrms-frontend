@@ -318,7 +318,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
         .filter(report => report.employee._id === currentUserId)
         .map(report => ({
           _id: `report-${report._id}`,
-          name: `My Report (${report.workingHours})`,
+          name: `${report.employee.firstName} ${report.employee.lastName}`,
           date: report.date,
           type: 'report' as const,
           user: report.employee,
@@ -331,7 +331,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
         .filter(report => report.employee._id === employeeId)
         .map(report => ({
           _id: `report-${report._id}`,
-          name: `${report.employee.firstName} ${report.employee.lastName} - Report (${report.workingHours})`,
+          name: `${report.employee.firstName} ${report.employee.lastName}`,
           date: report.date,
           type: 'report' as const,
           user: report.employee,
@@ -356,7 +356,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
           _id: `leave-${leave._id}-${dateString}`,
           name: isCurrentUser
             ? `My ${leave.leaveType} Leave`
-            : `${leave.employee.firstName} ${leave.employee.lastName} - ${leave.leaveType} Leave`,
+            : `${leave.leaveType}`,
           date: dateString,
           type: 'leave' as const,
           employee: leave.employee,
@@ -383,15 +383,23 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
 
   const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents];
 
+  // Helper function to get color based on working hours
+  const getReportColor = (workingHours: string) => {
+    const hours = parseFloat(workingHours.split(' ')[0]);
+    if (hours >= 8) return '#10B981'; // green
+    if (hours >= 4) return '#3B82F6'; // blue
+    return '#EF4444'; // red
+  };
+
   // Prepare events for FullCalendar
   const calendarEvents: any[] = allEvents.map(event => ({
     id: event._id,
-    title: event.name,
+    title: 'type' in event && event.type === 'report' ? event.workingHours : event.name,
     date: event.date,
     color: 'type' in event && event.type === 'birthday' ? '#3B82F6' :
            ('type' in event && event.type === 'holiday' ? '#EF4444' :
-            'type' in event && event.type === 'report' ? '#8B5CF6' :
-            'type' in event && event.type === 'leave' ? '#F59E0B' : '#10B981'),
+            'type' in event && event.type === 'report' ? getReportColor(event.workingHours) :
+            'type' in event && event.type === 'leave' ? '#EF4444' : '#10B981'),
     extendedProps: {
       originalEvent: event
     }
@@ -474,7 +482,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                           : 'type' in event && event.type === 'report'
                           ? 'hover:border-purple-300 hover:bg-gray-50'
                           : 'type' in event && event.type === 'leave'
-                          ? 'hover:border-yellow-300 hover:bg-gray-50'
+                          ? 'hover:border-red-300 hover:bg-gray-50'
                           : 'hover:border-green-300 hover:bg-gray-50'
                       )
                 } ${
@@ -485,7 +493,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                     : 'type' in event && event.type === 'report'
                     ? 'border-l-[8px] border-l-purple-500'
                     : 'type' in event && event.type === 'leave'
-                    ? 'border-l-[8px] border-l-yellow-500'
+                    ? 'border-l-[8px] border-l-red-500'
                     : 'border-l-[8px] border-l-green-500'
                 }`}
                 onClick={() => handleListEventClick(event)}
@@ -499,7 +507,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                       : 'type' in event && event.type === 'report'
                       ? 'text-purple-600'
                       : 'type' in event && event.type === 'leave'
-                      ? 'text-yellow-600'
+                      ? 'text-red-600'
                       : 'text-green-600'
                   }`}>
                     {event.name}
@@ -534,7 +542,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                       'type' in event && event.type === 'birthday' ? 'bg-blue-500' :
                       ('type' in event && event.type === 'holiday' ? 'bg-red-500' :
                        'type' in event && event.type === 'report' ? 'bg-purple-500' :
-                       'type' in event && event.type === 'leave' ? 'bg-yellow-500' : 'bg-green-500')
+                       'type' in event && event.type === 'leave' ? 'bg-red-500' : 'bg-green-500')
                     }`}></span>
                   </div>
                 </div>
@@ -564,8 +572,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                   </div>
                 ) : 'type' in event && event.type === 'leave' ? (
                   <div className="flex items-center mt-1">
-                    <Calendar className="h-3 w-3 text-yellow-600 mr-1" />
-                    <p className="text-xs text-yellow-600">
+                    <Calendar className="h-3 w-3 text-red-600 mr-1" />
+                    <p className="text-xs text-red-600">
                       {event.leaveType} Leave - {event.status}
                     </p>
                   </div>

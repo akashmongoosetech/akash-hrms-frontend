@@ -36,13 +36,16 @@ export default function Dashboard() {
 
   const [todos, setTodos] = useState<Todo[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [holidays, setHolidays] = useState([]);
+  const [events, setEvents] = useState([]);
 
   // Mock data for dashboard
   const [stats, setStats] = useState({
     totalEmployees: 0,
-    onLeave: 0,
     newHires: 0,
     pendingRequests: 0,
+    holidays: 0,
+    events: 0,
   });
 
   const [realStats, setRealStats] = useState({
@@ -138,14 +141,57 @@ export default function Dashboard() {
       }
     };
 
+    // Fetch holidays
+    const fetchHolidays = async () => {
+      try {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (response.ok) {
+          const holidaysData = await response.json();
+          setHolidays(holidaysData);
+          setStats(prevStats => ({
+            ...prevStats,
+            holidays: holidaysData.length
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching holidays:', error);
+      }
+    };
+
+    // Fetch events
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/events`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (response.ok) {
+          const eventsData = await response.json();
+          setEvents(eventsData);
+          setStats(prevStats => ({
+            ...prevStats,
+            events: eventsData.length
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      }
+    };
+
     fetchUserStats();
     fetchTodos();
     fetchTickets();
+    fetchHolidays();
+    fetchEvents();
 
     // Set other mock data
     setStats(prevStats => ({
       ...prevStats,
-      onLeave: 8,
       newHires: 5,
       pendingRequests: 12
     }));
@@ -176,28 +222,38 @@ export default function Dashboard() {
 
   const statCards = [
     {
-      title: "Total Employees",
+      title: "Employees",
       value: stats.totalEmployees,
       icon: <Users className="h-6 w-6 text-white" />,
       change: "+2%",
     },
     {
-      title: "Admins",
-      value: realStats.totalAdmins,
+      title: "Users",
+      value: realStats.totalAdmins + realStats.totalSuperAdmins,
       icon: <Users className="h-6 w-6 text-white" />,
       change: "",
+      // breakdown: {
+      //   admins: realStats.totalAdmins,
+      //   superAdmins: realStats.totalSuperAdmins
+      // }
     },
     {
-      title: "Super Admins",
-      value: realStats.totalSuperAdmins,
-      icon: <Users className="h-6 w-6 text-white" />,
-      change: "",
-    },
-    {
-      title: "On Leave Today",
-      value: stats.onLeave,
+      title: "Holidays",
+      value: stats.holidays,
       icon: <Calendar className="h-6 w-6 text-white" />,
-      change: "-1",
+      change: "",
+    },
+    {
+      title: "Events",
+      value: stats.events,
+      icon: <Calendar className="h-6 w-6 text-white" />,
+      change: "",
+    },
+    {
+      title: "Todos",
+      value: todos.length,
+      icon: <BarChart3 className="h-6 w-6 text-white" />,
+      change: "",
     }
   ];
 
@@ -206,7 +262,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="p-4 sm:p-6">
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {statCards.map((card, index) => (
             <div
               key={card.title}
@@ -220,6 +276,12 @@ export default function Dashboard() {
                   <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
                     {card.value}
                   </p>
+                  {/* {card.breakdown && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      <div>Admins: {card.breakdown.admins}</div>
+                      <div>Super Admins: {card.breakdown.superAdmins}</div>
+                    </div>
+                  )} */}
                   <p
                     className={`text-xs mt-1 ${card.change.startsWith("+")
                         ? "text-green-600"

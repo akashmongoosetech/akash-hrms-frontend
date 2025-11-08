@@ -48,6 +48,21 @@ const ReportTable: React.FC<ReportTableProps> = ({
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
+  const getWorkingHoursBadge = (workingHours: string) => {
+    if (!workingHours) return 'text-gray-600 bg-gray-100';
+
+    const [hours, minutes] = workingHours.split(':');
+    const totalMinutes = parseInt(hours) * 60 + parseInt(minutes);
+
+    if (totalMinutes >= 8 * 60) { // 8 hours or above
+      return 'text-green-800 bg-green-100';
+    } else if (totalMinutes >= 4 * 60 && totalMinutes < 8 * 60) { // 4:00 to 7:59
+      return 'text-blue-800 bg-blue-100';
+    } else { // below 3:59
+      return 'text-red-800 bg-red-100';
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       {fetchingReports ? (
@@ -135,8 +150,10 @@ const ReportTable: React.FC<ReportTableProps> = ({
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {report.breakDuration}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                    {report.workingHours}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getWorkingHoursBadge(report.workingHours)}`}>
+                      {report.workingHours}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                     {report.totalHours}
