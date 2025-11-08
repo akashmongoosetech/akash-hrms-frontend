@@ -42,11 +42,18 @@ export default function ActivitiesPage() {
   const [adminAction, setAdminAction] = useState<'Break In' | 'Break Out'>('Break In');
   const [adminReason, setAdminReason] = useState('');
   const [adminLoading, setAdminLoading] = useState(false);
+  const [filterEmployee, setFilterEmployee] = useState('');
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [filterLoading, setFilterLoading] = useState(false);
   const role = localStorage.getItem("role");
 
   useEffect(() => {
     fetchBreaks();
     fetchPunchStatus();
+    if (role === 'Admin' || role === 'SuperAdmin') {
+      fetchEmployees();
+    }
 
     // Listen for new break events
     socket.on('newBreak', (newBreak: BreakRecord) => {
@@ -85,7 +92,12 @@ export default function ActivitiesPage() {
 
   const fetchBreaks = async () => {
     try {
-      const response = await API.get('/breaks');
+      const params = new URLSearchParams();
+      if (filterEmployee) params.append('employeeId', filterEmployee);
+      if (fromDate) params.append('fromDate', fromDate);
+      if (toDate) params.append('toDate', toDate);
+
+      const response = await API.get(`/breaks?${params.toString()}`);
       setBreaks(response.data);
       // Determine if currently on break by checking the last action
       const lastBreak = response.data[0];
@@ -94,7 +106,14 @@ export default function ActivitiesPage() {
       }
     } catch (error) {
       console.error('Error fetching breaks:', error);
+    } finally {
+      setFilterLoading(false);
     }
+  };
+
+  const handleApplyFilters = () => {
+    setFilterLoading(true);
+    fetchBreaks();
   };
 
   const fetchPunchStatus = async () => {
@@ -320,7 +339,61 @@ export default function ActivitiesPage() {
         </div>
       )}
 
-      {/* Timeline */}
+      {/* Filters */}
+      <div className="bg-white shadow-md rounded-lg p-4 mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Filters</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {(role === 'Admin' || role === 'SuperAdmin') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Employee</label>
+              <select
+                value={filterEmployee}
+                onChange={(e) => setFilterEmployee(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Employees</option>
+                {employees.map((emp) => (
+                  <option key={emp._id} value={emp._id}>
+                    {emp.firstName} {emp.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={handleApplyFilters}
+              disabled={filterLoading}
+              className={`w-full px-4 py-2 rounded-lg font-semibold text-white transition-colors ${
+                filterLoading
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-500 hover:bg-blue-600'
+              }`}
+            >
+              {filterLoading ? 'Applying...' : 'Apply Filters'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Timeline */}
 <div className="bg-white shadow-md rounded-lg overflow-hidden">
   {/* Header */}
@@ -356,7 +429,7 @@ export default function ActivitiesPage() {
           const yesterdayNoTime = stripTime(yesterday);
 
           if (dateNoTime.getTime() === todayNoTime.getTime()) {
-            displayDate = 'Today';
+            displayDate = '';
           } else if (dateNoTime.getTime() === yesterdayNoTime.getTime()) {
             displayDate = 'Yesterday';
           } else {

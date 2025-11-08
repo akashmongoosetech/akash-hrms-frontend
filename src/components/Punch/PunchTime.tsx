@@ -21,11 +21,25 @@ export default function PunchTimeTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [filters, setFilters] = useState({
+    employee: '',
+    fromDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Yesterday
+    toDate: new Date().toISOString().split('T')[0] // Today
+  });
   const role = localStorage.getItem('role');
 
   useEffect(() => {
-    fetchPunchTimes();
     fetchCurrentUser();
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchPunchTimes();
+      if (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') {
+        fetchEmployees();
+      }
+    }
 
     // Socket listeners for real-time updates
     socket.on('punch-in', (data) => {
@@ -42,7 +56,7 @@ export default function PunchTimeTable() {
       socket.off('punch-in');
       socket.off('punch-out');
     };
-  }, []);
+  }, [currentUser]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -64,9 +78,30 @@ export default function PunchTimeTable() {
     }
   };
 
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data.users);
+      }
+    } catch (err) {
+      console.error('Error fetching employees');
+    }
+  };
+
   const fetchPunchTimes = async () => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/punches`, {
+      const queryParams = new URLSearchParams();
+      if (filters.employee) queryParams.append('employee', filters.employee);
+      if (filters.fromDate) queryParams.append('fromDate', filters.fromDate);
+      if (filters.toDate) queryParams.append('toDate', filters.toDate);
+
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/punches?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -90,6 +125,23 @@ export default function PunchTimeTable() {
     const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyFilters = () => {
+    fetchPunchTimes();
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      employee: '',
+      fromDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Yesterday
+      toDate: new Date().toISOString().split('T')[0] // Today
+    });
+    fetchPunchTimes();
   };
 
   // Check if user has access (Admin or SuperAdmin)
@@ -116,6 +168,57 @@ export default function PunchTimeTable() {
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Punch Times</h3>
       </div>
+      {(currentUser?.role === 'Admin' || currentUser?.role === 'SuperAdmin') && (
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Employee</label>
+            <select
+              value={filters.employee}
+              onChange={(e) => handleFilterChange('employee', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Employees</option>
+              {employees.map((emp) => (
+                <option key={emp._id} value={emp._id}>
+                  {emp.firstName} {emp.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+            <input
+              type="date"
+              value={filters.fromDate}
+              onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+            <input
+              type="date"
+              value={filters.toDate}
+              onChange={(e) => handleFilterChange('toDate', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex items-end gap-2">
+            <button
+              onClick={applyFilters}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Apply
+            </button>
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">

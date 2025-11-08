@@ -1,10 +1,10 @@
 import React from "react";
+import PunchTimeTable from "../../components/Punch/PunchTime";
 
 export default function AttendancePage() {
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Attendance</h1>
-      <p className="text-gray-600">Attendance page content goes here.</p>
-    </div>
+    <>
+      <PunchTimeTable/>
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, FileText } from 'lucide-react';
 
 interface Report {
   _id: string;
@@ -28,12 +28,7 @@ interface ViewReportModalProps {
   role: string | null;
 }
 
-const ViewReportModal: React.FC<ViewReportModalProps> = ({
-  isOpen,
-  onClose,
-  report,
-  role,
-}) => {
+const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose, report, role }) => {
   const formatTime = (time: string) => {
     if (!time) return '';
     const [hours, minutes] = time.split(':');
@@ -46,135 +41,104 @@ const ViewReportModal: React.FC<ViewReportModalProps> = ({
   if (!isOpen || !report) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900">View Report</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X size={24} />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center animate-fadeIn">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <FileText className="w-6 h-6" />
+            <h2 className="text-lg font-semibold">Daily Work Report</h2>
+          </div>
+          <button onClick={onClose} className="hover:text-gray-200 transition">
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="space-y-6">
+        <div className="p-6 space-y-6">
+          {/* Employee Info */}
           {role && role !== 'Employee' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Employee Name & Email with Profile
-              </label>
-              <div className="flex items-center space-x-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
+            <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-blue-600 mb-3 uppercase tracking-wide">
+                Employee Information
+              </h3>
+              <div className="flex items-center space-x-4">
                 {report.employee.photo ? (
                   <img
-                    className="h-12 w-12 rounded-full object-cover"
+                    className="h-14 w-14 rounded-full object-cover shadow-md"
                     src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${report.employee.photo}`}
                     alt={`${report.employee.firstName} ${report.employee.lastName}`}
                   />
                 ) : (
-                  <div className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center">
-                    <span className="text-white text-lg font-medium">
-                      {report.employee.firstName[0]}{report.employee.lastName[0]}
-                    </span>
+                  <div className="h-14 w-14 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xl font-semibold">
+                    {report.employee.firstName[0]}
+                    {report.employee.lastName[0]}
                   </div>
                 )}
                 <div>
-                  <div className="text-lg font-medium text-gray-900">
+                  <p className="text-lg font-medium text-gray-900">
                     {report.employee.firstName} {report.employee.lastName}
-                  </div>
-                  <div className="text-sm text-gray-500">{report.employee.email}</div>
+                  </p>
+                  <p className="text-sm text-gray-500">{report.employee.email}</p>
                 </div>
               </div>
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          {/* Report Description */}
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-blue-600 mb-3 uppercase tracking-wide">
               Report Description
-            </label>
-            <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-              <div dangerouslySetInnerHTML={{ __html: report.description }} />
-            </div>
+            </h3>
+            <div
+              className="prose prose-sm text-gray-800"
+              dangerouslySetInnerHTML={{ __html: report.description }}
+            />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Start Time
-              </label>
-              <input
-                type="text"
-                value={formatTime(report.startTime)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                readOnly
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Break Duration (minutes)
-              </label>
-              <input
-                type="text"
-                value={report.breakDuration}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                readOnly
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                End Time
-              </label>
-              <input
-                type="text"
-                value={formatTime(report.endTime)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                readOnly
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Today's Working Hours
-              </label>
-              <input
-                type="text"
-                value={report.workingHours}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                readOnly
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Today's Total Hours
-              </label>
-              <input
-                type="text"
-                value={report.totalHours}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                readOnly
-              />
-            </div>
-
-            {/* {role && (role === 'Admin' || role === 'SuperAdmin') && report.note && ( */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Note
-                </label>
-                <div className="border border-red-800 rounded-lg p-4 bg-red-100">
-                  <p className="text-red-700">{report.note}</p>
-                </div>
+          {/* Time Details */}
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-blue-600 mb-3 uppercase tracking-wide">
+              Work Summary
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500">Start Time</p>
+                <p className="font-medium text-gray-900">{formatTime(report.startTime)}</p>
               </div>
-            {/* )} */}
+              <div>
+                <p className="text-gray-500">Break Duration</p>
+                <p className="font-medium text-gray-900">{report.breakDuration} min</p>
+              </div>
+              <div>
+                <p className="text-gray-500">End Time</p>
+                <p className="font-medium text-gray-900">{formatTime(report.endTime)}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Today's Working Hours</p>
+                <p className="font-medium text-gray-900">{report.workingHours}</p>
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-gray-500">Total Hours</p>
+                <p className="font-medium text-gray-900">{report.totalHours}</p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex justify-end pt-4">
+          {/* Admin Note */}
+          {report.note && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-red-600 mb-2 uppercase tracking-wide">
+                Admin Note
+              </h3>
+              <p className="text-red-700 text-sm">{report.note}</p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="flex justify-end pt-4 border-t border-gray-200">
             <button
-              type="button"
               onClick={onClose}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-blue-700 transition-all"
             >
               Close
             </button>

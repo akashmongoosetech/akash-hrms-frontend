@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { formatDate } from '../../Common/Commonfunction';
+import { Eye, Printer } from "lucide-react";
+import PayrollViewModal from './modals/PayrollViewModal/PayrollViewModal';
 
 interface Employee {
   _id: string;
   firstName: string;
   lastName: string;
+  email: string;
   photo?: string;
   joiningDate: string;
   salary?: number;
@@ -13,12 +16,19 @@ interface Employee {
     _id: string;
     name: string;
   };
+  bankAccountName?: string;
+  bankAccountNo?: string;
+  bankName?: string;
+  ifscCode?: string;
+  bankAddress?: string;
 }
 
 export default function PayrollTable() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -68,6 +78,7 @@ export default function PayrollTable() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joining Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Salary</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -98,6 +109,25 @@ export default function PayrollTable() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.department?.name || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.salary ? `₹${employee.salary}` : '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex space-x-2">
+                    <button
+                      className="text-gray-600 hover:text-gray-900"
+                      onClick={() => {
+                        setSelectedEmployee(employee);
+                        setShowModal(true);
+                      }}
+                    >
+                      <Eye className="h-5 w-5" />
+                    </button>
+                    <button
+                      className="text-blue-600 hover:text-blue-900"
+                      onClick={() => window.print()}
+                    >
+                      <Printer className="h-5 w-5" />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -106,6 +136,11 @@ export default function PayrollTable() {
       {employees.length === 0 && (
         <div className="text-center py-8 text-gray-500">No employees found</div>
       )}
+      <PayrollViewModal
+        showModal={showModal}
+        onClose={() => setShowModal(false)}
+        selectedEmployee={selectedEmployee}
+      />
     </div>
   );
 }

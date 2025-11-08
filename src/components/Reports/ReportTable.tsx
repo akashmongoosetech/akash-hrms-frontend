@@ -1,5 +1,6 @@
 import React from 'react';
 import { Eye, Edit, Trash2, NotebookPen } from 'lucide-react';
+import { formatDate } from '../../Common/Commonfunction';
 
 interface Report {
   _id: string;
@@ -123,7 +124,7 @@ const ReportTable: React.FC<ReportTableProps> = ({
                     </td>
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(report.date).toLocaleDateString()}
+                    {formatDate(report.date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatTime(report.startTime)}
