@@ -12,6 +12,7 @@ interface Employee {
   role: string;
   joiningDate: string;
   mobile1: string;
+  salary?: number;
   department?: {
     _id: string;
     name: string;
@@ -35,6 +36,7 @@ export default function EmployeeTable() {
     role: 'Employee',
     joiningDate: '',
     mobile1: '',
+    salary: '',
     department: ''
   });
   const [departments, setDepartments] = useState<{ _id: string; name: string }[]>([]);
@@ -172,6 +174,7 @@ export default function EmployeeTable() {
       role: 'Employee',
       joiningDate: '',
       mobile1: '',
+      salary: '',
       department: ''
     });
     setEditingEmployee(null);
@@ -187,6 +190,7 @@ export default function EmployeeTable() {
         role: employee.role,
         joiningDate: employee.joiningDate.split('T')[0], // Format for date input
         mobile1: employee.mobile1,
+        salary: employee.salary?.toString() || '',
         department: employee.department?._id || ''
       });
     } else {
@@ -236,6 +240,7 @@ export default function EmployeeTable() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joining Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -252,6 +257,7 @@ export default function EmployeeTable() {
                   {employee.joiningDate && !isNaN(new Date(employee.joiningDate).getTime()) ? formatDate(employee.joiningDate) : '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.mobile1}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.salary ? `₹${employee.salary}` : '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
                   <div className="flex space-x-2">
                     <button
@@ -314,6 +320,10 @@ export default function EmployeeTable() {
               <div>
                 <div className="text-gray-500">Mobile</div>
                 <div className="text-gray-800">{viewEmployee.mobile1}</div>
+              </div>
+              <div>
+                <div className="text-gray-500">Salary</div>
+                <div className="text-gray-800">{viewEmployee.salary ? `₹${viewEmployee.salary}` : '-'}</div>
               </div>
               <div>
                 <div className="text-gray-500">Department</div>
@@ -408,6 +418,16 @@ export default function EmployeeTable() {
                   value={formData.mobile1}
                   onChange={(e) => setFormData({ ...formData, mobile1: e.target.value })}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Salary (per month)</label>
+                <input
+                  type="number"
+                  value={formData.salary}
+                  onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter salary amount"
                 />
               </div>
               <div>

@@ -27,6 +27,7 @@ interface Employee {
   bankName?: string;
   ifscCode?: string;
   bankAddress?: string;
+  salary?: number;
   salaryDetails?: {
     accountNo?: string;
     bankName?: string;
@@ -80,6 +81,7 @@ export default function EmployeeEditPage() {
     bankName: '',
     ifscCode: '',
     bankAddress: '',
+    salary: '',
     salaryDetails: {
       accountNo: '',
       bankName: '',
@@ -123,43 +125,44 @@ export default function EmployeeEditPage() {
       if (response.ok) {
         const employee: Employee = await response.json();
         setFormData({
-          firstName: employee.firstName || '',
-          lastName: employee.lastName || '',
-          email: employee.email || '',
-          gender: employee.gender || '',
-          dob: employee.dob ? new Date(employee.dob).toISOString().split('T')[0] : '',
-          joiningDate: employee.joiningDate ? new Date(employee.joiningDate).toISOString().split('T')[0] : '',
-          mobile1: employee.mobile1 || '',
-          mobile2: employee.mobile2 || '',
-          password: '', // Don't populate password
-          address1: employee.address1 || '',
-          address2: employee.address2 || '',
-          emergencyContact1: employee.emergencyContact1 || '',
-          emergencyContact2: employee.emergencyContact2 || '',
-          emergencyContact3: employee.emergencyContact3 || '',
-          skillsFrontend: employee.skillsFrontend || [],
-          skillsBackend: employee.skillsBackend || [],
-          bankAccountName: employee.bankAccountName || '',
-          bankAccountNo: employee.bankAccountNo || '',
-          bankName: employee.bankName || '',
-          ifscCode: employee.ifscCode || '',
-          bankAddress: employee.bankAddress || '',
-          salaryDetails: {
-            accountNo: employee.salaryDetails?.accountNo || '',
-            bankName: employee.salaryDetails?.bankName || '',
-            ifscCode: employee.salaryDetails?.ifscCode || ''
-          },
-          aadharCardNumber: employee.aadharCardNumber || '',
-          drivingLicenseNumber: employee.drivingLicenseNumber || '',
-          panCardNumber: employee.panCardNumber || '',
-          facebook: employee.facebook || '',
-          twitter: employee.twitter || '',
-          linkedin: employee.linkedin || '',
-          instagram: employee.instagram || '',
-          upworkProfile: employee.upworkProfile || '',
-          role: employee.role || 'Employee',
-          department: (employee.department as any)?._id || ''
-        });
+           firstName: employee.firstName || '',
+           lastName: employee.lastName || '',
+           email: employee.email || '',
+           gender: employee.gender || '',
+           dob: employee.dob ? new Date(employee.dob).toISOString().split('T')[0] : '',
+           joiningDate: employee.joiningDate ? new Date(employee.joiningDate).toISOString().split('T')[0] : '',
+           mobile1: employee.mobile1 || '',
+           mobile2: employee.mobile2 || '',
+           password: '', // Don't populate password
+           address1: employee.address1 || '',
+           address2: employee.address2 || '',
+           emergencyContact1: employee.emergencyContact1 || '',
+           emergencyContact2: employee.emergencyContact2 || '',
+           emergencyContact3: employee.emergencyContact3 || '',
+           skillsFrontend: employee.skillsFrontend || [],
+           skillsBackend: employee.skillsBackend || [],
+           bankAccountName: employee.bankAccountName || '',
+           bankAccountNo: employee.bankAccountNo || '',
+           bankName: employee.bankName || '',
+           ifscCode: employee.ifscCode || '',
+           bankAddress: employee.bankAddress || '',
+           salary: employee.salary?.toString() || '',
+           salaryDetails: {
+             accountNo: employee.salaryDetails?.accountNo || '',
+             bankName: employee.salaryDetails?.bankName || '',
+             ifscCode: employee.salaryDetails?.ifscCode || ''
+           },
+           aadharCardNumber: employee.aadharCardNumber || '',
+           drivingLicenseNumber: employee.drivingLicenseNumber || '',
+           panCardNumber: employee.panCardNumber || '',
+           facebook: employee.facebook || '',
+           twitter: employee.twitter || '',
+           linkedin: employee.linkedin || '',
+           instagram: employee.instagram || '',
+           upworkProfile: employee.upworkProfile || '',
+           role: employee.role || 'Employee',
+           department: (employee.department as any)?._id || ''
+         });
       } else {
         toast.error('Failed to fetch employee');
       }
@@ -549,6 +552,23 @@ export default function EmployeeEditPage() {
                   value={formData.bankAddress}
                   onChange={(e) => setFormData({ ...formData, bankAddress: e.target.value })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Salary Information */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Salary Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Current Salary (per month)</label>
+                <input
+                  type="number"
+                  value={formData.salary}
+                  onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter salary amount"
                 />
               </div>
             </div>
