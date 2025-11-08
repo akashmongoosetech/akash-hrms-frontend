@@ -6,9 +6,6 @@ import {
   BarChart3,
   Clock,
   CheckCircle2,
-  AlertCircle,
-  TrendingUp,
-  Building,
 } from "lucide-react";
 import DashboardTable from "./DashboardTable";
 import EmployeeTodos from "./EmployeeTodos";
@@ -53,8 +50,6 @@ export default function Dashboard() {
     totalAdmins: 0,
     totalSuperAdmins: 0
   });
-
-  const [recentActivities, setRecentActivities] = useState([]);
 
   useEffect(() => {
     // Fetch real user statistics
@@ -253,16 +248,20 @@ export default function Dashboard() {
 
 
         {todos.length > 0 && (
-          <div className="mb-6 sm:mb-8">
+          <div className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <div className="mb-6 sm:mb-8">
             <h1 className="text-xl sm:text-2xl font-bold mb-4 px-4 sm:px-0">Employee Todos Overview</h1>
             <EmployeeTodos todos={todos} />
+          </div>
           </div>
         )}
 
         {tickets.length > 0 && (
-          <div className="mb-6 sm:mb-8">
+          <div className="mt-[50px] p-5 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <div className="mb-6 sm:mb-8">
             <h1 className="text-xl sm:text-2xl font-bold mb-4 px-4 sm:px-0">Employee Tickets Overview</h1>
             <DashboardTickets tickets={tickets} />
+          </div>
           </div>
         )}
 

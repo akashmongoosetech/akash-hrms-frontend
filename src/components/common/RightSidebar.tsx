@@ -22,40 +22,207 @@ import {
   Settings,
   Menu,
   X,
+  ListTodo,
+  Briefcase,
+  MessagesSquare,
 } from "lucide-react";
 
-export default function LeftSidebar() {
+interface NavItem {
+  id: string;
+  name: string;
+  icon: React.ReactElement;
+  path: string;
+  roles?: string[];
+}
+
+interface Section {
+  title: string;
+  icon?: React.ReactElement;
+  items: NavItem[];
+}
+
+export default function RightSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const role = localStorage.getItem("role") || "Employee";
 
-  const allNavItems = [
-    { id: "overview", name: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, path: "/dashboard" },
-    { id: "user", name: "User", icon: <User className="h-5 w-5" />, path: "/users", roles: ["Admin", "SuperAdmin"] },
-    { id: "employees", name: "Employees", icon: <Users className="h-5 w-5" />, path: "/employees", roles: ["Admin", "SuperAdmin"] },
-    { id: "department", name: "Department", icon: <Building className="h-5 w-5" />, path: "/department", roles: ["Admin", "SuperAdmin"] },
-    { id: "statistics", name: "Statistics", icon: <BarChart3 className="h-5 w-5" />, path: "/statistics", roles: ["Admin", "SuperAdmin"] },
-    { id: "activities", name: "Activities", icon: <Activity className="h-5 w-5" />, path: "/activities", roles: ["Employee", "Admin", "SuperAdmin"] },
-    { id: "holidays", name: "Holidays", icon: <CalendarDays className="h-5 w-5" />, path: "/holidays" },
-    { id: "events", name: "Events", icon: <CalendarCheck className="h-5 w-5" />, path: "/events" },
-    { id: "reports", name: "Reports", icon: <BarChart3 className="h-5 w-5" />, path: "/reports" },
-    { id: "gallery", name: "Gallery", icon: <Image className="h-5 w-5" />, path: "/gallery", roles: ["Admin", "SuperAdmin"] },
-    { id: "link", name: "Link", icon: <Link className="h-5 w-5" />, path: "/link", roles: ["Admin", "SuperAdmin"] },
-    { id: "ticket", name: "Ticket", icon: <Ticket className="h-5 w-5" />, path: "/tickets" },
-    { id: "attendance", name: "Attendance", icon: <Clock className="h-5 w-5" />, path: "/attendance" },
-    { id: "leave", name: "Leave Management", icon: <CalendarRange className="h-5 w-5" />, path: "/leave" },
-    { id: "payroll", name: "Payroll", icon: <Wallet className="h-5 w-5" />, path: "/payroll", roles: ["Admin", "SuperAdmin"] },
-    { id: "recruitment", name: "Recruitment", icon: <UserPlus className="h-5 w-5" />, path: "/recruitment", roles: ["Admin", "SuperAdmin"] },
-    { id: "client", name: "Client", icon: <Handshake className="h-5 w-5" />, path: "/client", roles: ["Admin", "SuperAdmin"] },
-    { id: "project", name: "Project", icon: <FolderKanban className="h-5 w-5" />, path: "/project", roles: ["Admin", "SuperAdmin"] },
+  // -------------------------
+  // NAVIGATION SECTIONS
+  // -------------------------
+  const sections: Section[] = [
+    {
+      title: "Dashboard",
+      items: [
+        {
+          id: "overview",
+          name: "Dashboard",
+          icon: <LayoutDashboard className="h-5 w-5" />,
+          path: "/dashboard",
+        },
+      ],
+    },
+    {
+      title: "Office",
+      icon: <Building className="h-4 w-4 text-gray-500" />,
+      items: [
+        {
+          id: "user",
+          name: "User",
+          icon: <User className="h-5 w-5" />,
+          path: "/users",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "department",
+          name: "Department",
+          icon: <Building className="h-5 w-5" />,
+          path: "/department",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "holidays",
+          name: "Holidays",
+          icon: <CalendarDays className="h-5 w-5" />,
+          path: "/holidays",
+        },
+        {
+          id: "payroll",
+          name: "Payroll",
+          icon: <Wallet className="h-5 w-5" />,
+          path: "/payroll",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "recruitment",
+          name: "Recruitment",
+          icon: <UserPlus className="h-5 w-5" />,
+          path: "/recruitment",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        // {
+        //   id: "messages",
+        //   name: "Messages",
+        //   icon: <MessagesSquare className="h-5 w-5" />,
+        //   path: "/messages",
+        //   roles: ["Admin", "SuperAdmin", "Employee"],
+        // },
+      ],
+    },
+    {
+      title: "Employees",
+      icon: <Users className="h-4 w-4 text-gray-500" />,
+      items: [
+        {
+          id: "employees",
+          name: "Employees",
+          icon: <Users className="h-5 w-5" />,
+          path: "/employees",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "statistics",
+          name: "Statistics",
+          icon: <BarChart3 className="h-5 w-5" />,
+          path: "/statistics",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "activities",
+          name: "Activities",
+          icon: <Activity className="h-5 w-5" />,
+          path: "/activities",
+          roles: ["Employee", "Admin", "SuperAdmin"],
+        },
+        {
+          id: "events",
+          name: "Events",
+          icon: <CalendarCheck className="h-5 w-5" />,
+          path: "/events",
+        },
+        {
+          id: "reports",
+          name: "Reports",
+          icon: <BarChart3 className="h-5 w-5" />,
+          path: "/reports",
+        },
+        {
+          id: "gallery",
+          name: "Gallery",
+          icon: <Image className="h-5 w-5" />,
+          path: "/gallery",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "attendance",
+          name: "Attendance",
+          icon: <Clock className="h-5 w-5" />,
+          path: "/attendance",
+        },
+        {
+          id: "leave",
+          name: "Leave Management",
+          icon: <CalendarRange className="h-5 w-5" />,
+          path: "/leave",
+        },
+      ],
+    },
+    {
+      title: "Projects",
+      icon: <Briefcase className="h-4 w-4 text-gray-500" />,
+      items: [
+        {
+          id: "client",
+          name: "Client",
+          icon: <Handshake className="h-5 w-5" />,
+          path: "/client",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "project",
+          name: "Project",
+          icon: <FolderKanban className="h-5 w-5" />,
+          path: "/project",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "ticket",
+          name: "Ticket",
+          icon: <Ticket className="h-5 w-5" />,
+          path: "/tickets",
+        },
+        {
+          id: "todo",
+          name: "Todo",
+          icon: <ListTodo className="h-5 w-5" />,
+          path: "/todo",
+          roles: ["Employee", "Admin", "SuperAdmin"],
+        },
+        {
+          id: "link",
+          name: "Link",
+          icon: <Link className="h-5 w-5" />,
+          path: "/link",
+          roles: ["Admin", "SuperAdmin"],
+        },
+      ],
+    },
   ];
 
-  const navItems = allNavItems.filter(
-    (item) =>
-      !item.roles || item.roles.some((r) => r.toLowerCase() === role.toLowerCase())
-  );
+  // -------------------------
+  // ROLE-BASED FILTER
+  // -------------------------
+  const filteredSections = sections.map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) =>
+        !item.roles || item.roles.some((r) => r.toLowerCase() === role.toLowerCase())
+    ),
+  }));
 
+  // -------------------------
+  // COMPONENT RENDER
+  // -------------------------
   return (
     <>
       {/* Desktop Sidebar */}
@@ -66,22 +233,36 @@ export default function LeftSidebar() {
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
-        <nav className="p-4 overflow-y-auto flex-1 space-y-1">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.path)}
-              className={`flex items-center w-full space-x-3 px-3 py-2 text-sm rounded-lg transition-colors ${
-                location.pathname === item.path
-                  ? "bg-blue-100 text-blue-600 font-medium"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              {item.icon}
-              <span>{item.name}</span>
-            </button>
+
+        <nav className="p-4 overflow-y-auto flex-1 space-y-6">
+          {filteredSections.map((section) => (
+            <div key={section.title}>
+              <div className="flex items-center space-x-2 mb-2">
+                {section.icon}
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {section.title}
+                </h2>
+              </div>
+              <div className="space-y-1">
+                {section.items.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(item.path)}
+                    className={`flex items-center w-full space-x-3 px-3 py-2 text-sm rounded-lg transition-colors ${
+                      location.pathname === item.path
+                        ? "bg-blue-100 text-blue-600 font-medium"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {item.icon}
+                    <span>{item.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
+
         <div className="p-4 border-t border-gray-100">
           <button
             onClick={() => navigate("/settings")}
@@ -111,23 +292,36 @@ export default function LeftSidebar() {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="p-4 overflow-y-auto flex-1 space-y-1">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                navigate(item.path);
-                setIsOpen(false);
-              }}
-              className={`flex items-center w-full space-x-3 px-3 py-2 text-sm rounded-lg transition-colors ${
-                location.pathname === item.path
-                  ? "bg-blue-100 text-blue-600 font-medium"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              {item.icon}
-              <span>{item.name}</span>
-            </button>
+
+        <nav className="p-4 overflow-y-auto flex-1 space-y-6">
+          {filteredSections.map((section) => (
+            <div key={section.title}>
+              <div className="flex items-center space-x-2 mb-2">
+                {section.icon}
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {section.title}
+                </h2>
+              </div>
+              <div className="space-y-1">
+                {section.items.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      navigate(item.path);
+                      setIsOpen(false);
+                    }}
+                    className={`flex items-center w-full space-x-3 px-3 py-2 text-sm rounded-lg transition-colors ${
+                      location.pathname === item.path
+                        ? "bg-blue-100 text-blue-600 font-medium"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {item.icon}
+                    <span>{item.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
       </aside>

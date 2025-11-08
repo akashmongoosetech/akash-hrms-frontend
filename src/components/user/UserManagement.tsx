@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API from '../../utils/api';
 import DeleteModal from '../../Common/DeleteModal';
 import toast from 'react-hot-toast';
+import { Edit, Trash2 } from 'lucide-react';
 
 interface User {
   _id: string;
@@ -326,14 +327,14 @@ export default function UserManagement() {
                     onClick={() => handleEdit(user)}
                     className="text-indigo-600 hover:text-indigo-900 mr-4"
                   >
-                    Edit
+                    <Edit className="h-5 w-5"/>
                   </button>
                   {currentRole === 'SuperAdmin' && (
                     <button
                       onClick={() => handleDelete(user._id)}
                       className="text-red-600 hover:text-red-900"
                     >
-                      Delete
+                      <Trash2 className="h-5 w-5"/>
                     </button>
                   )}
                 </td>
