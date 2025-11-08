@@ -68,7 +68,7 @@ export const usePushNotifications = () => {
 
       const baseUrl = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
       const cleanBaseUrl = baseUrl.replace('/api', '');
-      const response = await fetch(`${cleanBaseUrl}/users/subscribe-push`, {
+      const response = await fetch(`${cleanBaseUrl}/api/users/subscribe-push`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ export const usePushNotifications = () => {
         const token = localStorage.getItem('token');
         const baseUrl = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
         const cleanBaseUrl = baseUrl.replace('/api', '');
-        await fetch(`${cleanBaseUrl}/users/unsubscribe-push`, {
+        await fetch(`${cleanBaseUrl}/api/users/unsubscribe-push`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`

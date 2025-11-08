@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import DashboardTable from "./DashboardTable";
 import EmployeeTodos from "./EmployeeTodos";
+import DashboardTickets from "./DashboardTickets";
 
 interface Todo {
   _id: string;
@@ -22,10 +23,22 @@ interface Todo {
   status: string;
   priority: string;
 }
+
+interface Ticket {
+  _id: string;
+  employeeName: string;
+  employeePhoto?: string;
+  title: string;
+  priority: string;
+  dueDate: string;
+  progress: number;
+}
+
 export default function Dashboard() {
   const role = localStorage.getItem("role") || "Employee";
 
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
 
   // Mock data for dashboard
   const [stats, setStats] = useState({
@@ -103,8 +116,36 @@ export default function Dashboard() {
       }
     };
 
+    // Fetch tickets
+    const fetchTickets = async () => {
+      try {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/tickets`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (response.ok) {
+          const ticketsData = await response.json();
+          // Transform the data to match the Ticket interface
+          const transformedTickets: Ticket[] = ticketsData.map((ticket: any) => ({
+            _id: ticket._id,
+            employeeName: `${ticket.employee.firstName} ${ticket.employee.lastName}`,
+            employeePhoto: ticket.employee.photo,
+            title: ticket.title,
+            priority: ticket.priority,
+            dueDate: new Date(ticket.dueDate).toLocaleDateString('en-GB'), // DD/MM/YYYY format
+            progress: ticket.currentProgress
+          }));
+          setTickets(transformedTickets);
+        }
+      } catch (error) {
+        console.error('Error fetching tickets:', error);
+      }
+    };
+
     fetchUserStats();
     fetchTodos();
+    fetchTickets();
 
     // Set other mock data
     setStats(prevStats => ({
@@ -211,10 +252,19 @@ export default function Dashboard() {
         </div>
 
 
-        <div className="p-6">
-          <h1 className="text-2xl font-bold mb-4">Employee Todos Overview</h1>
-          <EmployeeTodos todos={todos} />
-        </div>
+        {todos.length > 0 && (
+          <div className="p-6">
+            <h1 className="text-2xl font-bold mb-4">Employee Todos Overview</h1>
+            <EmployeeTodos todos={todos} />
+          </div>
+        )}
+
+        {tickets.length > 0 && (
+          <div className="p-6">
+            <h1 className="text-2xl font-bold mb-4">Employee Tickets Overview</h1>
+            <DashboardTickets tickets={tickets} />
+          </div>
+        )}
 
       </main>
     </div>

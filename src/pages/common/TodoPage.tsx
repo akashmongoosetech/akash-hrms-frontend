@@ -207,6 +207,7 @@ export default function TodoPage() {
       });
 
       if (response.ok) {
+        toast.success(editingTodo ? "Todo updated successfully" : "Todo added successfully");
         // fetchTodos(); // Removed to rely on socket updates
         setShowModal(false);
         resetForm();
@@ -254,6 +255,7 @@ export default function TodoPage() {
       );
 
       if (response.ok) {
+        toast.success("Todo deleted successfully");
         // fetchTodos(); // Removed to rely on socket updates
         setShowDeleteModal(false);
         setDeleteTodoId(null);
@@ -281,6 +283,7 @@ export default function TodoPage() {
       );
 
       if (response.ok) {
+        toast.success("Status updated successfully");
         // fetchTodos(); // Removed to rely on socket updates
       } else {
         const error = await response.json();
