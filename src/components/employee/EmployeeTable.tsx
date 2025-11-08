@@ -13,6 +13,7 @@ interface Employee {
   joiningDate: string;
   mobile1: string;
   salary?: number;
+  status?: string;
   department?: {
     _id: string;
     name: string;
@@ -37,6 +38,7 @@ export default function EmployeeTable() {
     joiningDate: '',
     mobile1: '',
     salary: '',
+    status: 'Active',
     department: ''
   });
   const [departments, setDepartments] = useState<{ _id: string; name: string }[]>([]);
@@ -175,6 +177,7 @@ export default function EmployeeTable() {
       joiningDate: '',
       mobile1: '',
       salary: '',
+      status: 'Active',
       department: ''
     });
     setEditingEmployee(null);
@@ -191,6 +194,7 @@ export default function EmployeeTable() {
         joiningDate: employee.joiningDate.split('T')[0], // Format for date input
         mobile1: employee.mobile1,
         salary: employee.salary?.toString() || '',
+        status: employee.status || 'Active',
         department: employee.department?._id || ''
       });
     } else {
@@ -238,6 +242,7 @@ export default function EmployeeTable() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
               {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th> */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joining Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
@@ -253,6 +258,13 @@ export default function EmployeeTable() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.email}</td>
                 {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.role}</td> */}
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.department?.name || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    employee.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {employee.status || 'Active'}
+                  </span>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {employee.joiningDate && !isNaN(new Date(employee.joiningDate).getTime()) ? formatDate(employee.joiningDate) : '-'}
                 </td>

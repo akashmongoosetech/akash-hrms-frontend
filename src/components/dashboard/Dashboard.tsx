@@ -66,7 +66,7 @@ export default function Dashboard() {
         if (response.ok) {
           const data = await response.json();
           const users = data.users;
-          const totalEmployees = users.filter((user: any) => user.role === 'Employee').length;
+          const totalEmployees = users.filter((user: any) => user.role === 'Employee' && user.status === 'Active').length;
           const totalAdmins = users.filter((user: any) => user.role === 'Admin').length;
           const totalSuperAdmins = users.filter((user: any) => user.role === 'SuperAdmin').length;
 
