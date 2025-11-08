@@ -116,28 +116,113 @@ export default function DashboardTable() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Recent Projects</h3>
-        <div className="text-sm text-gray-500">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900">Recent Projects</h3>
+        <div className="text-xs sm:text-sm text-gray-500">
           {projects.length} project{projects.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile Card View */}
+      <div className="block md:hidden space-y-4">
+        {projects.slice(0, 10).map((project) => (
+          <div key={project._id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center flex-1 min-w-0">
+                {getClientProfile(project) && (
+                  <img
+                    className="h-8 w-8 rounded-full mr-3 flex-shrink-0"
+                    src={getImageUrl(getClientProfile(project))}
+                    alt="Client profile"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {getClientName(project)}
+                  </div>
+                  {getClientEmail(project) && (
+                    <div className="text-xs text-gray-500 truncate">
+                      {getClientEmail(project)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div>
+                <div className="text-sm font-medium text-gray-900 mb-1">Project</div>
+                <div className="text-sm text-gray-700">{project.name}</div>
+                {project.description && (
+                  <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                    {project.description}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-xs text-gray-900">
+                  <Code className="h-3 w-3 text-gray-400 mr-1 flex-shrink-0" />
+                  <span className="truncate">{project.technology || 'Not specified'}</span>
+                </div>
+
+                <div className="flex items-center">
+                  {project.teamMembers && project.teamMembers.length > 0 ? (
+                    <div className="flex -space-x-1">
+                      {project.teamMembers.slice(0, 3).map((member) => (
+                        <div key={member._id} className="relative">
+                          {member.photo ? (
+                            <img
+                              className="h-6 w-6 rounded-full border-2 border-white"
+                              src={getImageUrl(member.photo)}
+                              alt={`${member.firstName} ${member.lastName}`}
+                            />
+                          ) : (
+                            <div className="h-6 w-6 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center">
+                              <span className="text-xs font-medium text-gray-700">
+                                {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {project.teamMembers.length > 3 && (
+                        <div className="h-6 w-6 rounded-full bg-gray-400 border-2 border-white flex items-center justify-center">
+                          <span className="text-xs font-medium text-white">
+                            +{project.teamMembers.length - 3}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center text-xs text-gray-900">
+                      <Users className="h-3 w-3 text-gray-400 mr-1 flex-shrink-0" />
+                      <span>No team</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Client
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Team Members
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Project Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Technology
               </th>
             </tr>
@@ -146,7 +231,7 @@ export default function DashboardTable() {
             {projects.slice(0, 10).map((project) => (
               <tr key={project._id} className="hover:bg-gray-50">
                 {/* Client */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     {getClientProfile(project) && (
                       <img
@@ -169,7 +254,7 @@ export default function DashboardTable() {
                 </td>
 
                 {/* Team Members */}
-                <td className="px-6 py-4">
+                <td className="px-4 sm:px-6 py-4">
                   <div className="flex items-center">
                     {project.teamMembers && project.teamMembers.length > 0 ? (
                       <div className="flex -space-x-2">
@@ -208,7 +293,7 @@ export default function DashboardTable() {
                 </td>
 
                 {/* Project Info */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {project.name}
                   </div>
@@ -220,7 +305,7 @@ export default function DashboardTable() {
                 </td>
 
                 {/* Technology */}
-                <td className="px-6 py-4">
+                <td className="px-4 sm:px-6 py-4">
                   <div className="flex items-center text-sm text-gray-900">
                     <Code className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
                     <span>{project.technology || 'Not specified'}</span>
@@ -233,14 +318,14 @@ export default function DashboardTable() {
       </div>
 
       {projects.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
           No projects found
         </div>
       )}
 
       {projects.length > 10 && (
         <div className="text-center mt-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-xs sm:text-sm text-gray-500">
             Showing 10 of {projects.length} projects
           </p>
         </div>

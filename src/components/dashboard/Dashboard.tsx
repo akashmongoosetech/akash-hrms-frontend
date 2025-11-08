@@ -209,20 +209,20 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
-      <main className="p-6">
+      <main className="p-4 sm:p-6">
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {statCards.map((card, index) => (
             <div
               key={card.title}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-600 truncate">
                     {card.title}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
                     {card.value}
                   </p>
                   <p
@@ -235,9 +235,9 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <div
-                  className={`p-3 rounded-full ${getStatCardColor(
+                  className={`p-2 sm:p-3 rounded-full ${getStatCardColor(
                     index
-                  )}`}
+                  )} flex-shrink-0 ml-3`}
                 >
                   {card.icon}
                 </div>
@@ -247,21 +247,21 @@ export default function Dashboard() {
         </div>
 
         {/* Projects Table */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <DashboardTable />
         </div>
 
 
         {todos.length > 0 && (
-          <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Employee Todos Overview</h1>
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-xl sm:text-2xl font-bold mb-4 px-4 sm:px-0">Employee Todos Overview</h1>
             <EmployeeTodos todos={todos} />
           </div>
         )}
 
         {tickets.length > 0 && (
-          <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Employee Tickets Overview</h1>
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-xl sm:text-2xl font-bold mb-4 px-4 sm:px-0">Employee Tickets Overview</h1>
             <DashboardTickets tickets={tickets} />
           </div>
         )}

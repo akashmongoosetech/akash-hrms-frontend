@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import API from '../../utils/api';
 import socket from '../../utils/socket';
 import toast from 'react-hot-toast';
+import ActivitiesAdminModal from '../../components/activities/ActivitiesAdminModal';
+import ActivitiesFilters from '../../components/activities/ActivitiesFilters';
+import ActivitiesTimeline from '../../components/activities/ActivitiesTimeline';
 
 interface BreakRecord {
   _id: string;
@@ -192,14 +195,6 @@ export default function ActivitiesPage() {
     setShowAdminModal(true);
   };
 
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
 
   return (
     <div className="p-6">
@@ -271,257 +266,34 @@ export default function ActivitiesPage() {
         </div>
       </div>
 
-      {/* Admin Modal */}
-      {showAdminModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Break</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Employee</label>
-                <select
-                  value={selectedEmployee}
-                  onChange={(e) => setSelectedEmployee(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select Employee</option>
-                  {employees.map((emp) => (
-                    <option key={emp._id} value={emp._id}>
-                      {emp.firstName} {emp.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
-                <select
-                  value={adminAction}
-                  onChange={(e) => setAdminAction(e.target.value as 'Break In' | 'Break Out')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Break In">Break In</option>
-                  <option value="Break Out">Break Out</option>
-                </select>
-              </div>
-              {adminAction === 'Break In' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                  <input
-                    type="text"
-                    placeholder="Enter reason for break in"
-                    value={adminReason}
-                    onChange={(e) => setAdminReason(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="flex space-x-4 mt-6">
-              <button
-                onClick={handleAdminBreakAction}
-                disabled={adminLoading || !selectedEmployee || (adminAction === 'Break In' && !adminReason.trim())}
-                className={`flex-1 px-4 py-2 rounded-lg font-semibold text-white transition-colors ${
-                  adminLoading || !selectedEmployee || (adminAction === 'Break In' && !adminReason.trim())
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-500 hover:bg-green-600'
-                }`}
-              >
-                {adminLoading ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                onClick={() => setShowAdminModal(false)}
-                className="flex-1 px-4 py-2 rounded-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ActivitiesAdminModal
+        showAdminModal={showAdminModal}
+        setShowAdminModal={setShowAdminModal}
+        employees={employees}
+        selectedEmployee={selectedEmployee}
+        setSelectedEmployee={setSelectedEmployee}
+        adminAction={adminAction}
+        setAdminAction={setAdminAction}
+        adminReason={adminReason}
+        setAdminReason={setAdminReason}
+        adminLoading={adminLoading}
+        handleAdminBreakAction={handleAdminBreakAction}
+      />
 
-      {/* Filters */}
-      <div className="bg-white shadow-md rounded-lg p-4 mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Filters</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {(role === 'Admin' || role === 'SuperAdmin') && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Employee</label>
-              <select
-                value={filterEmployee}
-                onChange={(e) => setFilterEmployee(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Employees</option>
-                {employees.map((emp) => (
-                  <option key={emp._id} value={emp._id}>
-                    {emp.firstName} {emp.lastName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={handleApplyFilters}
-              disabled={filterLoading}
-              className={`w-full px-4 py-2 rounded-lg font-semibold text-white transition-colors ${
-                filterLoading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-500 hover:bg-blue-600'
-              }`}
-            >
-              {filterLoading ? 'Applying...' : 'Apply Filters'}
-            </button>
-          </div>
-        </div>
-      </div>
+      <ActivitiesFilters
+        role={role}
+        employees={employees}
+        filterEmployee={filterEmployee}
+        setFilterEmployee={setFilterEmployee}
+        fromDate={fromDate}
+        setFromDate={setFromDate}
+        toDate={toDate}
+        setToDate={setToDate}
+        filterLoading={filterLoading}
+        handleApplyFilters={handleApplyFilters}
+      />
 
-      {/* Timeline */}
-<div className="bg-white shadow-md rounded-lg overflow-hidden">
-  {/* Header */}
-  <div className="px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-    <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-      <i className="fa fa-stream text-blue-500"></i> Timeline Activity
-    </h3>
-  </div>
-
-  <div className="relative p-6">
-    {/* Vertical Line */}
-    <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-300 via-gray-200 to-transparent"></div>
-
-    {breaks.length > 0 ? (
-      breaks.map((activity, index) => {
-        // --- Date Separator Logic ---
-        let showSeparator = false;
-        let displayDate = '';
-        const currentDateStr = activity.date;
-        if (index === 0 || currentDateStr !== breaks[index - 1].date) {
-          showSeparator = true;
-        }
-
-        if (showSeparator && currentDateStr) {
-          const dateObj = new Date(currentDateStr);
-          const today = new Date();
-          const yesterday = new Date(today);
-          yesterday.setDate(today.getDate() - 1);
-
-          const stripTime = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-          const dateNoTime = stripTime(dateObj);
-          const todayNoTime = stripTime(today);
-          const yesterdayNoTime = stripTime(yesterday);
-
-          if (dateNoTime.getTime() === todayNoTime.getTime()) {
-            displayDate = '';
-          } else if (dateNoTime.getTime() === yesterdayNoTime.getTime()) {
-            displayDate = 'Yesterday';
-          } else {
-            displayDate = dateObj.toLocaleDateString(undefined, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              weekday: 'long'
-            });
-          }
-        }
-
-        const key = activity._id || index;
-        const type = activity.action === 'Break In' ? 'Break_in' : 'Break_out';
-        const time = formatTime(activity.timestamp);
-        const description = activity.reason || '';
-
-        if (!activity.employee) return null;
-
-        return (
-          <React.Fragment key={key}>
-            {/* Date Separator */}
-            {showSeparator && displayDate && (
-              <div className="flex items-center my-8">
-                <div className="flex-1 border-t border-gray-300"></div>
-                <div className="mx-3 px-4 py-1 border border-gray-300 rounded-full bg-gray-50 text-gray-600 text-sm font-medium shadow-sm">
-                  <i className="fa fa-calendar-alt mr-1 text-gray-400"></i>
-                  {displayDate}
-                </div>
-                <div className="flex-1 border-t border-gray-300"></div>
-              </div>
-            )}
-
-            {/* Timeline Item */}
-            <div className="relative pl-14 mb-8 group">
-              {/* Node circle */}
-              <div className="absolute left-5 top-2 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-md group-hover:scale-110 transition-transform"></div>
-
-              <div className="flex items-start gap-4">
-                {/* Profile Image */}
-                {activity.employee.photo ? (
-                  <img
-                    src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${activity.employee.photo}`}
-                    alt="Profile"
-                    className="w-10 h-10 rounded-full object-cover border-2 border-blue-100 shadow-sm"
-                  />
-                ) : (
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center border-2 border-blue-200 text-blue-600 font-semibold">
-                    {activity.employee.firstName[0]}
-                    {activity.employee.lastName[0]}
-                  </div>
-                )}
-
-                {/* Content */}
-                <div className="flex-1 bg-gray-50 rounded-xl p-4 border border-gray-200 hover:shadow-sm transition">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-gray-800">
-                      {activity.employee.firstName} {activity.employee.lastName}
-                      <span className="mx-2 text-gray-400">|</span>
-                      <span
-                        className={`${
-                          type === 'Break_in' ? 'text-green-600' : 'text-red-500'
-                        } font-medium`}
-                      >
-                        {type === 'Break_in' ? 'Break In' : 'Break Out'}
-                      </span>
-                    </span>
-                    <small className="text-gray-500">{time}</small>
-                  </div>
-
-                  {description && (
-                    <p className="text-sm text-gray-700 leading-snug">
-                      {description}
-                    </p>
-                  )}
-
-                  {activity.addedBy && (
-                    <small className="block text-blue-600 mt-1">
-                      Added by {activity.addedBy.firstName} {activity.addedBy.lastName} ({activity.addedBy.role})
-                    </small>
-                  )}
-                </div>
-              </div>
-            </div>
-          </React.Fragment>
-        );
-      })
-    ) : (
-      <div className="text-center text-gray-500 py-6">No activities found</div>
-    )}
-  </div>
-</div>
+      <ActivitiesTimeline breaks={breaks} />
 
     </div>
   );

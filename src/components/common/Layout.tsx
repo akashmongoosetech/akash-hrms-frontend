@@ -6,21 +6,21 @@ import Toaster from "./Toaster";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
 
 export default function Layout() {
-  // Initialize push notifications
   usePushNotifications();
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Fixed Left Sidebar */}
-      <div className="fixed left-0 top-0 h-full z-10">
-        <LeftSidebar />
+      {/* Sidebar */}
+      <LeftSidebar />
+
+      {/* Main Content */}
+      <div className="flex-1 md:ml-64 pb-16 md:pb-0">
+        <Header />
+        <main className="p-4">
+          <Outlet />
+        </main>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 ml-64">
-        <Header />
-        <Outlet />
-      </div>
       <Toaster />
     </div>
   );

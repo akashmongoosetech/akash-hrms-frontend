@@ -56,42 +56,43 @@ export default function EmployeeTodos({ todos }: Props) {
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       {Object.entries(groupedTodos).map(([employeeName, employeeTodos]) => (
         <div
           key={employeeName}
-          className="bg-white border rounded-2xl shadow-sm p-4 hover:shadow-md transition-all flex flex-col"
-          style={{ maxHeight: '400px', overflow: 'auto' }}
+          className="bg-white border rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-4 hover:shadow-md transition-all flex flex-col"
+          style={{ maxHeight: '350px', overflow: 'auto' }}
         >
           {/* Employee Header */}
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-shrink-0">
             <img
               src={employeeTodos[0]?.employeePhoto ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'}/${employeeTodos[0].employeePhoto}` : `https://ui-avatars.com/api/?name=${employeeName}`}
               alt={employeeName}
-              className="w-10 h-10 rounded-full border"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex-shrink-0"
             />
-            <h3 className="font-semibold text-gray-800">{employeeName}</h3>
+            <h3 className="font-semibold text-gray-800 text-sm sm:text-base truncate">{employeeName}</h3>
           </div>
 
           {/* All Todos of this employee */}
-          <div className="space-y-3 flex-1 overflow-auto">
+          <div className="space-y-2 sm:space-y-3 flex-1 overflow-auto">
             {employeeTodos.map((todo) => (
               <div
                 key={todo._id}
-                className="border rounded-lg p-3 bg-gray-50 hover:bg-gray-100 transition-all"
+                className="border rounded-lg p-2 sm:p-3 bg-gray-50 hover:bg-gray-100 transition-all cursor-pointer"
+                onClick={() => navigate(`/todo?employeeName=${encodeURIComponent(employeeName)}`)}
               >
-                <p className="text-sm font-medium text-gray-700 truncate">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 truncate">
                   {todo.title}
                 </p>
-                <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-2">
-                  <span>{formatDueDate(todo.dueDate)}</span>
+                <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-1 sm:gap-2">
+                  <span className="truncate">{formatDueDate(todo.dueDate)}</span>
                   <span
-                    className={`px-2 py-0.5 rounded-full ${getPriorityColor(todo.priority)}`}
+                    className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs ${getPriorityColor(todo.priority)}`}
                   >
                     {todo.priority}
                   </span>
                   {parseDate(todo.dueDate) < new Date(new Date().setHours(0, 0, 0, 0)) && (
-                    <span className="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full">
+                    <span className="bg-pink-100 text-pink-800 px-1.5 sm:px-2 py-0.5 rounded-full text-xs">
                       OVERDUE
                     </span>
                   )}
@@ -101,10 +102,10 @@ export default function EmployeeTodos({ todos }: Props) {
           </div>
 
           {/* Footer */}
-          <div className="mt-4 text-right">
+          <div className="mt-3 sm:mt-4 text-right flex-shrink-0">
             <button
               onClick={() => navigate(`/todo?employeeName=${encodeURIComponent(employeeName)}`)}
-              className="text-indigo-600 text-sm font-medium hover:underline"
+              className="text-indigo-600 text-xs sm:text-sm font-medium hover:underline py-1 px-2 rounded-md hover:bg-indigo-50 transition-colors"
             >
               View All
             </button>
