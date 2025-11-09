@@ -1,5 +1,5 @@
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Edit, Save, X as CancelIcon } from 'lucide-react';
 import { formatDate } from '../../../../Common/Commonfunction';
 
 interface Employee {
@@ -23,13 +23,71 @@ interface Employee {
 }
 
 interface PayrollViewModalProps {
-  showModal: boolean;
-  onClose: () => void;
-  selectedEmployee: Employee | null;
+   showModal: boolean;
+   onClose: () => void;
+   selectedEmployee: Employee | null;
+   onEmployeeUpdate?: (updatedEmployee: Employee) => void;
 }
 
-const PayrollViewModal: React.FC<PayrollViewModalProps> = ({ showModal, onClose, selectedEmployee }) => {
-  if (!showModal || !selectedEmployee) return null;
+const PayrollViewModal: React.FC<PayrollViewModalProps> = ({ showModal, onClose, selectedEmployee, onEmployeeUpdate }) => {
+   const [isEditing, setIsEditing] = useState(false);
+   const [editedSalary, setEditedSalary] = useState<string>('');
+   const [isSaving, setIsSaving] = useState(false);
+   const [error, setError] = useState<string | null>(null);
+
+   useEffect(() => {
+      if (selectedEmployee?.salary) {
+         setEditedSalary(selectedEmployee.salary.toString());
+      }
+      setError(null); // Clear any previous errors when employee changes
+   }, [selectedEmployee]);
+
+   const handleSaveSalary = async () => {
+      if (!selectedEmployee || !editedSalary.trim()) {
+         setError('Please enter a valid salary amount');
+         return;
+      }
+
+      const salaryValue = parseFloat(editedSalary);
+      if (isNaN(salaryValue) || salaryValue < 0) {
+         setError('Please enter a valid positive number for salary');
+         return;
+      }
+
+      setIsSaving(true);
+      setError(null);
+
+      try {
+         const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users/${selectedEmployee._id}`, {
+            method: 'PUT',
+            headers: {
+               'Content-Type': 'application/json',
+               'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ salary: salaryValue })
+         });
+
+         if (response.ok) {
+            setIsEditing(false);
+            // Update the selectedEmployee with new salary for immediate UI update
+            const updatedEmployee = { ...selectedEmployee, salary: salaryValue };
+            setEditedSalary(salaryValue.toString());
+            // Notify parent component to update the employee list
+            if (onEmployeeUpdate) {
+               onEmployeeUpdate(updatedEmployee);
+            }
+         } else {
+            const errorData = await response.json();
+            setError(errorData.message || 'Failed to update salary');
+         }
+      } catch (err) {
+         setError('Network error. Please try again.');
+      } finally {
+         setIsSaving(false);
+      }
+   };
+
+   if (!showModal || !selectedEmployee) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center animate-fadeIn">
@@ -88,9 +146,23 @@ const PayrollViewModal: React.FC<PayrollViewModalProps> = ({ showModal, onClose,
               </div>
               <div>
                 <p className="text-gray-500">Monthly Salary</p>
-                <p className="font-medium text-gray-900">
-                  {selectedEmployee.salary ? `₹${selectedEmployee.salary.toLocaleString()}` : '-'}
-                </p>
+                {isEditing ? (
+                  <>
+                    <input
+                      type="number"
+                      value={editedSalary}
+                      onChange={(e) => setEditedSalary(e.target.value)}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter salary"
+                      disabled={isSaving}
+                    />
+                    {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+                  </>
+                ) : (
+                  <p className="font-medium text-gray-900">
+                    {selectedEmployee.salary ? `₹${selectedEmployee.salary.toLocaleString()}` : '-'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -123,13 +195,54 @@ const PayrollViewModal: React.FC<PayrollViewModalProps> = ({ showModal, onClose,
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end pt-4 border-t border-gray-200">
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-blue-700 transition-all"
-            >
-              Close
-            </button>
+          <div className="flex justify-end pt-4 border-t border-gray-200 space-x-3">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedSalary(selectedEmployee.salary?.toString() || '');
+                  }}
+                  className="px-6 py-2.5 bg-gray-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-gray-700 transition-all"
+                >
+                  <CancelIcon className="w-4 h-4 inline mr-2" />
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveSalary}
+                  disabled={isSaving}
+                  className="px-6 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="w-4 h-4 inline mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 inline mr-2" />
+                      Save
+                    </>
+                  )}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-6 py-2.5 bg-yellow-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-yellow-700 transition-all"
+                >
+                  <Edit className="w-4 h-4 inline mr-2" />
+                  Edit Salary
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-blue-700 transition-all"
+                >
+                  Close
+                </button>
+              </>
+            )}
           </div>
         </div>
 

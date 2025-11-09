@@ -110,6 +110,29 @@ interface LeaveEvent {
   status: string;
 }
 
+interface AlternateSaturday {
+  _id?: string;
+  month: number;
+  year: number;
+  workingSaturdays: number[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface AlternateSaturdayEvent {
+  _id: string;
+  name: string;
+  date: string;
+  type: 'alternateSaturday';
+}
+
+interface SundayEvent {
+  _id: string;
+  name: string;
+  date: string;
+  type: 'sunday';
+}
+
 interface EventCalendarProps {
   events: Event[];
   onEventClick?: (event: Event) => void;
@@ -120,7 +143,7 @@ interface EventCalendarProps {
 }
 
 export default function EventCalendar({ events, onEventClick, onEditEvent, onDeleteEvent, onDeleteConfirm, userRole }: EventCalendarProps) {
-   const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent | null>(null);
+   const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent | AlternateSaturdayEvent | SundayEvent | null>(null);
    const [users, setUsers] = useState<User[]>([]);
    const [holidays, setHolidays] = useState<HolidayEvent[]>([]);
    const [reports, setReports] = useState<Report[]>([]);
@@ -130,11 +153,13 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
    const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
    const [selectedFilter, setSelectedFilter] = useState<string>('All Events');
    const [currentUserId, setCurrentUserId] = useState<string>('');
+   const [alternateSaturdays, setAlternateSaturdays] = useState<AlternateSaturday[]>([]);
 
   useEffect(() => {
     fetchUsers();
     fetchHolidays();
     fetchCurrentUser();
+    fetchAlternateSaturdays();
   }, []);
 
   useEffect(() => {
@@ -270,6 +295,29 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     }
   };
 
+  const fetchAlternateSaturdays = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/alternate-saturdays`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAlternateSaturdays(data.alternateSaturdays || []);
+      } else {
+        console.error('Failed to fetch alternate Saturdays');
+        setAlternateSaturdays([]);
+      }
+    } catch (error) {
+      console.error('Error fetching alternate Saturdays:', error);
+      setAlternateSaturdays([]);
+    }
+  };
+
   // Helper to format YYYY-MM-DD without timezone issues
   const formatYMD = (y: number, m: number, d: number) => {
     const mm = String(m + 1).padStart(2, '0');
@@ -381,7 +429,79 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     return [];
   }, [leaves, selectedFilter, userRole, currentUserId]);
 
-  const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents];
+  // Helper function to format date in local timezone as YYYY-MM-DD
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Generate alternate Saturday events (memoized)
+  const alternateSaturdayEvents: AlternateSaturdayEvent[] = useMemo(() => {
+    const events: AlternateSaturdayEvent[] = [];
+
+    alternateSaturdays.forEach(altSat => {
+      const month = altSat.month;
+      const year = altSat.year;
+      const workingSaturdays = altSat.workingSaturdays || [];
+
+      // Get all Saturdays in the month
+      const firstDay = new Date(year, month - 1, 1);
+      const lastDay = new Date(year, month, 0);
+      const saturdays: Date[] = [];
+
+      for (let date = new Date(firstDay); date <= lastDay; date.setDate(date.getDate() + 1)) {
+        if (date.getDay() === 6) { // Saturday
+          saturdays.push(new Date(date));
+        }
+      }
+
+      // For each Saturday, if it's not in workingSaturdays, it's a holiday
+      saturdays.forEach((saturday, index) => {
+        const saturdayNumber = index + 1;
+        if (!workingSaturdays.includes(saturdayNumber)) {
+          const dateString = formatLocalDate(saturday);
+          events.push({
+            _id: `alt-sat-${year}-${month}-${saturdayNumber}`,
+            name: '',
+            date: dateString,
+            type: 'alternateSaturday' as const,
+          });
+        }
+      });
+    });
+
+    return events;
+  }, [alternateSaturdays]);
+
+  // Generate Sunday events (memoized)
+  const sundayEvents: SundayEvent[] = useMemo(() => {
+    const events: SundayEvent[] = [];
+    const currentYear = new Date().getFullYear();
+
+    // Generate Sundays for the current year
+    for (let month = 0; month < 12; month++) {
+      const firstDay = new Date(currentYear, month, 1);
+      const lastDay = new Date(currentYear, month + 1, 0);
+
+      for (let date = new Date(firstDay); date <= lastDay; date.setDate(date.getDate() + 1)) {
+        if (date.getDay() === 0) { // Sunday
+          const dateString = formatLocalDate(date);
+          events.push({
+            _id: `sunday-${currentYear}-${month + 1}-${date.getDate()}`,
+            name: '',
+            date: dateString,
+            type: 'sunday' as const,
+          });
+        }
+      }
+    }
+
+    return events;
+  }, []);
+
+  const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...alternateSaturdayEvents, ...sundayEvents];
 
   // Helper function to get color based on working hours
   const getReportColor = (workingHours: string) => {
@@ -399,7 +519,12 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     color: 'type' in event && event.type === 'birthday' ? '#3B82F6' :
            ('type' in event && event.type === 'holiday' ? '#EF4444' :
             'type' in event && event.type === 'report' ? getReportColor(event.workingHours) :
-            'type' in event && event.type === 'leave' ? '#EF4444' : '#10B981'),
+            'type' in event && event.type === 'leave' ? '#EF4444' :
+            'type' in event && event.type === 'alternateSaturday' ? '#FEF3C7' :
+            'type' in event && event.type === 'sunday' ? '#DAA520' : '#10B981'),
+    display: ('type' in event && event.type === 'alternateSaturday') || ('type' in event && event.type === 'sunday') ? 'background' : 'auto',
+    backgroundColor: 'type' in event && event.type === 'alternateSaturday' ? '#FEF3C7' :
+                    ('type' in event && event.type === 'sunday' ? '#DAA520' : undefined),
     extendedProps: {
       originalEvent: event
     }
@@ -408,24 +533,26 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
   const handleEventClick = (info: any) => {
     const originalEvent = info.event.extendedProps.originalEvent;
     setSelectedEvent(originalEvent);
-    // Only call onEventClick for regular events, not birthdays
+    // Only call onEventClick for regular events, not birthdays, holidays, reports, leaves, or alternate Saturdays
     if (onEventClick && !('type' in originalEvent)) {
       onEventClick(originalEvent);
     }
   };
 
-  const handleListEventClick = (event: Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent) => {
-    setSelectedEvent(event);
-    // Only call onEventClick for regular events, not birthdays, holidays, reports, or leaves
+  const handleListEventClick = (event: Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent | AlternateSaturdayEvent | SundayEvent) => {
+    setSelectedEvent(event as any);
+    // Only call onEventClick for regular events, not birthdays, holidays, reports, leaves, alternate Saturdays, or Sundays
     if (onEventClick && !('type' in event)) {
-      onEventClick(event);
+      onEventClick(event as Event);
     }
   };
 
-  // Sort events by date (most recent first)
-  const sortedEvents = [...allEvents].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Sort events by date (most recent first) - exclude alternate Saturdays and Sundays from the list
+  const sortedEvents = [...allEvents]
+    .filter(event => !('type' in event && (event.type === 'alternateSaturday' || event.type === 'sunday')))
+    .sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
   // Check if user can manage events (Admin or SuperAdmin)
   const canManageEvents = userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin');
@@ -483,6 +610,10 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                           ? 'hover:border-purple-300 hover:bg-gray-50'
                           : 'type' in event && event.type === 'leave'
                           ? 'hover:border-red-300 hover:bg-gray-50'
+                          : 'type' in event && event.type === 'alternateSaturday'
+                          ? 'hover:border-yellow-300 hover:bg-gray-50'
+                          : 'type' in event && event.type === 'sunday'
+                          ? 'hover:border-amber-300 hover:bg-gray-50'
                           : 'hover:border-green-300 hover:bg-gray-50'
                       )
                 } ${
@@ -494,6 +625,10 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                     ? 'border-l-[8px] border-l-purple-500'
                     : 'type' in event && event.type === 'leave'
                     ? 'border-l-[8px] border-l-red-500'
+                    : 'type' in event && event.type === 'alternateSaturday'
+                    ? 'border-l-[8px] border-l-yellow-500'
+                    : 'type' in event && event.type === 'sunday'
+                    ? 'border-l-[8px] border-l-amber-500'
                     : 'border-l-[8px] border-l-green-500'
                 }`}
                 onClick={() => handleListEventClick(event)}
@@ -508,6 +643,10 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                       ? 'text-purple-600'
                       : 'type' in event && event.type === 'leave'
                       ? 'text-red-600'
+                      : 'type' in event && event.type === 'alternateSaturday'
+                      ? 'text-yellow-600'
+                      : 'type' in event && event.type === 'sunday'
+                      ? 'text-amber-600'
                       : 'text-green-600'
                   }`}>
                     {event.name}
@@ -542,7 +681,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                       'type' in event && event.type === 'birthday' ? 'bg-blue-500' :
                       ('type' in event && event.type === 'holiday' ? 'bg-red-500' :
                        'type' in event && event.type === 'report' ? 'bg-purple-500' :
-                       'type' in event && event.type === 'leave' ? 'bg-red-500' : 'bg-green-500')
+                       'type' in event && event.type === 'leave' ? 'bg-red-500' :
+                       'type' in event && event.type === 'alternateSaturday' ? 'bg-yellow-500' :
+                       'type' in event && event.type === 'sunday' ? 'bg-amber-500' : 'bg-green-500')
                     }`}></span>
                   </div>
                 </div>
@@ -575,6 +716,20 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                     <Calendar className="h-3 w-3 text-red-600 mr-1" />
                     <p className="text-xs text-red-600">
                       {event.leaveType} Leave - {event.status}
+                    </p>
+                  </div>
+                ) : 'type' in event && event.type === 'alternateSaturday' ? (
+                  <div className="flex items-center mt-1">
+                    <Calendar className="h-3 w-3 text-yellow-600 mr-1" />
+                    <p className="text-xs text-yellow-600">
+                      Alternate Saturday Holiday
+                    </p>
+                  </div>
+                ) : 'type' in event && event.type === 'sunday' ? (
+                  <div className="flex items-center mt-1">
+                    <Calendar className="h-3 w-3 text-amber-600 mr-1" />
+                    <p className="text-xs text-amber-600">
+                      Sunday
                     </p>
                   </div>
                 ) : (
@@ -623,6 +778,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
               // Refresh data after deletion
               fetchUsers();
               fetchHolidays();
+              fetchAlternateSaturdays();
               if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
                 fetchReports();
                 fetchLeaves();
@@ -632,6 +788,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
               // Refresh data even on error to ensure consistency
               fetchUsers();
               fetchHolidays();
+              fetchAlternateSaturdays();
               if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
                 fetchReports();
                 fetchLeaves();
