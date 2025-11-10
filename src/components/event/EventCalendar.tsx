@@ -139,6 +139,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
    const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
    const [selectedFilter, setSelectedFilter] = useState<string>('All Events');
    const [currentUserId, setCurrentUserId] = useState<string>('');
+   const [alternateSaturdays, setAlternateSaturdays] = useState<AlternateSaturday[]>([]);
 
   useEffect(() => {
      fetchUsers();
@@ -459,14 +460,16 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     setSelectedEvent(event);
     // Only call onEventClick for regular events, not birthdays, holidays, reports, leaves, or saturdays
     if (onEventClick && !('type' in event)) {
-      onEventClick(event);
+      onEventClick(event as Event);
     }
   };
 
-  // Sort events by date (most recent first)
-  const sortedEvents = [...allEvents].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Sort events by date (most recent first) - exclude alternate Saturdays and Sundays from the list
+  const sortedEvents = [...allEvents]
+    .filter(event => !('type' in event && (event.type === 'alternateSaturday' || event.type === 'sunday')))
+    .sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
   // Check if user can manage events (Admin or SuperAdmin)
   const canManageEvents = userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin');
@@ -678,6 +681,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
               // Refresh data after deletion
               fetchUsers();
               fetchHolidays();
+              fetchAlternateSaturdays();
               if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
                 fetchReports();
                 fetchLeaves();
@@ -687,6 +691,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
               // Refresh data even on error to ensure consistency
               fetchUsers();
               fetchHolidays();
+              fetchAlternateSaturdays();
               if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
                 fetchReports();
                 fetchLeaves();

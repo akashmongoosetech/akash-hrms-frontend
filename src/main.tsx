@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import SignupPage from './pages/auth/SignupPage';
 import LoginPage from './pages/auth/LoginPage';
 import Dashboard from './components/dashboard/Dashboard';
@@ -145,6 +146,11 @@ function AppRoutes() {
           <Route path="/payroll" element={<PayrollPage/>} />
           <Route path="/recruitment" element={<RecruitmentPage />} />
           <Route path="/punchtime" element={<PunchTime/>} />
+          <Route path="/alternate-saturday" element={
+            <ProtectedRoute requiredRole="Admin">
+              <SaturdaySetting/>
+            </ProtectedRoute>
+          } />
         </Route>
       </Routes>
     </BrowserRouter>

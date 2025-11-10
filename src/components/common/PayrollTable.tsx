@@ -140,6 +140,14 @@ export default function PayrollTable() {
         showModal={showModal}
         onClose={() => setShowModal(false)}
         selectedEmployee={selectedEmployee}
+        onEmployeeUpdate={(updatedEmployee) => {
+          setEmployees(prevEmployees =>
+            prevEmployees.map(emp =>
+              emp._id === updatedEmployee._id ? updatedEmployee : emp
+            )
+          );
+          setSelectedEmployee(updatedEmployee);
+        }}
       />
     </div>
   );
