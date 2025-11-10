@@ -25,6 +25,7 @@ import {
   ListTodo,
   Briefcase,
   MessagesSquare,
+  Group,
 } from "lucide-react";
 
 interface NavItem {
@@ -98,6 +99,13 @@ export default function RightSidebar() {
           name: "Recruitment",
           icon: <UserPlus className="h-5 w-5" />,
           path: "/recruitment",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "team",
+          name: "Team",
+          icon: <Group className="h-5 w-5" />,
+          path: "/team",
           roles: ["Admin", "SuperAdmin"],
         },
         // {

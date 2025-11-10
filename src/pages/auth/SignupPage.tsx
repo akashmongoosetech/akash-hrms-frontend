@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import API from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
-import Loader from '../../components/common/Loader';
+import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function SignupPage() {
@@ -28,10 +28,10 @@ export default function SignupPage() {
     try {
       const fd = new FormData();
       const plainFields = [
-        'firstName','lastName','email','gender','dob','joiningDate','mobile1','mobile2','password',
-        'address1','address2','emergencyContact1','emergencyContact2','emergencyContact3',
-        'bankAccountName','bankAccountNo','bankName','ifscCode','bankAddress','aadharCardNumber',
-        'drivingLicenseNumber','panCardNumber','facebook','twitter','linkedin','instagram','upworkProfile'
+        'firstName', 'lastName', 'email', 'gender', 'dob', 'joiningDate', 'mobile1', 'mobile2', 'password',
+        'address1', 'address2', 'emergencyContact1', 'emergencyContact2', 'emergencyContact3',
+        'bankAccountName', 'bankAccountNo', 'bankName', 'ifscCode', 'bankAddress', 'aadharCardNumber',
+        'drivingLicenseNumber', 'panCardNumber', 'facebook', 'twitter', 'linkedin', 'instagram', 'upworkProfile'
       ];
       plainFields.forEach(f => { if (form[f]) fd.append(f, form[f]); });
 
@@ -44,7 +44,7 @@ export default function SignupPage() {
 
       fd.append('role', form.role || 'Employee');
 
-      ['photo','aadharCardFile','panCardFile','drivingLicenseFile','resume'].forEach((key) => {
+      ['photo', 'aadharCardFile', 'panCardFile', 'drivingLicenseFile', 'resume'].forEach((key) => {
         if (form[key]) fd.append(key, form[key]);
       });
 
@@ -58,54 +58,147 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8">
-        <header className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">HR</div>
-            <div>
-              <h1 className="text-lg font-semibold">HRMS - Sign Up</h1>
-              <p className="text-sm text-gray-500">Create your account</p>
+    <div className="flex min-h-screen">
+      {/* Left section (Blue background) */}
+      <div className="hidden md:flex w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 relative items-center justify-center overflow-hidden">
+        {/* Decorative geometric shapes */}
+        <div className="absolute inset-0 flex flex-wrap justify-center items-center opacity-80">
+          <div className="bg-blue-500 w-40 h-40 rounded-tl-full m-2"></div>
+          <div className="bg-indigo-500 w-32 h-32 rounded-br-full m-2"></div>
+          <div className="bg-pink-400 w-24 h-24 rounded-tr-full m-2"></div>
+          <div className="bg-blue-400 w-28 h-28 rounded-bl-full m-2"></div>
+        </div>
+
+        {/* Logo + Text */}
+        <div className="relative text-white text-center z-10">
+          <h1 className="text-3xl font-bold mb-2">My HR</h1>
+          <p className="text-blue-100">Stay organized</p>
+        </div>
+      </div>
+
+      {/* Right section (Signup Form) */}
+      <div className="flex flex-col justify-center items-center w-full md:w-1/2 px-8 py-8 overflow-y-auto">
+        <div className="w-full max-w-md">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Create Account</h2>
+          <p className="text-gray-500 mb-6">Sign up to get started</p>
+
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                name="firstName"
+                onChange={handleChange}
+                placeholder="First name"
+                className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <input
+                name="lastName"
+                onChange={handleChange}
+                placeholder="Last name"
+                className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
             </div>
-          </div>
-        </header>
+            <input
+              name="email"
+              onChange={handleChange}
+              placeholder="Email"
+              type="email"
+              className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <select
+              name="gender"
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select gender</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+            </select>
+            <input
+              name="password"
+              onChange={handleChange}
+              placeholder="Password"
+              type="password"
+              className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              name="mobile1"
+              onChange={handleChange}
+              placeholder="Mobile 1"
+              className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              name="role"
+              value={form.role}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Employee">Employee</option>
+              <option value="Admin">Admin</option>
+              <option value="SuperAdmin">SuperAdmin</option>
+            </select>
+            <div className="w-full">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Photo</label>
 
-        <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input name="firstName" onChange={handleChange} placeholder="First name" className="input" />
-          <input name="lastName" onChange={handleChange} placeholder="Last name" className="input" />
-          <input name="email" onChange={handleChange} placeholder="Email" type="email" className="input" />
-          <select name="gender" onChange={handleChange} className="input">
-            <option value="">Select gender</option>
-            <option>Male</option>
-            <option>Female</option>
-            <option>Other</option>
-          </select>
+              <div
+                className="relative flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition"
+                onClick={() => document.getElementById('photo').click()}
+              >
+                {photoPreview ? (
+                  <img
+                    src={photoPreview}
+                    alt="preview"
+                    className="h-24 w-24 object-cover rounded-lg shadow-sm"
+                  />
+                ) : (
+                  <>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-10 w-10 text-gray-400 mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 018 0m4-4v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6m6-4V4m0 0L5 9m7-5l7 5" />
+                    </svg>
+                    <p className="text-gray-600 text-sm">
+                      <span className="font-medium text-blue-600 hover:underline">Click to upload</span> or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">PNG, JPG, up to 5MB</p>
+                  </>
+                )}
 
-          <input name="password" onChange={handleChange} placeholder="Password" type="password" className="input" />
-          <input name="mobile1" onChange={handleChange} placeholder="Mobile 1" className="input" />
-          <select name="role" value={form.role} onChange={handleChange} className="input">
-            <option value="Employee">Employee</option>
-            <option value="Admin">Admin</option>
-            <option value="SuperAdmin">SuperAdmin</option>
-          </select>
-
-          <div className="col-span-2">
-            <label className="block text-sm text-gray-600">Photo (preview)</label>
-            <div className="flex items-center gap-3">
-              <input type="file" name="photo" onChange={handleFile} />
-              {photoPreview && <img src={photoPreview} alt="preview" className="h-16 w-16 rounded-md" />}
+                <input
+                  id="photo"
+                  type="file"
+                  name="photo"
+                  accept="image/*"
+                  onChange={handleFile}
+                  className="hidden"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="col-span-2 flex items-center justify-end mt-4">
-            <div>
-              <button type="submit" className="px-6 py-2 rounded-md shadow-md bg-blue-600 text-white hover:opacity-95">
-                {loading ? <Loader /> : 'Sign Up'}
-              </button>
-            </div>
-          </div>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-3 rounded-full font-semibold hover:bg-blue-700 transition flex justify-center items-center"
+            >
+              {loading ? <Loader2 size={20} className="animate-spin" /> : "Sign Up"}
+            </button>
+          </form>
 
+          <p className="text-sm text-gray-600 text-center mt-6">
+            Already have an account?{" "}
+            <a href="/login" className="text-blue-600 hover:underline">
+              Login
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

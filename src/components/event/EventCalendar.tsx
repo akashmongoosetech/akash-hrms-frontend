@@ -110,6 +110,14 @@ interface LeaveEvent {
   status: string;
 }
 
+interface SaturdayEvent {
+  _id: string;
+  name: string;
+  date: string;
+  type: 'saturday';
+  isWeekend: boolean;
+}
+
 interface EventCalendarProps {
   events: Event[];
   onEventClick?: (event: Event) => void;
@@ -120,11 +128,12 @@ interface EventCalendarProps {
 }
 
 export default function EventCalendar({ events, onEventClick, onEditEvent, onDeleteEvent, onDeleteConfirm, userRole }: EventCalendarProps) {
-   const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent | null>(null);
+   const [selectedEvent, setSelectedEvent] = useState<Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent | SaturdayEvent | null>(null);
    const [users, setUsers] = useState<User[]>([]);
    const [holidays, setHolidays] = useState<HolidayEvent[]>([]);
    const [reports, setReports] = useState<Report[]>([]);
    const [leaves, setLeaves] = useState<Leave[]>([]);
+   const [saturdays, setSaturdays] = useState<SaturdayEvent[]>([]);
    const [loading, setLoading] = useState(true);
    const [showDeleteModal, setShowDeleteModal] = useState(false);
    const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
@@ -132,10 +141,11 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
    const [currentUserId, setCurrentUserId] = useState<string>('');
 
   useEffect(() => {
-    fetchUsers();
-    fetchHolidays();
-    fetchCurrentUser();
-  }, []);
+     fetchUsers();
+     fetchHolidays();
+     fetchCurrentUser();
+     fetchSaturdays();
+   }, []);
 
   useEffect(() => {
     if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
@@ -164,9 +174,6 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
       if (response.ok) {
         const data = await response.json();
         const usersData = data.users;
-        console.log('Fetched users:', usersData);
-        console.log('Users with DOB:', usersData.filter((u: User) => u.dob));
-        console.log('First user sample:', usersData[0]);
         setUsers(usersData);
       } else {
         const errorText = await response.text();
@@ -188,11 +195,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
         }
       });
 
-      console.log('Holidays response status:', response.status);
-
       if (response.ok) {
         const holidaysData = await response.json();
-        console.log('Fetched holidays:', holidaysData);
 
         // Transform holidays to HolidayEvent format
         const holidayEvents: HolidayEvent[] = holidaysData.map((holiday: any) => ({
@@ -267,6 +271,42 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     } catch (error) {
       console.error('Error fetching leaves:', error);
       setLeaves([]);
+    }
+  };
+
+  const fetchSaturdays = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/saturdays/all`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const saturdayEvents: SaturdayEvent[] = data.map((saturday: any) => {
+          // Parse date without timezone conversion - keep it as local date
+          const dateStr = saturday.date.split('T')[0]; // Get YYYY-MM-DD part
+          const date = new Date(dateStr + 'T00:00:00'); // Create date at midnight local time
+          const formattedDate = dateStr; // Keep as YYYY-MM-DD string
+          return {
+            _id: saturday._id,
+            name: saturday.isWeekend ? 'Weekend Saturday' : 'Working Saturday',
+            date: formattedDate,
+            type: 'saturday' as const,
+            isWeekend: saturday.isWeekend,
+          };
+        });
+        setSaturdays(saturdayEvents);
+      } else {
+        console.error('Failed to fetch saturdays, status:', response.status);
+        setSaturdays([]);
+      }
+    } catch (error) {
+      console.error('Error fetching saturdays:', error);
+      setSaturdays([]);
     }
   };
 
@@ -381,7 +421,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     return [];
   }, [leaves, selectedFilter, userRole, currentUserId]);
 
-  const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents];
+  const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...saturdays];
 
   // Helper function to get color based on working hours
   const getReportColor = (workingHours: string) => {
@@ -399,7 +439,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     color: 'type' in event && event.type === 'birthday' ? '#3B82F6' :
            ('type' in event && event.type === 'holiday' ? '#EF4444' :
             'type' in event && event.type === 'report' ? getReportColor(event.workingHours) :
-            'type' in event && event.type === 'leave' ? '#EF4444' : '#10B981'),
+            'type' in event && event.type === 'leave' ? '#EF4444' :
+            'type' in event && event.type === 'saturday' ? (event.isWeekend ? '#8B5CF6' : '#10B981') : '#10B981'),
     extendedProps: {
       originalEvent: event
     }
@@ -408,15 +449,15 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
   const handleEventClick = (info: any) => {
     const originalEvent = info.event.extendedProps.originalEvent;
     setSelectedEvent(originalEvent);
-    // Only call onEventClick for regular events, not birthdays
+    // Only call onEventClick for regular events, not birthdays, holidays, reports, leaves, or saturdays
     if (onEventClick && !('type' in originalEvent)) {
       onEventClick(originalEvent);
     }
   };
 
-  const handleListEventClick = (event: Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent) => {
+  const handleListEventClick = (event: Event | BirthdayEvent | HolidayEvent | ReportEvent | LeaveEvent | SaturdayEvent) => {
     setSelectedEvent(event);
-    // Only call onEventClick for regular events, not birthdays, holidays, reports, or leaves
+    // Only call onEventClick for regular events, not birthdays, holidays, reports, leaves, or saturdays
     if (onEventClick && !('type' in event)) {
       onEventClick(event);
     }
@@ -475,16 +516,18 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                   selectedEvent?._id === event._id
                     ? 'border-blue-500 bg-blue-50 shadow-sm'
                     : 'border-gray-200 ' + (
-                        'type' in event && event.type === 'birthday'
-                          ? 'hover:border-blue-300 hover:bg-gray-50'
-                          : 'type' in event && event.type === 'holiday'
-                          ? 'hover:border-red-300 hover:bg-gray-50'
-                          : 'type' in event && event.type === 'report'
-                          ? 'hover:border-purple-300 hover:bg-gray-50'
-                          : 'type' in event && event.type === 'leave'
-                          ? 'hover:border-red-300 hover:bg-gray-50'
-                          : 'hover:border-green-300 hover:bg-gray-50'
-                      )
+                      'type' in event && event.type === 'birthday'
+                        ? 'hover:border-blue-300 hover:bg-gray-50'
+                        : 'type' in event && event.type === 'holiday'
+                        ? 'hover:border-red-300 hover:bg-gray-50'
+                        : 'type' in event && event.type === 'report'
+                        ? 'hover:border-purple-300 hover:bg-gray-50'
+                        : 'type' in event && event.type === 'leave'
+                        ? 'hover:border-red-300 hover:bg-gray-50'
+                        : 'type' in event && event.type === 'saturday'
+                        ? 'hover:border-purple-300 hover:bg-gray-50'
+                        : 'hover:border-green-300 hover:bg-gray-50'
+                    )
                 } ${
                   'type' in event && event.type === 'birthday'
                     ? 'border-l-[8px] border-l-blue-500'
@@ -494,6 +537,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                     ? 'border-l-[8px] border-l-purple-500'
                     : 'type' in event && event.type === 'leave'
                     ? 'border-l-[8px] border-l-red-500'
+                    : 'type' in event && event.type === 'saturday'
+                    ? 'border-l-[8px] border-l-purple-500'
                     : 'border-l-[8px] border-l-green-500'
                 }`}
                 onClick={() => handleListEventClick(event)}
@@ -508,6 +553,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                       ? 'text-purple-600'
                       : 'type' in event && event.type === 'leave'
                       ? 'text-red-600'
+                      : 'type' in event && event.type === 'saturday'
+                      ? 'text-purple-600'
                       : 'text-green-600'
                   }`}>
                     {event.name}
@@ -542,7 +589,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                       'type' in event && event.type === 'birthday' ? 'bg-blue-500' :
                       ('type' in event && event.type === 'holiday' ? 'bg-red-500' :
                        'type' in event && event.type === 'report' ? 'bg-purple-500' :
-                       'type' in event && event.type === 'leave' ? 'bg-red-500' : 'bg-green-500')
+                       'type' in event && event.type === 'leave' ? 'bg-red-500' :
+                       'type' in event && event.type === 'saturday' ? 'bg-purple-500' : 'bg-green-500')
                     }`}></span>
                   </div>
                 </div>
@@ -575,6 +623,13 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                     <Calendar className="h-3 w-3 text-red-600 mr-1" />
                     <p className="text-xs text-red-600">
                       {event.leaveType} Leave - {event.status}
+                    </p>
+                  </div>
+                ) : 'type' in event && event.type === 'saturday' ? (
+                  <div className="flex items-center mt-1">
+                    <Calendar className="h-3 w-3 text-purple-600 mr-1" />
+                    <p className="text-xs text-purple-600">
+                      {event.isWeekend ? 'Weekend Saturday' : 'Working Saturday'}
                     </p>
                   </div>
                 ) : (
