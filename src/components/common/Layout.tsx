@@ -47,6 +47,7 @@ export default function Layout() {
 
   const updateDashboardPreferences = (preferences: DashboardPreferences) => {
     setDashboardPreferences(preferences);
+    localStorage.setItem('dashboardPreferences', JSON.stringify(preferences));
   };
 
   return (
