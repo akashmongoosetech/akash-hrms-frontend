@@ -29,19 +29,46 @@ interface Report {
   createdAt: string;
 }
 
+interface Employee {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 export default function ReportsPage() {
-   const [isModalOpen, setIsModalOpen] = useState(false);
-   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-   const [showDeleteModal, setShowDeleteModal] = useState(false);
-   const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
-   const [reports, setReports] = useState<Report[]>([]);
-   const [fetchingReports, setFetchingReports] = useState(true);
-   const role = localStorage.getItem('role');
+    const role = localStorage.getItem('role');
+    const userId = localStorage.getItem('userId');
+
+    const getYesterday = () => {
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      return yesterday.toISOString().split('T')[0];
+    };
+
+    const getToday = () => {
+      return new Date().toISOString().split('T')[0];
+    };
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
+    const [reports, setReports] = useState<Report[]>([]);
+    const [fetchingReports, setFetchingReports] = useState(true);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [filters, setFilters] = useState({
+       fromDate: getYesterday(),
+       toDate: getToday(),
+       employeeId: (role === 'Admin' || role === 'SuperAdmin') ? '' : userId || ''
+     });
 
   useEffect(() => {
-    fetchReports();
+    fetchAllReports();
+    fetchEmployees();
 
     // Socket listeners for real-time updates
     socket.on('reportCreated', (newReport) => {
@@ -85,10 +112,61 @@ export default function ReportsPage() {
     setIsEditModalOpen(true);
   };
 
-  const fetchReports = async () => {
+  const fetchReports = async (filterParams?: { fromDate?: string; toDate?: string; employeeId?: string }) => {
     try {
       const response = await API.get('/reports');
-      setReports(response.data.reports);
+      let allReports = response.data.reports;
+
+      // Apply client-side filtering
+      if (filterParams?.fromDate || filterParams?.toDate || filterParams?.employeeId) {
+        allReports = allReports.filter((report: Report) => {
+          const dateMatch = (!filterParams.fromDate || report.date >= filterParams.fromDate) &&
+                           (!filterParams.toDate || report.date <= filterParams.toDate);
+          const employeeMatch = !filterParams.employeeId || report.employee._id === filterParams.employeeId;
+          return dateMatch && employeeMatch;
+        });
+      }
+
+      setReports(allReports);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      toast.error('Error loading reports');
+    } finally {
+      setFetchingReports(false);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await API.get('/users');
+      setEmployees(response.data.users || []);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      toast.error('Error loading employees');
+    }
+  };
+
+  const handleApplyFilters = () => {
+    fetchReports(filters);
+  };
+
+  // Initial fetch without filters to get all reports, then filter client-side
+  const fetchAllReports = async () => {
+    try {
+      const response = await API.get('/reports');
+      const allReports = response.data.reports;
+      // Filter to only yesterday and today, and by employee if not admin
+      const yesterday = getYesterday();
+      const today = getToday();
+      let filteredReports = allReports.filter((report: Report) =>
+        report.date === yesterday || report.date === today
+      );
+      if (role !== 'Admin' && role !== 'SuperAdmin') {
+        filteredReports = filteredReports.filter((report: Report) =>
+          report.employee._id === userId
+        );
+      }
+      setReports(filteredReports);
     } catch (error) {
       console.error('Error fetching reports:', error);
       toast.error('Error loading reports');
@@ -115,7 +193,7 @@ export default function ReportsPage() {
       toast.success('Report deleted successfully!');
       setShowDeleteModal(false);
       setDeleteReportId(null);
-      fetchReports(); // Refresh reports list
+      fetchAllReports(); // Refresh reports list
     } catch (error) {
       console.error('Error deleting report:', error);
       toast.error('Error deleting report');
@@ -144,12 +222,16 @@ export default function ReportsPage() {
        onView={handleViewReport}
        onEdit={handleEditReport}
        onDelete={handleDeleteReport}
+       employees={employees}
+       filters={filters}
+       onFiltersChange={setFilters}
+       onApplyFilters={handleApplyFilters}
      />
 
      <AddReportModal
        isOpen={isModalOpen}
        onClose={() => setIsModalOpen(false)}
-       onReportAdded={fetchReports}
+       onReportAdded={fetchAllReports}
      />
 
      <ViewReportModal
@@ -169,7 +251,7 @@ export default function ReportsPage() {
          setSelectedReport(null);
        }}
        report={selectedReport}
-       onReportUpdated={fetchReports}
+       onReportUpdated={fetchAllReports}
      />
 
       <DeleteModal

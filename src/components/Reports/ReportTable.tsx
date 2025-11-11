@@ -22,6 +22,13 @@ interface Report {
   createdAt: string;
 }
 
+interface Employee {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 interface ReportTableProps {
   reports: Report[];
   role: string | null;
@@ -29,6 +36,14 @@ interface ReportTableProps {
   onView: (report: Report) => void;
   onEdit: (report: Report) => void;
   onDelete: (id: string) => void;
+  employees: Employee[];
+  filters: {
+    fromDate: string;
+    toDate: string;
+    employeeId: string;
+  };
+  onFiltersChange: (filters: { fromDate: string; toDate: string; employeeId: string }) => void;
+  onApplyFilters: () => void;
 }
 
 const ReportTable: React.FC<ReportTableProps> = ({
@@ -38,6 +53,10 @@ const ReportTable: React.FC<ReportTableProps> = ({
   onView,
   onEdit,
   onDelete,
+  employees,
+  filters,
+  onFiltersChange,
+  onApplyFilters,
 }) => {
   const formatTime = (time: string) => {
     if (!time) return '';
@@ -65,13 +84,60 @@ const ReportTable: React.FC<ReportTableProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* Filter Section */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">From Date</label>
+            <input
+              type="date"
+              value={filters.fromDate}
+              onChange={(e) => onFiltersChange({ ...filters, fromDate: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">To Date</label>
+            <input
+              type="date"
+              value={filters.toDate}
+              onChange={(e) => onFiltersChange({ ...filters, toDate: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          {role && role !== 'Employee' && (
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-700 mb-1">Employee</label>
+              <select
+                value={filters.employeeId}
+                onChange={(e) => onFiltersChange({ ...filters, employeeId: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Employees</option>
+                {employees.map((employee) => (
+                  <option key={employee._id} value={employee._id}>
+                    {employee.firstName} {employee.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button
+            onClick={onApplyFilters}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          >
+            Apply Filters
+          </button>
+        </div>
+      </div>
+
       {fetchingReports ? (
         <div className="p-6 text-center">
           <div className="text-gray-600">Loading reports...</div>
         </div>
       ) : reports.length === 0 ? (
         <div className="p-6 text-center">
-          <p className="text-gray-600">No reports found. Click "Add Report" to create your first report.</p>
+          <p className="text-gray-600">No reports found.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
