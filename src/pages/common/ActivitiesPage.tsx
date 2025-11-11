@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import ActivitiesAdminModal from '../../components/activities/ActivitiesAdminModal';
 import ActivitiesFilters from '../../components/activities/ActivitiesFilters';
 import ActivitiesTimeline from '../../components/activities/ActivitiesTimeline';
+import { Button } from '../../components/ui/button';
 
 interface BreakRecord {
   _id: string;
@@ -203,12 +204,11 @@ export default function ActivitiesPage() {
         <div className="flex space-x-4">
           {/* Admin Add Button */}
           {(role === 'Admin' || role === 'SuperAdmin') && (
-            <button
+            <Button
               onClick={openAdminModal}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
+              variant='default'>
               Add
-            </button>
+            </Button>
           )}
           {/* Break Button */}
           {role === 'Employee' && (

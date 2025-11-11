@@ -52,14 +52,14 @@ export default function Layout() {
 
   return (
     <LayoutContext.Provider value={{ dashboardPreferences, updateDashboardPreferences }}>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className=" min-h-screen bg-gray-50">
         {/* Sidebar */}
         <LeftSidebar />
 
         {/* Main Content */}
         <div className="flex-1 md:ml-64 pb-16 md:pb-0">
           <Header />
-          <main className="p-4">
+          <main className="w-full">
             <Outlet />
           </main>
         </div>

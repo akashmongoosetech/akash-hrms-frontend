@@ -135,28 +135,21 @@ export default function DepartmentTable() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Department Management</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 w-full">
+        {/* Title */}
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 text-center sm:text-left">
+          Department Management
+        </h2>
+
+        {/* Button */}
         <button
           onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+          className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2 w-full sm:w-auto"
         >
           <UserPlus className="h-5 w-5" />
-          <span>Add Department</span>
+          <span className="text-sm sm:text-base">Add Department</span>
         </button>
       </div>
-
-      {/* Search */}
-      {/* <div className="relative">
-        <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-        <input
-          type="text"
-          placeholder="Search departments..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
-        />
-      </div> */}
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">

@@ -510,9 +510,6 @@ export default function Header() {
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  HRMS Dashboard
-                </h1>
                 <p className="text-sm text-gray-500">
                   Welcome back, {userName}
                 </p>
