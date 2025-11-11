@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatDate, formatDateTime } from '../../Common/Commonfunction';
 import socket from '../../utils/socket';
+import { Button } from '../ui/button';
 
 interface PunchTime {
   _id: string;
@@ -204,18 +205,17 @@ export default function PunchTimeTable() {
             />
           </div>
           <div className="flex items-end gap-2">
-            <button
+            <Button
               onClick={applyFilters}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               Apply
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={clearFilters}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              variant="secondary"
             >
               Clear
-            </button>
+            </Button>
           </div>
         </div>
       )}

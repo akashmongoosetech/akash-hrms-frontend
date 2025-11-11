@@ -6,6 +6,7 @@ import { Edit, Trash2, Cake, Calendar, Clock } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate } from '../../Common/Commonfunction';
 import toast from 'react-hot-toast';
+import { Button } from '../ui/button';
 
 interface Event {
   _id: string;
@@ -563,27 +564,29 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
                   <div className="flex items-center space-x-2 flex-shrink-0">
                     {canManageEvents && !('type' in event) && (
                       <>
-                        <button
+                        <Button
                           onClick={(e) => {
                             e.stopPropagation();
                             if (onEditEvent) onEditEvent(event as Event);
                           }}
-                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                          variant="ghost"
+                          size="icon"
                           title="Edit event"
                         >
                           <Edit className="h-4 w-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeleteEventId(event._id);
                             setShowDeleteModal(true);
                           }}
-                          className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                          variant="ghost"
+                          size="icon"
                           title="Delete event"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </>
                     )}
                     <span className={`w-3 h-3 rounded-full ${

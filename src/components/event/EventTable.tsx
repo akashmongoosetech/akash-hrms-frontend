@@ -3,6 +3,7 @@ import { Edit, Trash2, UserPlus, Search, Calendar, List } from 'lucide-react';
 import EventCalendar from './EventCalendar';
 import DeleteModal from '../../Common/DeleteModal';
 import toast from 'react-hot-toast';
+import { Button } from '../ui/button';
 
 interface Event {
   _id: string;
@@ -171,13 +172,13 @@ export default function EventTable() {
             </button> */}
           </div>
           {role !== 'Employee' && (
-            <button
+            <Button
               onClick={() => setShowAddModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+              className="flex items-center space-x-2"
             >
               <UserPlus className="h-5 w-5" />
               <span>Add Event</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -230,18 +231,20 @@ export default function EventTable() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button
+                          <Button
                             onClick={() => handleEdit(event)}
-                            className="text-blue-600 hover:text-blue-900"
+                            variant="ghost"
+                            size="icon"
                           >
                             <Edit className="h-5 w-5" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => handleDelete(event._id)}
-                            className="text-red-600 hover:text-red-900"
+                            variant="ghost"
+                            size="icon"
                           >
                             <Trash2 className="h-5 w-5" />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -308,19 +311,18 @@ export default function EventTable() {
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">
-                <button
+                <Button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   {editingEvent ? 'Update' : 'Add'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

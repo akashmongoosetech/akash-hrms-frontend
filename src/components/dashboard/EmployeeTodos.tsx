@@ -2,6 +2,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDateTime, formatDueDate } from "../../Common/Commonfunction";
+import { Button } from "../ui/button";
 
 interface Todo {
   _id: string;
@@ -103,12 +104,13 @@ export default function EmployeeTodos({ todos }: Props) {
 
           {/* Footer */}
           <div className="mt-3 sm:mt-4 text-right flex-shrink-0">
-            <button
+            <Button
               onClick={() => navigate(`/todo?employeeName=${encodeURIComponent(employeeName)}`)}
-              className="text-indigo-600 text-xs sm:text-sm font-medium hover:underline py-1 px-2 rounded-md hover:bg-indigo-50 transition-colors"
+              variant="link"
+              className="text-indigo-600 text-xs sm:text-sm font-medium"
             >
               View All
-            </button>
+            </Button>
           </div>
         </div>
       ))}

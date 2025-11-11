@@ -147,19 +147,61 @@ export default function Header() {
           const response = await API.get('/breaks/duration');
           const breakDuration = response.data.totalBreakDuration || 0;
 
+          // Calculate hours - handle overnight shifts
+          const start = new Date(`1970-01-01T${startTimeStr}:00`);
+          const end = new Date(`1970-01-01T${endTimeStr}:00`);
+          let totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+
+          // If negative, it means overnight (end time is next day)
+          if (totalMinutes < 0) {
+            totalMinutes = (24 * 60) + totalMinutes; // Add 24 hours
+          }
+
+          const totalHours = Math.floor(totalMinutes / 60);
+          const totalMins = Math.floor(totalMinutes % 60);
+          const totalHoursStr = `${totalHours.toString().padStart(2, '0')}:${totalMins.toString().padStart(2, '0')}`;
+
+          const workingMinutes = Math.max(0, totalMinutes - breakDuration);
+          const workingHours = Math.floor(workingMinutes / 60);
+          const workingMins = Math.floor(workingMinutes % 60);
+          const workingHoursStr = `${workingHours.toString().padStart(2, '0')}:${workingMins.toString().padStart(2, '0')}`;
+
           setReportFormData(prev => ({
             ...prev,
             startTime: startTimeStr,
             endTime: endTimeStr,
             breakDuration: breakDuration,
+            totalHours: totalHoursStr,
+            workingHours: workingHoursStr,
           }));
         } catch (error) {
           console.error('Error fetching break duration:', error);
+          // Calculate without break duration - handle overnight shifts
+          const start = new Date(`1970-01-01T${startTimeStr}:00`);
+          const end = new Date(`1970-01-01T${endTimeStr}:00`);
+          let totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+
+          // If negative, it means overnight (end time is next day)
+          if (totalMinutes < 0) {
+            totalMinutes = (24 * 60) + totalMinutes; // Add 24 hours
+          }
+
+          const totalHours = Math.floor(totalMinutes / 60);
+          const totalMins = Math.floor(totalMinutes % 60);
+          const totalHoursStr = `${totalHours.toString().padStart(2, '0')}:${totalMins.toString().padStart(2, '0')}`;
+
+          const workingMinutes = Math.max(0, totalMinutes);
+          const workingHours = Math.floor(workingMinutes / 60);
+          const workingMins = Math.floor(workingMinutes % 60);
+          const workingHoursStr = `${workingHours.toString().padStart(2, '0')}:${workingMins.toString().padStart(2, '0')}`;
+
           setReportFormData(prev => ({
             ...prev,
             startTime: startTimeStr,
             endTime: endTimeStr,
             breakDuration: 0,
+            totalHours: totalHoursStr,
+            workingHours: workingHoursStr,
           }));
         }
       };
@@ -173,24 +215,27 @@ export default function Header() {
     if (reportFormData.startTime && reportFormData.endTime) {
       const start = new Date(`1970-01-01T${reportFormData.startTime}:00`);
       const end = new Date(`1970-01-01T${reportFormData.endTime}:00`);
+      let totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
 
-      if (end > start) {
-        const totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-        const totalHours = Math.floor(totalMinutes / 60);
-        const totalMins = Math.floor(totalMinutes % 60);
-        const totalHoursStr = `${totalHours.toString().padStart(2, '0')}:${totalMins.toString().padStart(2, '0')}`;
-
-        const workingMinutes = totalMinutes - reportFormData.breakDuration;
-        const workingHours = Math.floor(workingMinutes / 60);
-        const workingMins = Math.floor(workingMinutes % 60);
-        const workingHoursStr = `${workingHours.toString().padStart(2, '0')}:${workingMins.toString().padStart(2, '0')}`;
-
-        setReportFormData(prev => ({
-          ...prev,
-          totalHours: totalHoursStr,
-          workingHours: workingHoursStr,
-        }));
+      // If negative, it means overnight (end time is next day)
+      if (totalMinutes < 0) {
+        totalMinutes = (24 * 60) + totalMinutes; // Add 24 hours
       }
+
+      const totalHours = Math.floor(totalMinutes / 60);
+      const totalMins = Math.floor(totalMinutes % 60);
+      const totalHoursStr = `${totalHours.toString().padStart(2, '0')}:${totalMins.toString().padStart(2, '0')}`;
+
+      const workingMinutes = Math.max(0, totalMinutes - reportFormData.breakDuration);
+      const workingHours = Math.floor(workingMinutes / 60);
+      const workingMins = Math.floor(workingMinutes % 60);
+      const workingHoursStr = `${workingHours.toString().padStart(2, '0')}:${workingMins.toString().padStart(2, '0')}`;
+
+      setReportFormData(prev => ({
+        ...prev,
+        totalHours: totalHoursStr,
+        workingHours: workingHoursStr,
+      }));
     }
   }, [reportFormData.startTime, reportFormData.endTime, reportFormData.breakDuration]);
 
@@ -384,7 +429,8 @@ export default function Header() {
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reportFormData.description.trim()) {
+    const cleanDescription = reportFormData.description.replace(/<[^>]*>/g, '').trim();
+    if (!cleanDescription) {
       toast.error('Please fill in the report description');
       return;
     }
@@ -432,9 +478,13 @@ export default function Header() {
         const errorData = await response.json();
         toast.error(errorData.message || "Failed to punch out");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to submit report or punch out:", error);
-      toast.error("An error occurred while submitting report");
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("An error occurred while submitting report");
+      }
     } finally {
       setReportLoading(false);
     }

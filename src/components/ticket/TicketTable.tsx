@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, Plus, Search, Eye, User, Calendar, AlertCircle } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import toast from 'react-hot-toast';
+import { Button } from '../ui/button';
 
 interface Employee {
   _id: string;
@@ -130,13 +131,13 @@ export default function TicketTable() {
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Tickets</h3>
         {localStorage.getItem('role') !== 'Employee' && (
-          <button
+          <Button
             onClick={() => navigate('/tickets/add')}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center space-x-2"
           >
             <Plus className="h-4 w-4" />
             <span>Add Ticket</span>
-          </button>
+          </Button>
         )}
       </div>
 
@@ -226,28 +227,31 @@ export default function TicketTable() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex items-center space-x-2">
-                    <button
+                    <Button
                       onClick={() => navigate(`/tickets/view/${ticket._id}`)}
-                      className="text-gray-600 hover:text-gray-800 p-1"
+                      variant="ghost"
+                      size="icon"
                       title="View"
                     >
                       <Eye className="h-4 w-4" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => navigate(`/tickets/edit/${ticket._id}`)}
-                      className="text-blue-600 hover:text-blue-800 p-1"
+                      variant="ghost"
+                      size="icon"
                       title="Edit"
                     >
                       <Edit className="h-4 w-4" />
-                    </button>
+                    </Button>
                     {localStorage.getItem('role') !== 'Employee' && (
-                      <button
+                      <Button
                         onClick={() => handleDelete(ticket._id)}
-                        className="text-red-600 hover:text-red-800 p-1"
+                        variant="ghost"
+                        size="icon"
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </td>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Button } from '../../components/ui/button';
 
 interface Employee {
   _id: string;
@@ -130,13 +131,14 @@ export default function TicketEditPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center space-x-4 mb-6">
-        <button
+        <Button
           onClick={() => navigate('/tickets')}
+          variant="ghost"
           className="flex items-center space-x-2 text-gray-600 hover:text-gray-800"
         >
           <ArrowLeft className="h-5 w-5" />
           <span>Back to Tickets</span>
-        </button>
+        </Button>
         <h1 className="text-2xl font-bold text-gray-900">Edit Ticket</h1>
       </div>
 
@@ -214,21 +216,21 @@ export default function TicketEditPage() {
           </div>
 
           <div className="flex justify-end space-x-3">
-            <button
+            <Button
               type="button"
               onClick={() => navigate('/tickets')}
-              className="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+              variant="secondary"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="flex items-center space-x-2"
             >
               <Save className="h-4 w-4" />
               <span>{loading ? 'Updating...' : 'Update Ticket'}</span>
-            </button>
+            </Button>
           </div>
         </form>
       </div>
