@@ -10,6 +10,7 @@ import {
 import DashboardTable from "./DashboardTable";
 import EmployeeTodos from "./EmployeeTodos";
 import DashboardTickets from "./DashboardTickets";
+import TeamDashboard from "./TeamDashboard";
 
 interface Todo {
   _id: string;
@@ -308,6 +309,8 @@ export default function Dashboard() {
           <DashboardTable />
         </div>
 
+        {/* Teams Dashboard */}
+        <TeamDashboard />
 
         {todos.length > 0 && (
           <div className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
