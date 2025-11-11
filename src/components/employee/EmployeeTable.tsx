@@ -240,9 +240,6 @@ export default function EmployeeTable() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th> */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joining Date</th>
@@ -256,31 +253,30 @@ export default function EmployeeTable() {
               <tr key={employee._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-3">
-  {/* Profile Photo / Initials */}
-  <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-    {employee.photo ? (
-      <img
-        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${employee.photo}`}
-        alt={`${employee.firstName} ${employee.lastName}`}
-        className="h-full w-full object-cover"
-      />
-    ) : (
-      <span className="text-gray-600 text-sm font-semibold">
-        {employee.firstName.charAt(0)}
-        {employee.lastName.charAt(0)}
-      </span>
-    )}
-  </div>
+                    {/* Profile Photo / Initials */}
+                    <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                      {employee.photo ? (
+                        <img
+                          src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${employee.photo}`}
+                          alt={`${employee.firstName} ${employee.lastName}`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-gray-600 text-sm font-semibold">
+                          {employee.firstName.charAt(0)}
+                          {employee.lastName.charAt(0)}
+                        </span>
+                      )}
+                    </div>
 
-  {/* Name and Email */}
-  <div className="flex flex-col">
-    <span className="text-sm font-medium text-gray-900">
-      {employee.firstName} {employee.lastName}
-    </span>
-    <span className="text-xs text-gray-500">{employee.email}</span>
-  </div>
-</div>
-
+                    {/* Name and Email */}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-900">
+                        {employee.firstName} {employee.lastName}
+                      </span>
+                      <span className="text-xs text-gray-500">{employee.email}</span>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {employee.firstName} {employee.lastName}
@@ -289,9 +285,8 @@ export default function EmployeeTable() {
                 {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.role}</td> */}
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.department?.name || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    employee.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${employee.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
                     {employee.status || 'Active'}
                   </span>
                 </td>
