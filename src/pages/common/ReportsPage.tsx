@@ -114,20 +114,13 @@ export default function ReportsPage() {
 
   const fetchReports = async (filterParams?: { fromDate?: string; toDate?: string; employeeId?: string }) => {
     try {
-      const response = await API.get('/reports');
-      let allReports = response.data.reports;
+      const params = new URLSearchParams();
+      if (filterParams?.fromDate) params.append('fromDate', filterParams.fromDate);
+      if (filterParams?.toDate) params.append('toDate', filterParams.toDate);
+      if (filterParams?.employeeId) params.append('employeeId', filterParams.employeeId);
 
-      // Apply client-side filtering
-      if (filterParams?.fromDate || filterParams?.toDate || filterParams?.employeeId) {
-        allReports = allReports.filter((report: Report) => {
-          const dateMatch = (!filterParams.fromDate || report.date >= filterParams.fromDate) &&
-                           (!filterParams.toDate || report.date <= filterParams.toDate);
-          const employeeMatch = !filterParams.employeeId || report.employee._id === filterParams.employeeId;
-          return dateMatch && employeeMatch;
-        });
-      }
-
-      setReports(allReports);
+      const response = await API.get(`/reports?${params.toString()}`);
+      setReports(response.data.reports);
     } catch (error) {
       console.error('Error fetching reports:', error);
       toast.error('Error loading reports');
