@@ -18,6 +18,7 @@ interface Employee {
     _id: string;
     name: string;
   };
+  photo?: string;
 }
 
 export default function EmployeeTable() {
@@ -238,6 +239,7 @@ export default function EmployeeTable() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
               {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th> */}
@@ -252,6 +254,34 @@ export default function EmployeeTable() {
           <tbody className="bg-white divide-y divide-gray-200">
             {employees.map((employee) => (
               <tr key={employee._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-3">
+  {/* Profile Photo / Initials */}
+  <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+    {employee.photo ? (
+      <img
+        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${employee.photo}`}
+        alt={`${employee.firstName} ${employee.lastName}`}
+        className="h-full w-full object-cover"
+      />
+    ) : (
+      <span className="text-gray-600 text-sm font-semibold">
+        {employee.firstName.charAt(0)}
+        {employee.lastName.charAt(0)}
+      </span>
+    )}
+  </div>
+
+  {/* Name and Email */}
+  <div className="flex flex-col">
+    <span className="text-sm font-medium text-gray-900">
+      {employee.firstName} {employee.lastName}
+    </span>
+    <span className="text-xs text-gray-500">{employee.email}</span>
+  </div>
+</div>
+
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {employee.firstName} {employee.lastName}
                 </td>
