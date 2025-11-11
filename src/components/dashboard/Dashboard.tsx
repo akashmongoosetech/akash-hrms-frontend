@@ -11,6 +11,7 @@ import DashboardTable from "./DashboardTable";
 import EmployeeTodos from "./EmployeeTodos";
 import DashboardTickets from "./DashboardTickets";
 import TeamDashboard from "./TeamDashboard";
+import { useLayout } from "../common/Layout";
 
 interface Todo {
   _id: string;
@@ -34,6 +35,7 @@ interface Ticket {
 
 export default function Dashboard() {
   const role = localStorage.getItem("role") || "Employee";
+  const { dashboardPreferences } = useLayout();
 
   const [todos, setTodos] = useState<Todo[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -54,6 +56,7 @@ export default function Dashboard() {
     totalAdmins: 0,
     totalSuperAdmins: 0
   });
+
 
   useEffect(() => {
     // Fetch real user statistics
@@ -305,14 +308,16 @@ export default function Dashboard() {
         </div>
 
         {/* Projects Table */}
-        <div className="mb-6 sm:mb-8">
-          <DashboardTable />
-        </div>
+        {dashboardPreferences.projects && (
+          <div className="mb-6 sm:mb-8">
+            <DashboardTable />
+          </div>
+        )}
 
         {/* Teams Dashboard */}
-        <TeamDashboard />
+        {dashboardPreferences.teams && <TeamDashboard />}
 
-        {todos.length > 0 && (
+        {dashboardPreferences.todos && todos.length > 0 && (
           <div className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
             <div className="mb-6 sm:mb-8">
             <h1 className="text-xl sm:text-2xl font-bold mb-4 px-4 sm:px-0">Employee Todos Overview</h1>
@@ -321,7 +326,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {tickets.length > 0 && (
+        {dashboardPreferences.tickets && tickets.length > 0 && (
           <div className="mt-[50px] p-5 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
             <div className="mb-6 sm:mb-8">
             <h1 className="text-xl sm:text-2xl font-bold mb-4 px-4 sm:px-0">Employee Tickets Overview</h1>

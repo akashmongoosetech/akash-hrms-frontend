@@ -27,6 +27,7 @@ import {
   MessagesSquare,
   Group,
 } from "lucide-react";
+import SettingsSidebar from "./SettingsSidebar";
 
 interface NavItem {
   id: string;
@@ -46,6 +47,7 @@ export default function RightSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const role = localStorage.getItem("role") || "Employee";
 
   // -------------------------
@@ -273,7 +275,7 @@ export default function RightSidebar() {
 
         <div className="p-4 border-t border-gray-100">
           <button
-            onClick={() => navigate("/settings")}
+            onClick={() => setIsRightSidebarOpen(true)}
             className="flex items-center space-x-2 text-gray-700 hover:text-blue-600"
           >
             <Settings className="h-5 w-5" />
@@ -348,11 +350,20 @@ export default function RightSidebar() {
           <Calendar className="h-5 w-5" />
           <span className="text-xs">Events</span>
         </button>
-        <button onClick={() => navigate("/settings")} className="flex flex-col items-center text-gray-700">
+        <button onClick={() => setIsRightSidebarOpen(true)} className="flex flex-col items-center text-gray-700">
           <Settings className="h-5 w-5" />
           <span className="text-xs">Settings</span>
         </button>
       </nav>
+
+      <SettingsSidebar
+        isOpen={isRightSidebarOpen}
+        onClose={() => setIsRightSidebarOpen(false)}
+        onNavigate={(path) => {
+          navigate(path);
+          setIsRightSidebarOpen(false);
+        }}
+      />
     </>
   );
 }

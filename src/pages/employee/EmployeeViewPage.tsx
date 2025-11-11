@@ -156,7 +156,7 @@ export default function EmployeeViewPage() {
             ) : (
               <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
                 <span className="text-2xl font-bold text-gray-600">
-                  {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
+                  {(employee.firstName?.charAt(0) || '')}{(employee.lastName?.charAt(0) || '')}
                 </span>
               </div>
             )}
