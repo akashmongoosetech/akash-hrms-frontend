@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import SignupPage from './pages/auth/SignupPage';
 import LoginPage from './pages/auth/LoginPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import Dashboard from './components/dashboard/Dashboard';
 import UserManagement from './components/user/UserManagement';
 import ProfileManagement from './components/user/ProfileManagement';
@@ -42,6 +44,8 @@ function AppRoutes() {
       <Routes>
         <Route path="/signup" element={<SignupPage/>} />
         <Route path="/login" element={<LoginPage/>} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage/>} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage/>} />
         <Route path="/" element={<LoginPage/>} />
         <Route path="/" element={
           <ProtectedRoute>

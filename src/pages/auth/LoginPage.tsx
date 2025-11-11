@@ -8,6 +8,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [serverError, setServerError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,8 +18,43 @@ export default function LoginPage() {
     if (token) navigate("/dashboard");
   }, [navigate]);
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password: string) => {
+    return password.length >= 6; // Minimum 6 characters
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Clear previous errors
+    setEmailError("");
+    setPasswordError("");
+    setServerError("");
+
+    // Validate email
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      return;
+    }
+    if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    // Validate password
+    if (!password.trim()) {
+      setPasswordError("Password is required");
+      return;
+    }
+    if (!validatePassword(password)) {
+      setPasswordError("Password must be at least 6 characters long");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await API.post("/auth/login", { email, password });
@@ -29,7 +67,9 @@ export default function LoginPage() {
       );
       navigate("/dashboard");
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Login failed");
+      const errorMessage = err?.response?.data?.message || "Login failed";
+      setServerError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -65,22 +105,34 @@ export default function LoginPage() {
               <input
                 type="email"
                 placeholder="Email Address"
-                className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  emailError ? "border-red-500" : "border-gray-300"
+                }`}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError("");
+                }}
                 required
               />
+              {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
             </div>
 
             <div>
               <input
                 type="password"
                 placeholder="Password"
-                className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  passwordError ? "border-red-500" : "border-gray-300"
+                }`}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError("");
+                }}
                 required
               />
+              {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
             </div>
 
             <button
@@ -90,16 +142,30 @@ export default function LoginPage() {
             >
               {loading ? <Loader2 size={20} className="animate-spin" /> : "Login"}
             </button>
+
+            {serverError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm text-center">{serverError}</p>
+              </div>
+            )}
           </form>
 
-          <p className="text-sm text-gray-600 text-center mt-6">
-            Don’t have an account?{" "}
-            <a href="/signup" className="text-blue-600 hover:underline">
-              Register
-            </a>
-          </p>
+          <div className="text-sm text-gray-600 text-center mt-6 space-y-2">
+            <p>
+              <a href="/forgot-password" className="text-blue-600 hover:underline">
+                Forgot Password?
+              </a>
+            </p>
+            <p>
+              Don’t have an account?{" "}
+              <a href="/signup" className="text-blue-600 hover:underline">
+                Register
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
