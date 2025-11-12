@@ -14,6 +14,8 @@ import {
   FileText,
   FileCode,
   FileSpreadsheet,
+  Upload,
+  X,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "../../Common/Commonfunction";
 import socket from "../../utils/socket";
@@ -108,9 +110,8 @@ export default function TicketViewPage() {
     setLoading(true);
     setError(null);
     try {
-      const url = `${
-        (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-      }/tickets/${id}`;
+      const url = `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+        }/tickets/${id}`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
@@ -152,9 +153,8 @@ export default function TicketViewPage() {
   const fetchComments = async () => {
     if (!id) return;
     try {
-      const url = `${
-        (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-      }/comments/${id}`;
+      const url = `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+        }/comments/${id}`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
@@ -229,9 +229,8 @@ export default function TicketViewPage() {
         formData.append('attachments', file);
       });
 
-      const url = `${
-        (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-      }/comments/${id}`;
+      const url = `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+        }/comments/${id}`;
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -272,6 +271,9 @@ export default function TicketViewPage() {
       return allowedTypes.includes(file.type) || allowedExtensions.includes(ext);
     });
     setSelectedFiles(filteredFiles);
+  };
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleUpdateProgress = async (e: React.FormEvent) => {
@@ -329,9 +331,8 @@ export default function TicketViewPage() {
     }
 
     try {
-      const url = `${
-        (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-      }/tickets/${id}`;
+      const url = `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+        }/tickets/${id}`;
       const response = await fetch(url, {
         method: "PUT",
         headers: {
@@ -390,8 +391,7 @@ export default function TicketViewPage() {
 
   // Safe helpers for rendering (avoid indexing undefined strings)
   const employeeName = ticket.employee
-    ? `${ticket.employee.firstName || ""} ${
-        ticket.employee.lastName || ""
+    ? `${ticket.employee.firstName || ""} ${ticket.employee.lastName || ""
       }`.trim()
     : "No employee assigned";
 
@@ -411,13 +411,12 @@ export default function TicketViewPage() {
               </h2>
               <div className="mt-2 flex items-center space-x-4">
                 <span
-                  className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
-                    ticket.priority === "High"
-                      ? "bg-red-100 text-red-800"
-                      : ticket.priority === "Medium"
+                  className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${ticket.priority === "High"
+                    ? "bg-red-100 text-red-800"
+                    : ticket.priority === "Medium"
                       ? "bg-yellow-100 text-yellow-800"
                       : "bg-green-100 text-green-800"
-                  }`}
+                    }`}
                 >
                   <AlertCircle className="h-4 w-4 mr-1" />
                   {ticket.priority || "Low"} Priority
@@ -436,10 +435,9 @@ export default function TicketViewPage() {
                   <div className="flex items-center space-x-3">
                     {ticket.employee?.photo ? (
                       <img
-                        src={`${
-                          (import.meta as any).env.VITE_API_URL ||
+                        src={`${(import.meta as any).env.VITE_API_URL ||
                           "http://localhost:5000"
-                        }/${ticket.employee.photo}`}
+                          }/${ticket.employee.photo}`}
                         alt={employeeName}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -581,7 +579,9 @@ export default function TicketViewPage() {
             {/* Comments Section */}
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center space-x-2 mb-4">
-                <MessageCircle className="h-5 w-5 text-gray-600" />
+                <MessageCircle
+                  className="h-5 w-5 text-gray-600 transition-transform duration-300 ease-in-out hover:scale-125 hover:text-blue-500 animate-bounce-slow"
+                />
                 <h3 className="text-lg font-semibold text-gray-900">
                   Comments
                 </h3>
@@ -603,13 +603,11 @@ export default function TicketViewPage() {
                         <div className="flex-shrink-0">
                           {comment.user.photo ? (
                             <img
-                              src={`${
-                                (import.meta as any).env.VITE_API_URL ||
+                              src={`${(import.meta as any).env.VITE_API_URL ||
                                 "http://localhost:5000"
-                              }/${comment.user.photo}`}
-                              alt={`${comment.user.firstName || ""} ${
-                                comment.user.lastName || ""
-                              }`}
+                                }/${comment.user.photo}`}
+                              alt={`${comment.user.firstName || ""} ${comment.user.lastName || ""
+                                }`}
                               className="w-8 h-8 rounded-full object-cover"
                             />
                           ) : (
@@ -627,11 +625,10 @@ export default function TicketViewPage() {
                               {comment.user.firstName} {comment.user.lastName}
                             </span>
                             <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                comment.user.role === "Admin"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-blue-100 text-blue-800"
-                              }`}
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${comment.user.role === "Admin"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-blue-100 text-blue-800"
+                                }`}
                             >
                               {comment.user.role}
                             </span>
@@ -650,15 +647,14 @@ export default function TicketViewPage() {
                               {comment.attachments.map((attachment, index) => (
                                 <a
                                   key={index}
-                                  href={`${
-                                    (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+                                  href={`${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
                                     }/uploads/${attachment.filename}`}
                                   target="_blank"
                                   download={attachment.originalname}
                                   className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
                                 >
                                   {getFileIcon(attachment.mimetype, attachment.originalname)}
-                                  <span style={{fontSize:"10px"}}>Attached File</span>
+                                  <span style={{ fontSize: "10px" }}>Attached File</span>
                                   {/* {attachment.originalname} */}
                                 </a>
                               ))}
@@ -705,23 +701,52 @@ export default function TicketViewPage() {
                     },
                   }}
                 />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="w-full max-w-lg mx-auto">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Attach Files (Images, PDF, Excel, CSV, HTML, CSS, .env, JS, PHP, SQL)
                   </label>
-                  <input
-                    type="file"
-                    multiple
-                    accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
-                    onChange={handleFileChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+
+                  <div className="relative">
+                    <input
+                      type="file"
+                      multiple
+                      accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 transition-colors">
+                      <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                      <p className="text-gray-500">
+                        Drag & drop files here, or click to select
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Supported formats: JPG, PNG, GIF, WebP, PDF, XLS, CSV, HTML, CSS, .env, JS, PHP, SQL
+                      </p>
+                    </div>
+                  </div>
+
                   {selectedFiles.length > 0 && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      Selected files: {selectedFiles.map(f => f.name).join(', ')}
+                    <div className="mt-3 space-y-1">
+                      {selectedFiles.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md text-sm">
+                          <div className="flex items-center space-x-2">
+                            {getFileIcon(file.type, file.name)}
+                            <span className="truncate">{file.name}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(index)}
+                            className="text-red-600 hover:text-red-800 ml-2"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
+
                 <Button
                   type="submit"
                   className="flex items-center space-x-2"
