@@ -36,6 +36,7 @@ import RecruitmentPage from './pages/common/RecruitmentPage';
 import PunchTime from './components/Punch/PunchTime';
 import SaturdaySetting from './components/SaturdaySetting/SaturdaySetting';
 import TeamTable from './components/common/TeamTable';
+import AccountPage from './components/accounts/AccountPage';
 import './index.css';
 
 function AppRoutes() {
@@ -142,6 +143,11 @@ function AppRoutes() {
           <Route path="/team" element={
             <ProtectedRoute requiredRole="Admin">
               <TeamTable />
+            </ProtectedRoute>
+          } />
+          <Route path="/accounts" element={
+            <ProtectedRoute requiredRole="Admin">
+              <AccountPage />
             </ProtectedRoute>
           } />
           <Route path="/attendance" element={<AttendancePage/>} />

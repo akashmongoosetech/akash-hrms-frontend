@@ -24,7 +24,7 @@ import {
   X,
   ListTodo,
   Briefcase,
-  MessagesSquare,
+  BadgeIndianRupee,
   Group,
 } from "lucide-react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -110,13 +110,13 @@ export default function RightSidebar() {
           path: "/team",
           roles: ["Admin", "SuperAdmin"],
         },
-        // {
-        //   id: "messages",
-        //   name: "Messages",
-        //   icon: <MessagesSquare className="h-5 w-5" />,
-        //   path: "/messages",
-        //   roles: ["Admin", "SuperAdmin", "Employee"],
-        // },
+        {
+          id: "accounts",
+          name: "Account",
+          icon: <BadgeIndianRupee className="h-5 w-5" />,
+          path: "/accounts",
+          roles: ["Admin", "SuperAdmin"],
+        },
       ],
     },
     {

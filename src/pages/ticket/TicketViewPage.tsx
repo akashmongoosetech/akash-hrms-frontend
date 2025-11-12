@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import toast from 'react-hot-toast';
 import {
   Calendar,
   User,
@@ -16,12 +17,23 @@ import {
   FileSpreadsheet,
   Upload,
   X,
+  Trash2,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "../../Common/Commonfunction";
 import socket from "../../utils/socket";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { Button } from "../../components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/alert-dialog";
 
 interface Employee {
   _id: string;
@@ -86,6 +98,21 @@ export default function TicketViewPage() {
   const [updatingProgress, setUpdatingProgress] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(false); // force refetch after updates
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+
+  // Decode JWT to get user ID
+  const decodeJWT = (token: string) => {
+    try {
+      const payload = token.split('.')[1];
+      const decoded = JSON.parse(atob(payload));
+      return decoded.id;
+    } catch (err) {
+      console.error('Error decoding token:', err);
+      return null;
+    }
+  };
 
   // Safe date formatter used during render
   const formatDateTimeSafe = (s?: string): string => {
@@ -167,6 +194,15 @@ export default function TicketViewPage() {
     }
   };
 
+  // Set current user ID
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const userId = decodeJWT(token);
+      setCurrentUserId(userId);
+    }
+  }, []);
+
   // initial fetch + re-fetch whenever refreshTrigger toggles
   useEffect(() => {
     if (!id) return;
@@ -180,6 +216,13 @@ export default function TicketViewPage() {
       setComments((prev) => [...prev, newComment]);
     });
 
+    // socket listener for comment deletion
+    const deleteEventName = `comment-deleted-${id}`;
+    socket.off(deleteEventName);
+    socket.on(deleteEventName, (deletedCommentId: string) => {
+      setComments((prev) => prev.filter(comment => comment._id !== deletedCommentId));
+    });
+
     // socket listener for progress updates
     const progressEventName = `ticket-progress-${id}`;
     socket.off(progressEventName);
@@ -191,6 +234,7 @@ export default function TicketViewPage() {
 
     return () => {
       socket.off(eventName);
+      socket.off(deleteEventName);
       socket.off(progressEventName);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,6 +292,38 @@ export default function TicketViewPage() {
       }
     } catch (err) {
       console.error("Error adding comment:", err);
+    }
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setCommentToDelete(commentId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!commentToDelete) return;
+    try {
+      const url = `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+        }/comments/${commentToDelete}`;
+      const response = await fetch(url, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (response.ok) {
+        // server will emit socket event; if not, remove locally
+        setComments((prev) => prev.filter(comment => comment._id !== commentToDelete));
+        toast.success("Comment deleted successfully!");
+      } else {
+        console.error("Failed to delete comment");
+        toast.error("Failed to delete comment");
+      }
+    } catch (err) {
+      console.error("Error deleting comment:", err);
+    } finally {
+      setShowDeleteModal(false);
+      setCommentToDelete(null);
     }
   };
 
@@ -635,6 +711,15 @@ export default function TicketViewPage() {
                             <span className="text-xs text-gray-500">
                               {formatDateTime(comment.createdAt)}
                             </span>
+                            {currentUserId === comment.user._id && (
+                              <button
+                                onClick={() => handleDeleteComment(comment._id)}
+                                className="text-red-600 hover:text-red-800 ml-2"
+                                title="Delete comment"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                           <div
                             className="mt-1 text-sm text-gray-900"
@@ -860,6 +945,24 @@ export default function TicketViewPage() {
             </div>
           </div>
         )}
+
+        {/* Delete Comment Confirmation Modal */}
+        <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+          <AlertDialogContent className="bg-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-800">
+                Are you sure you want to delete this comment? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-gray-500 text-white">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteComment} className="mt-2 bg-red-600 hover:bg-red-700">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
