@@ -18,20 +18,29 @@ self.addEventListener('push', (event) => {
     data = event.data.json();
   }
 
+  // Determine action text based on notification type or URL
+  let actionTitle = 'View';
+  const url = data.url || '/holidays';
+  if (url.includes('events')) actionTitle = 'View Events';
+  else if (url.includes('holidays')) actionTitle = 'View Holidays';
+  else if (url.includes('leave')) actionTitle = 'View Leave';
+  else if (url.includes('tickets')) actionTitle = 'View Tickets';
+  else if (url.includes('todo')) actionTitle = 'View Todos';
+
   const options = {
-    body: data.body || 'Holiday update notification',
+    body: data.body || 'HRMS notification',
     icon: data.icon || '/favicon.ico',
     badge: data.badge || '/favicon.ico',
     vibrate: [200, 100, 200], // Vibration pattern for mobile
     sound: 'default', // Default notification sound
     requireInteraction: true, // Keep notification visible until user interacts
     data: {
-      url: data.url || '/holidays' // Default redirect URL
+      url: url // Default redirect URL
     },
     actions: [
       {
         action: 'view',
-        title: 'View Holidays'
+        title: actionTitle
       }
     ]
   };

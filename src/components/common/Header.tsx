@@ -63,8 +63,7 @@ export default function Header() {
       if (userId) {
         try {
           const response = await fetch(
-            `${
-              (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+            `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
             }/punches/status`,
             {
               headers: {
@@ -89,8 +88,7 @@ export default function Header() {
       if (userId) {
         try {
           const response = await fetch(
-            `${
-              (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+            `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
             }/breaks/status`,
             {
               headers: {
@@ -113,26 +111,26 @@ export default function Header() {
   }, [userId]);
 
   // Update elapsed time every second when punched in
-   useEffect(() => {
-     let interval: number;
-     if (isPunchedIn && punchInTime) {
-       interval = setInterval(() => {
-         const now = new Date();
-         const diff = now.getTime() - punchInTime.getTime();
-         const hours = Math.floor(diff / (1000 * 60 * 60));
-         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-         setElapsedTime(
-           `${hours.toString().padStart(2, "0")}:${minutes
-             .toString()
-             .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-         );
-       }, 1000);
-     }
-     return () => {
-       if (interval) clearInterval(interval);
-     };
-   }, [isPunchedIn, punchInTime]);
+  useEffect(() => {
+    let interval: number;
+    if (isPunchedIn && punchInTime) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const diff = now.getTime() - punchInTime.getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setElapsedTime(
+          `${hours.toString().padStart(2, "0")}:${minutes
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+        );
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPunchedIn, punchInTime]);
 
   // Update report form data when modal opens
   useEffect(() => {
@@ -245,8 +243,7 @@ export default function Header() {
       if (userId) {
         try {
           const response = await fetch(
-            `${
-              (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+            `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
             }/users/${userId}`,
             {
               headers: {
@@ -372,9 +369,8 @@ export default function Header() {
     : localStorage.getItem("userName") || "User";
   const baseUrl = ((import.meta as any).env.VITE_API_URL || "http://localhost:5000").replace('', '');
   const userPhoto = userData?.photo
-    ? `${baseUrl}/uploads/${
-        userData.photo.split(/[/\\]/).pop()
-      }`
+    ? `${baseUrl}/uploads/${userData.photo.split(/[/\\]/).pop()
+    }`
     : null;
 
   const handleLogout = () => {
@@ -400,8 +396,7 @@ export default function Header() {
     try {
       const endpoint = "/punches/in";
       const response = await fetch(
-        `${
-          (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+        `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
         }${endpoint}`,
         {
           method: "POST",
@@ -449,8 +444,7 @@ export default function Header() {
 
       // Then punch out
       const response = await fetch(
-        `${
-          (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+        `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
         }/punches/out`,
         {
           method: "POST",
@@ -505,7 +499,7 @@ export default function Header() {
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
+            {/* <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <Users className="h-6 w-6 text-white" />
               </div>
@@ -514,7 +508,7 @@ export default function Header() {
                   Welcome back, {userName}
                 </p>
               </div>
-            </div>
+            </div> */}
           </div>
 
           <div className="flex items-center space-x-4">
@@ -522,14 +516,13 @@ export default function Header() {
             {role === "Employee" && (
               <button
                 onClick={handlePunch}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  isPunchedIn
+                className={`flex items-center sm:space-x-1 space-x-2 sm:px-2 px-4 sm:py-1 py-2 rounded-lg font-medium transition-colors ${isPunchedIn
                     ? "bg-red-500 hover:bg-red-600 text-white"
                     : "bg-green-500 hover:bg-green-600 text-white"
-                }`}
+                  }`}
               >
-                <Clock className="h-5 w-5" />
-                <span>
+                <Clock className="sm:h-4 sm:w-4 h-5 w-5" />
+                <span className="sm:text-sm">
                   {isPunchedIn ? `Punch Out (${elapsedTime})` : "Punch In"}
                 </span>
               </button>
@@ -546,42 +539,63 @@ export default function Header() {
             </div> */}
 
             {/* Notifications */}
-            <div className="relative">
+            <div className="relative inline-block text-left">
+              {/* Notification Button */}
               <button
                 onClick={toggleNotifications}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadCount}
-                </span>
+                <Bell className="h-6 w-6" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center shadow">
+                    {unreadCount}
+                  </span>
+                )}
               </button>
 
+              {/* Dropdown Menu */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 sm:left-0 sm:right-auto sm:w-72">
-                  <div className="p-4 border-b border-gray-200">
-                    <h3 className="font-semibold text-gray-900">
+                <div
+                  className="absolute right-0 mt-3 w-80 max-w-[90vw] sm:w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50 animate-slide-down"
+                >
+                  {/* Header */}
+                  <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
                       Notifications
                     </h3>
+                    <button
+                      onClick={() => {
+                        setNotifications([]);
+                        setUnreadCount(0);
+                        localStorage.removeItem(`notifications-${userId}`);
+                      }}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Clear all
+                    </button>
                   </div>
-                  <div className="max-h-96 overflow-y-auto">
+
+                  {/* Notification List */}
+                  <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                     {notifications.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500">
+                      <div className="p-6 text-center text-gray-500 text-sm">
                         No new notifications
                       </div>
                     ) : (
                       notifications.map((notification, index) => (
                         <div
                           key={index}
-                          className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                          className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition"
                           onClick={() => {
-                            // Mark this notification as read
                             if (!notification.read) {
                               setNotifications((prev) => {
                                 const updatedNotifications = prev.map((n, i) =>
                                   i === index ? { ...n, read: true } : n
                                 );
-                                localStorage.setItem(`notifications-${userId}`, JSON.stringify(updatedNotifications));
+                                localStorage.setItem(
+                                  `notifications-${userId}`,
+                                  JSON.stringify(updatedNotifications)
+                                );
                                 return updatedNotifications;
                               });
                               setUnreadCount((prev) => Math.max(0, prev - 1));
@@ -589,19 +603,20 @@ export default function Header() {
                           }}
                         >
                           <div className="flex items-start space-x-3">
-                            <div className="bg-blue-100 p-2 rounded-full">
+                            <div className="bg-blue-100 p-2 rounded-full shrink-0">
                               <Mail className="h-4 w-4 text-blue-600" />
                             </div>
-                            <div className="flex-1">
-                              <p className={`text-sm font-medium ${notification.read ? 'text-gray-600' : 'text-gray-900'}`}>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`text-sm font-medium truncate ${notification.read ? "text-gray-600" : "text-gray-900"
+                                  }`}
+                              >
                                 {notification.message}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                Just now
-                              </p>
+                              <p className="text-xs text-gray-500">Just now</p>
                             </div>
                             {!notification.read && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
                             )}
                           </div>
                         </div>
@@ -612,6 +627,7 @@ export default function Header() {
               )}
             </div>
 
+
             {/* Profile Dropdown */}
             <div className="relative">
               <button
@@ -619,11 +635,13 @@ export default function Header() {
                 className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 {userPhoto ? (
+                  <>
                   <img
                     src={userPhoto}
                     alt="Profile"
                     className="w-8 h-8 rounded-full object-cover"
-                  />
+                    />
+                  </>
                 ) : (
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
@@ -635,23 +653,28 @@ export default function Header() {
                     </span>
                   </div>
                 )}
-                <div className="text-left">
+                {/* <div className="text-left">
                   <p className="text-sm font-medium text-gray-900">
                     {userName}
                   </p>
                   <p className="text-xs text-gray-500">{role}</p>
-                </div>
+                </div> */}
                 <ChevronDown className="h-4 w-4 text-gray-500" />
               </button>
 
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                  {/* <div className="p-4 border-b border-gray-200">
+                  <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center space-x-3">
-                      Add more here
+                      <div className="text-left">
+                  <p className="text-sm font-medium text-gray-900">
+                    {userName}
+                  </p>
+                  <p className="text-xs text-gray-500">{role}</p>
+                </div>
                       <p></p>
                     </div>
-                  </div> */}
+                  </div>
                   <div className="p-2">
                     <button
                       onClick={() => navigate(`/employees/view/${userId}`)}
@@ -660,7 +683,7 @@ export default function Header() {
                       <Users className="h-4 w-4" />
                       <span>Profile</span>
                     </button>
-                     <button
+                    <button
                       onClick={() => navigate('/saturday-setting')}
                       className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     >

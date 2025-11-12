@@ -43,7 +43,7 @@ export const usePushNotifications = () => {
         // console.log('Notification permission granted');
 
         const registration = await navigator.serviceWorker.ready;
-        const vapidPublicKey = (import.meta as any).env.VITE_VAPID_PUBLIC_KEY || 'BHWnf-U3zH5IQarMbSyy1KkDdYFOCcpydYupXT6D06jJArvG5oaeKitn27z7NdlDaOHQu2lqPg4MjYwjX2AKHR0'; // Generated VAPID public key
+        const vapidPublicKey = (import.meta as any).env.VITE_VAPID_PUBLIC_KEY || 'BMBp7y5ibor4fCpaeAyLQroBGpLsQpajU7T4tSVOeAfi78McJ0QPSzsc3Yhmr07cg-Y3aQ9vYxedeG-Gddg6cNs'; // VAPID public key
 
         const newSubscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,

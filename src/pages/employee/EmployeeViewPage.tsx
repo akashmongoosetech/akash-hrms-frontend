@@ -175,7 +175,7 @@ export default function EmployeeViewPage() {
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">{employee.firstName} {employee.lastName}</h2>
                 <p className="text-xl text-gray-700 mb-1">{employee.role}</p>
                 <p className="text-gray-600 mb-4">{employee.email}</p>
-                <div className="flex flex-wrap justify-center md:justify-start gap-4">
+                <div className="flex flex-wrap justify-center gap-4">
                   {employee.mobile1 && (
                     <span className="inline-flex items-center space-x-2 text-sm text-gray-600 bg-white px-3 py-1 rounded-full shadow-sm">
                       <span>📱</span>
