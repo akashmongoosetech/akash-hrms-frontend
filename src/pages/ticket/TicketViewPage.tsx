@@ -9,6 +9,11 @@ import {
   TrendingUp,
   Clock,
   Edit,
+  File,
+  FileImage,
+  FileText,
+  FileCode,
+  FileSpreadsheet,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "../../Common/Commonfunction";
 import socket from "../../utils/socket";
@@ -85,6 +90,16 @@ export default function TicketViewPage() {
     if (!s) return "—";
     const d = new Date(s);
     return isNaN(d.getTime()) ? "—" : d.toLocaleString();
+  };
+
+  // Get file icon based on mimetype and filename
+  const getFileIcon = (mimetype: string, filename: string) => {
+    if (mimetype.startsWith('image/')) return <FileImage className="h-6 w-6" />;
+    if (mimetype === 'application/pdf') return <FileText className="h-6 w-6" />;
+    if (mimetype.includes('spreadsheet') || mimetype === 'text/csv') return <FileSpreadsheet className="h-6 w-6" />;
+    if (mimetype.includes('javascript') || mimetype.includes('php') || mimetype === 'application/sql' || mimetype === 'text/html' || mimetype === 'text/css') return <FileCode className="h-6 w-6" />;
+    if (filename.toLowerCase().endsWith('.env') || filename.toLowerCase().endsWith('.js') || filename.toLowerCase().endsWith('.php') || filename.toLowerCase().endsWith('.sql')) return <FileCode className="h-6 w-6" />;
+    return <File className="h-6 w-6" />;
   };
 
   // Fetch ticket, robust handling
@@ -637,11 +652,14 @@ export default function TicketViewPage() {
                                   key={index}
                                   href={`${
                                     (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-                                  }/uploads/${attachment.filename}`}
+                                    }/uploads/${attachment.filename}`}
+                                  target="_blank"
                                   download={attachment.originalname}
                                   className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
                                 >
-                                  <span>📎 {attachment.originalname}</span>
+                                  {getFileIcon(attachment.mimetype, attachment.originalname)}
+                                  <span style={{fontSize:"10px"}}>Attached File</span>
+                                  {/* {attachment.originalname} */}
                                 </a>
                               ))}
                             </div>
