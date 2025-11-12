@@ -54,6 +54,12 @@ interface Comment {
     photo?: string;
   };
   createdAt: string;
+  attachments?: {
+    filename: string;
+    originalname: string;
+    mimetype: string;
+    size: number;
+  }[];
 }
 
 export default function TicketViewPage() {
@@ -62,6 +68,7 @@ export default function TicketViewPage() {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showProgressForm, setShowProgressForm] = useState(false);
@@ -201,19 +208,25 @@ export default function TicketViewPage() {
     e.preventDefault();
     if (!newComment.trim() || !id) return;
     try {
+      const formData = new FormData();
+      formData.append('message', newComment.trim());
+      selectedFiles.forEach(file => {
+        formData.append('attachments', file);
+      });
+
       const url = `${
         (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
       }/comments/${id}`;
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ message: newComment.trim() }),
+        body: formData,
       });
       if (response.ok) {
         setNewComment("");
+        setSelectedFiles([]);
         // server will emit socket event; if not, trigger refresh
         // setRefreshTrigger(prev => !prev);
       } else {
@@ -222,6 +235,28 @@ export default function TicketViewPage() {
     } catch (err) {
       console.error("Error adding comment:", err);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv',
+      'text/html',
+      'text/css',
+      'application/javascript', 'application/x-javascript',
+      'application/x-php',
+      'application/sql',
+      'text/plain' // for .env files
+    ];
+    const allowedExtensions = ['.env', '.js', '.php', '.sql'];
+    const filteredFiles = files.filter(file => {
+      const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+      return allowedTypes.includes(file.type) || allowedExtensions.includes(ext);
+    });
+    setSelectedFiles(filteredFiles);
   };
 
   const handleUpdateProgress = async (e: React.FormEvent) => {
@@ -595,6 +630,22 @@ export default function TicketViewPage() {
                               __html: comment.message,
                             }}
                           />
+                          {comment.attachments && comment.attachments.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {comment.attachments.map((attachment, index) => (
+                                <a
+                                  key={index}
+                                  href={`${
+                                    (import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+                                  }/uploads/${attachment.filename}`}
+                                  download={attachment.originalname}
+                                  className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                  <span>📎 {attachment.originalname}</span>
+                                </a>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -636,6 +687,23 @@ export default function TicketViewPage() {
                     },
                   }}
                 />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Attach Files (Images, PDF, Excel, CSV, HTML, CSS, .env, JS, PHP, SQL)
+                  </label>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
+                    onChange={handleFileChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {selectedFiles.length > 0 && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      Selected files: {selectedFiles.map(f => f.name).join(', ')}
+                    </div>
+                  )}
+                </div>
                 <Button
                   type="submit"
                   className="flex items-center space-x-2"
