@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../../utils/api';
+import { Button } from '../../ui/button';
 
 interface Employee {
   _id: string;
@@ -22,12 +23,12 @@ interface CreateTeamModalProps {
   showModal: boolean;
   onClose: () => void;
   onSubmit: (teamData: any) => void;
+  loading?: boolean;
 }
 
-const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ showModal, onClose, onSubmit }) => {
+const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ showModal, onClose, onSubmit, loading = false }) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     manager: '',
     teamMembers: [] as string[],
@@ -138,19 +139,19 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ showModal, onClose, o
           </div>
 
           <div className="flex justify-end space-x-3">
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+              variant="outline"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              loading={loading}
             >
               Create Team
-            </button>
+            </Button>
           </div>
         </form>
       </div>

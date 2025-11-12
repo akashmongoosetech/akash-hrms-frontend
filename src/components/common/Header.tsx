@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -43,6 +43,8 @@ export default function Header() {
   });
   const [reportLoading, setReportLoading] = useState(false);
   const userId = localStorage.getItem("userId");
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Load notifications from API only (fully dynamic)
   useEffect(() => {
@@ -361,6 +363,23 @@ export default function Header() {
     };
   }, [userId, navigate]);
 
+  // Handle outside clicks to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   // Get user info from API response or fallback to localStorage
   const role = userData?.role || localStorage.getItem("role") || "Employee";
   const userName = userData
@@ -574,7 +593,7 @@ export default function Header() {
             </div> */}
 
             {/* Notifications */}
-            <div className="relative inline-block text-left">
+            <div className="relative inline-block text-left" ref={notificationsRef}>
               {/* Notification Button */}
               <button
                 onClick={toggleNotifications}
@@ -657,7 +676,7 @@ export default function Header() {
 
 
             {/* Profile Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={toggleDropdown}
                 className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"

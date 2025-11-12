@@ -43,6 +43,8 @@ export default function ProjectTable() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const menuRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Safe helpers
@@ -137,6 +139,7 @@ export default function ProjectTable() {
   };
 
   const handleSubmit = async (formData: any) => {
+    setSubmitLoading(true);
     try {
       const url = editingProject
         ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/projects/${editingProject._id}`
@@ -162,6 +165,8 @@ export default function ProjectTable() {
       }
     } catch (err) {
       setError('Error saving project');
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -173,6 +178,7 @@ export default function ProjectTable() {
   const confirmDelete = async () => {
     if (!deleteProjectId) return;
 
+    setDeleteLoading(true);
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/projects/${deleteProjectId}`, {
         method: 'DELETE',
@@ -190,6 +196,8 @@ export default function ProjectTable() {
       }
     } catch (err) {
       setError('Error deleting project');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -290,6 +298,7 @@ export default function ProjectTable() {
         employees={employees}
         onClose={() => setShowModal(false)}
         onSubmit={handleSubmit}
+        loading={submitLoading}
       />
 
       <DeleteModal
@@ -298,6 +307,7 @@ export default function ProjectTable() {
         onConfirm={confirmDelete}
         title="Delete Project"
         message="Are you sure you want to delete this project? This action cannot be undone."
+        loading={deleteLoading}
       />
     </div>
   );

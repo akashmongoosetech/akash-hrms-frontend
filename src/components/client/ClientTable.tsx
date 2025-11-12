@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Edit, Trash2, Plus, Search, MoreHorizontal, Eye } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
+import { Button } from '../ui/button';
 
 interface Client {
   _id: string;
@@ -25,6 +26,8 @@ export default function ClientTable() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const menuRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [formData, setFormData] = useState({
     name: '',
@@ -75,6 +78,7 @@ export default function ClientTable() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitLoading(true);
     try {
       const url = editingClient
         ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/clients/${editingClient._id}`
@@ -119,6 +123,8 @@ export default function ClientTable() {
       }
     } catch (err) {
       setError('Error saving client');
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -130,6 +136,7 @@ export default function ClientTable() {
   const confirmDelete = async () => {
     if (!deleteClientId) return;
 
+    setDeleteLoading(true);
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/clients/${deleteClientId}`, {
         method: 'DELETE',
@@ -147,6 +154,8 @@ export default function ClientTable() {
       }
     } catch (err) {
       setError('Error deleting client');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -620,19 +629,19 @@ export default function ClientTable() {
                 </select>
               </div>
               <div className="flex justify-end space-x-3">
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  loading={submitLoading}
                 >
                   {editingClient ? 'Update' : 'Create'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -645,6 +654,7 @@ export default function ClientTable() {
         onConfirm={confirmDelete}
         title="Delete Client"
         message="Are you sure you want to delete this client? This action cannot be undone."
+        loading={deleteLoading}
       />
     </div>
   );

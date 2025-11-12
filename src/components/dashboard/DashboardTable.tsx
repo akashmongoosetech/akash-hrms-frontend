@@ -6,6 +6,7 @@ interface Client {
   name: string;
   email: string;
   profile: string;
+  status: string;
 }
 
 interface TeamMember {
@@ -96,6 +97,13 @@ export default function DashboardTable() {
     return '';
   };
 
+  const getProjectDisplayStatus = (project: Project): string => {
+    if (project.client && typeof project.client === 'object' && project.client.status === "Inactive") {
+      return "Hold";
+    }
+    return project.status;
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -115,18 +123,20 @@ export default function DashboardTable() {
     );
   }
 
+  const filteredProjects = projects.filter(p => p.status === "Active" || (p.client && typeof p.client === 'object' && p.client.status === "Inactive"));
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
         <h3 className="text-base sm:text-lg font-semibold text-gray-900">Recent Projects</h3>
         <div className="text-xs sm:text-sm text-gray-500">
-          {projects.length} project{projects.length !== 1 ? 's' : ''}
+          {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''}
         </div>
       </div>
 
       {/* Mobile Card View */}
       <div className="block md:hidden space-y-4">
-        {projects.slice(0, 10).map((project) => (
+        {filteredProjects.slice(0, 10).map((project) => (
           <div key={project._id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center flex-1 min-w-0">
@@ -203,6 +213,13 @@ export default function DashboardTable() {
                   )}
                 </div>
               </div>
+
+              <div className="flex items-center justify-end mt-2">
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getProjectDisplayStatus(project) === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                  {getProjectDisplayStatus(project)}
+                </span>
+              </div>
             </div>
           </div>
         ))}
@@ -225,10 +242,13 @@ export default function DashboardTable() {
               <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Technology
               </th>
+              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {projects.slice(0, 10).map((project) => (
+            {filteredProjects.slice(0, 10).map((project) => (
               <tr key={project._id} className="hover:bg-gray-50">
                 {/* Client */}
                 <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
@@ -254,12 +274,16 @@ export default function DashboardTable() {
                 </td>
 
                 {/* Team Members */}
-                <td className="px-4 sm:px-6 py-4">
+                <td className="px-4 sm:px-6 py-4 cursor-pointer">
                   <div className="flex items-center">
                     {project.teamMembers && project.teamMembers.length > 0 ? (
                       <div className="flex -space-x-2">
-                        {project.teamMembers.slice(0, 3).map((member) => (
-                          <div key={member._id} className="relative">
+                        {project.teamMembers.slice(0, 3).map((member, index) => (
+                          <div
+                            key={member._id}
+                            className="relative transform transition duration-300 hover:scale-110"
+                            style={{ animation: `fadeIn 0.3s ease ${index * 0.1}s forwards`, opacity: 0 }}
+                          >
                             {member.photo ? (
                               <img
                                 className="h-8 w-8 rounded-full border-2 border-white"
@@ -269,14 +293,18 @@ export default function DashboardTable() {
                             ) : (
                               <div className="h-8 w-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center">
                                 <span className="text-xs font-medium text-gray-700">
-                                  {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                                  {member.firstName.charAt(0)}
+                                  {member.lastName.charAt(0)}
                                 </span>
                               </div>
                             )}
                           </div>
                         ))}
                         {project.teamMembers.length > 3 && (
-                          <div className="h-8 w-8 rounded-full bg-gray-400 border-2 border-white flex items-center justify-center">
+                          <div
+                            className="h-8 w-8 rounded-full bg-gray-400 border-2 border-white flex items-center justify-center transform transition duration-300 hover:scale-110"
+                            style={{ animation: `fadeIn 0.3s ease 0.4s forwards`, opacity: 0 }}
+                          >
                             <span className="text-xs font-medium text-white">
                               +{project.teamMembers.length - 3}
                             </span>
@@ -290,6 +318,16 @@ export default function DashboardTable() {
                       </div>
                     )}
                   </div>
+
+                  <style>
+                    {`
+                      @keyframes fadeIn {
+                        to {
+                          opacity: 1;
+                        }
+                      }
+                    `}
+                  </style>
                 </td>
 
                 {/* Project Info */}
@@ -311,25 +349,34 @@ export default function DashboardTable() {
                     <span>{project.technology || 'Not specified'}</span>
                   </div>
                 </td>
+
+                {/* Status */}
+                <td className="px-4 sm:px-6 py-4">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getProjectDisplayStatus(project) === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                    {getProjectDisplayStatus(project)}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {projects.length === 0 && (
+      {filteredProjects.length === 0 && (
         <div className="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
           No projects found
         </div>
       )}
 
-      {projects.length > 10 && (
+      {filteredProjects.length > 10 && (
         <div className="text-center mt-4">
           <p className="text-xs sm:text-sm text-gray-500">
-            Showing 10 of {projects.length} projects
+            Showing 10 of {filteredProjects.length} projects
           </p>
         </div>
       )}
     </div>
   );
 }
+

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
+import { Button } from '../components/ui/button';
 
 interface DeleteModalProps {
   isOpen: boolean;
@@ -7,9 +8,10 @@ interface DeleteModalProps {
   onConfirm: () => void;
   title: string;
   message: string;
+  loading?: boolean;
 }
 
-export default function DeleteModal({ isOpen, onClose, onConfirm, title, message }: DeleteModalProps) {
+export default function DeleteModal({ isOpen, onClose, onConfirm, title, message, loading = false }: DeleteModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -21,18 +23,19 @@ export default function DeleteModal({ isOpen, onClose, onConfirm, title, message
         </div>
         <p className="text-gray-700 mb-6">{message}</p>
         <div className="flex justify-end space-x-3">
-          <button
+          <Button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+            variant="outline"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onConfirm}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            variant="destructive"
+            loading={loading}
           >
             Delete
-          </button>
+          </Button>
         </div>
       </div>
     </div>

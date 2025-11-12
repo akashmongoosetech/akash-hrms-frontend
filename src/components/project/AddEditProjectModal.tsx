@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '../ui/button';
 
 interface Client {
   _id: string;
@@ -31,6 +32,7 @@ interface AddEditProjectModalProps {
   employees: TeamMember[];
   onClose: () => void;
   onSubmit: (formData: any) => void;
+  loading?: boolean;
 }
 
 export default function AddEditProjectModal({
@@ -39,7 +41,8 @@ export default function AddEditProjectModal({
   clients,
   employees,
   onClose,
-  onSubmit
+  onSubmit,
+  loading = false
 }: AddEditProjectModalProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -186,19 +189,19 @@ export default function AddEditProjectModal({
             </div>
           </div>
           <div className="flex justify-end space-x-3">
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+              variant="outline"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              loading={loading}
             >
               {editingProject ? 'Update' : 'Create'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

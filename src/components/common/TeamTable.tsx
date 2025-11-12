@@ -39,6 +39,8 @@ export default function TeamTable() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTeamId, setDeleteTeamId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [viewTeam, setViewTeam] = useState<Team | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export default function TeamTable() {
   };
 
   const handleCreateTeam = async (teamData: any) => {
+    setCreateLoading(true);
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/teams`, {
         method: 'POST',
@@ -87,6 +90,8 @@ export default function TeamTable() {
       }
     } catch (err) {
       setError('Error creating team');
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -98,6 +103,7 @@ export default function TeamTable() {
   const confirmDelete = async () => {
     if (!deleteTeamId) return;
 
+    setDeleteLoading(true);
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/teams/${deleteTeamId}`, {
         method: 'DELETE',
@@ -115,6 +121,8 @@ export default function TeamTable() {
       }
     } catch (err) {
       setError('Error deleting team');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -235,6 +243,7 @@ export default function TeamTable() {
         showModal={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateTeam}
+        loading={createLoading}
       />
 
       <ViewTeamModal
@@ -249,6 +258,7 @@ export default function TeamTable() {
         onConfirm={confirmDelete}
         title="Delete Team"
         message="Are you sure you want to delete this team? This action cannot be undone."
+        loading={deleteLoading}
       />
     </div>
   );
