@@ -5,10 +5,7 @@ export const usePushNotifications = () => {
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
 
   useEffect(() => {
-    // Only run for employees
-    const role = localStorage.getItem('role');
-    if (role !== 'Employee') return;
-
+    // Register service worker for all users
     // Register service worker
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       navigator.serviceWorker

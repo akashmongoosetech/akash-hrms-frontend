@@ -44,18 +44,41 @@ export default function Header() {
   const [reportLoading, setReportLoading] = useState(false);
   const userId = localStorage.getItem("userId");
 
-  // Load notifications from localStorage on mount
+  // Load notifications from API only (fully dynamic)
   useEffect(() => {
     if (userId) {
-      const savedNotifications = localStorage.getItem(`notifications-${userId}`);
-      if (savedNotifications) {
-        const parsedNotifications = JSON.parse(savedNotifications);
-        setNotifications(parsedNotifications);
-        const unread = parsedNotifications.filter((n: any) => !n.read).length;
-        setUnreadCount(unread);
-      }
+      fetchNotifications();
     }
   }, [userId]);
+
+  const fetchNotifications = async () => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/notifications/user/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const apiNotifications = data.notifications.map((n: any) => ({
+          ...n,
+          id: n._id,
+          read: n.read,
+          message: n.message,
+          type: n.type,
+          createdAt: n.createdAt
+        }));
+
+        setNotifications(apiNotifications);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
 
   // Fetch punch status and break status on mount
   useEffect(() => {
@@ -283,60 +306,36 @@ export default function Header() {
 
     fetchUserProfile();
 
-    // Socket.io listener for real-time notifications
+    // Socket.io listener for real-time notifications - refresh from API
     if (userId) {
       socket.on(`todo-notification-${userId}`, (notification) => {
-        setNotifications((prev) => {
-          const newNotifications = [{ ...notification, read: false }, ...prev];
-          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
-          return newNotifications;
-        });
-        setUnreadCount((prev) => prev + 1);
+        // Real-time notification received, refresh from API to get updated list
+        fetchNotifications();
       });
 
       socket.on(`ticket-notification-${userId}`, (notification) => {
-        setNotifications((prev) => {
-          const newNotifications = [{ ...notification, read: false }, ...prev];
-          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
-          return newNotifications;
-        });
-        setUnreadCount((prev) => prev + 1);
+        // Real-time notification received, refresh from API to get updated list
+        fetchNotifications();
       });
 
       socket.on(`event-notification-${userId}`, (notification) => {
-        setNotifications((prev) => {
-          const newNotifications = [{ ...notification, read: false }, ...prev];
-          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
-          return newNotifications;
-        });
-        setUnreadCount((prev) => prev + 1);
+        // Real-time notification received, refresh from API to get updated list
+        fetchNotifications();
       });
 
       socket.on(`holiday-notification-${userId}`, (notification) => {
-        setNotifications((prev) => {
-          const newNotifications = [{ ...notification, read: false }, ...prev];
-          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
-          return newNotifications;
-        });
-        setUnreadCount((prev) => prev + 1);
+        // Real-time notification received, refresh from API to get updated list
+        fetchNotifications();
       });
 
       socket.on(`leave-notification-${userId}`, (notification) => {
-        setNotifications((prev) => {
-          const newNotifications = [{ ...notification, read: false }, ...prev];
-          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
-          return newNotifications;
-        });
-        setUnreadCount((prev) => prev + 1);
+        // Real-time notification received, refresh from API to get updated list
+        fetchNotifications();
       });
 
       socket.on(`leave-status-notification-${userId}`, (notification) => {
-        setNotifications((prev) => {
-          const newNotifications = [{ ...notification, read: false }, ...prev];
-          localStorage.setItem(`notifications-${userId}`, JSON.stringify(newNotifications));
-          return newNotifications;
-        });
-        setUnreadCount((prev) => prev + 1);
+        // Real-time notification received, refresh from API to get updated list
+        fetchNotifications();
       });
 
       // Listen for break events to update break status
@@ -494,6 +493,42 @@ export default function Header() {
     setDropdownOpen(false);
   };
 
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Failed to mark notification as read');
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/notifications/user/${userId}/read-all`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Failed to mark all notifications as read');
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="px-6 py-4">
@@ -564,10 +599,10 @@ export default function Header() {
                       Notifications
                     </h3>
                     <button
-                      onClick={() => {
-                        setNotifications([]);
-                        setUnreadCount(0);
-                        localStorage.removeItem(`notifications-${userId}`);
+                      onClick={async () => {
+                        await markAllNotificationsAsRead();
+                        // Refresh notifications from API
+                        fetchNotifications();
                       }}
                       className="text-xs text-blue-600 hover:underline"
                     >
@@ -586,19 +621,12 @@ export default function Header() {
                         <div
                           key={index}
                           className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition"
-                          onClick={() => {
-                            if (!notification.read) {
-                              setNotifications((prev) => {
-                                const updatedNotifications = prev.map((n, i) =>
-                                  i === index ? { ...n, read: true } : n
-                                );
-                                localStorage.setItem(
-                                  `notifications-${userId}`,
-                                  JSON.stringify(updatedNotifications)
-                                );
-                                return updatedNotifications;
-                              });
-                              setUnreadCount((prev) => Math.max(0, prev - 1));
+                          onClick={async () => {
+                            if (!notification.read && notification.id) {
+                              // Mark as read in database
+                              await markNotificationAsRead(notification.id);
+                              // Refresh notifications from API
+                              fetchNotifications();
                             }
                           }}
                         >
