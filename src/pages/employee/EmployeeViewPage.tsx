@@ -147,7 +147,7 @@ export default function EmployeeViewPage() {
               <div className="flex-shrink-0">
                 {employee.photo ? (
                   <img
-                    src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${employee.photo}`}
+                    src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/uploads/${employee.photo.split(/[/\\]/).pop()}`}
                     alt="Profile"
                     className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
                     onError={(e) => {
@@ -448,7 +448,7 @@ export default function EmployeeViewPage() {
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.photo ? (
                       <img
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${employee.photo}`}
+                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/uploads/${employee.photo.split(/[/\\]/).pop()}`}
                         alt="Profile"
                         className="w-full h-32 object-cover rounded-md"
                         onError={(e) => {
@@ -473,8 +473,8 @@ export default function EmployeeViewPage() {
                   <label className="block text-sm font-medium text-gray-600">Aadhar Card File</label>
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.aadharCardFile ? (
-                      <embed 
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/uploads/${employee.aadharCardFile.replace(/^uploads\//, '')}`} 
+                      <embed
+                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${employee.aadharCardFile.replace(/^uploads\//, '')}`}
                         className="w-full h-32 rounded-md"
                         type="application/pdf"
                       />
@@ -489,8 +489,8 @@ export default function EmployeeViewPage() {
                   <label className="block text-sm font-medium text-gray-600">PAN Card File</label>
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.panCardFile ? (
-                      <embed 
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/uploads/${employee.panCardFile.replace(/^uploads\//, '')}`} 
+                      <embed
+                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${employee.panCardFile.replace(/^uploads\//, '')}`}
                         className="w-full h-32 rounded-md"
                         type="application/pdf"
                       />
@@ -505,8 +505,8 @@ export default function EmployeeViewPage() {
                   <label className="block text-sm font-medium text-gray-600">Driving License File</label>
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.drivingLicenseFile ? (
-                      <embed 
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/uploads/${employee.drivingLicenseFile.replace(/^uploads\//, '')}`} 
+                      <embed
+                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${employee.drivingLicenseFile.replace(/^uploads\//, '')}`}
                         className="w-full h-32 rounded-md"
                         type="application/pdf"
                       />
@@ -521,8 +521,8 @@ export default function EmployeeViewPage() {
                   <label className="block text-sm font-medium text-gray-600">Resume</label>
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.resume ? (
-                      <embed 
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/uploads/${employee.resume.replace(/^uploads\//, '')}`} 
+                      <embed
+                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${employee.resume.replace(/^uploads\//, '')}`}
                         className="w-full h-32 rounded-md"
                         type="application/pdf"
                       />
