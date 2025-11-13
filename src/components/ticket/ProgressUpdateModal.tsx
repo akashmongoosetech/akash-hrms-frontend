@@ -118,7 +118,7 @@ const ProgressUpdateModal: React.FC<ProgressUpdateModalProps> = ({
                 </label>
                 <Input
                   type="number"
-                  min="0"
+                  min={ticket.currentProgress || 0}
                   max="100"
                   value={progressValue}
                   onChange={(e) => setProgressValue(e.target.value)}
@@ -135,7 +135,7 @@ const ProgressUpdateModal: React.FC<ProgressUpdateModalProps> = ({
               </label>
               <Input
                 type="number"
-                min="0"
+                min={ticket.currentProgress || 0}
                 max="100"
                 value={currentProgress}
                 onChange={(e) => setCurrentProgress(e.target.value)}

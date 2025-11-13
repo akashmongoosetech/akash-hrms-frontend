@@ -108,6 +108,7 @@ export default function TicketViewPage() {
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const [completionDate, setCompletionDate] = useState<string | null>(null);
 
   // Decode JWT to get user ID
   const decodeJWT = (token: string) => {
@@ -244,6 +245,7 @@ export default function TicketViewPage() {
   useEffect(() => {
     if (!ticket) return;
     setCurrentProgress((ticket.currentProgress ?? 0).toString());
+    setProgressValue((ticket.currentProgress ?? 0).toString());
 
     // determine last updated date
     const progressArr = Array.isArray(ticket.progress) ? ticket.progress : [];
@@ -260,6 +262,19 @@ export default function TicketViewPage() {
       if (!isNaN(createdDate.getTime())) {
         setProgressDate(createdDate.toISOString().split("T")[0]);
       }
+    }
+
+    // Compute completion date if progress is 100%
+    if (ticket.currentProgress === 100 && progressArr.length > 0) {
+      // Find the last progress entry updated by an employee
+      const lastEmployeeEntry = progressArr.slice().reverse().find(entry => entry.updatedBy?.role === "Employee");
+      if (lastEmployeeEntry) {
+        setCompletionDate(formatDate(lastEmployeeEntry.date));
+      } else {
+        setCompletionDate(null);
+      }
+    } else {
+      setCompletionDate(null);
     }
   }, [ticket]);
 
@@ -560,30 +575,51 @@ export default function TicketViewPage() {
                         </div>
                       </div>
 
-                      <div>
-                        <div className="flex items-center space-x-2 text-sm text-gray-500 mb-1">
+                      <div className="flex flex-col gap-2">
+                        {/* Header */}
+                        <div className="flex items-center space-x-2 text-sm text-gray-500">
                           <TrendingUp className="h-4 w-4" />
                           <span>Progress</span>
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-1 bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${ticket.currentProgress ?? 0}%` }}
-                            />
+
+                        {/* Progress Display */}
+                        {completionDate ? (
+                          <div className="text-sm font-medium text-green-800 bg-green-100 p-1 border-2 border-green-800 rounded">
+                            Completed on {completionDate}
                           </div>
-                          <span className="text-sm font-medium text-gray-900">
-                            {ticket.currentProgress ?? 0}%
-                          </span>
-                          <Button
-                            onClick={() => setShowProgressForm(true)}
-                            variant="ghost"
-                            size="icon"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        ) : (
+                          <div className=" items-center gap-3">
+                            {/* Progress Bar */}
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                              <div
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${ticket.currentProgress ?? 0}%` }}
+                              />
+                            </div>
+
+                            {/* Percentage */}
+                            <span className="text-sm font-medium text-gray-900 min-w-[2.5rem] text-right">
+                              {ticket.currentProgress ?? 0}%
+                            </span>
+                            </div>
+
+                            <div className="dd">
+                              {/* Button */}
+                              <Button
+                                onClick={() => setShowProgressForm(true)}
+                                variant="hero"
+                                size="sms"
+                                disabled={ticket.currentProgress === 100}
+                                className="ml-2"
+                              >
+                                Add Progress
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
+
                     </div>
                   </div>
 
@@ -680,7 +716,7 @@ export default function TicketViewPage() {
                       Comments
                     </h3>
                   </div>
-                  
+
 
                   {/* Add Comment Form */}
                   <form onSubmit={handleAddComment} className="space-y-3">

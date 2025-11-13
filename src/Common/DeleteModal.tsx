@@ -31,7 +31,7 @@ export default function DeleteModal({ isOpen, onClose, onConfirm, title, message
           </Button>
           <Button
             onClick={onConfirm}
-            variant="destructive"
+            variant="delete"
             loading={loading}
           >
             Delete

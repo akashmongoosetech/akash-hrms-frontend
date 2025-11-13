@@ -4,12 +4,21 @@ import { Edit, Trash2, Plus, Search, Eye, User, Calendar, AlertCircle } from 'lu
 import DeleteModal from '../../Common/DeleteModal';
 import toast from 'react-hot-toast';
 import { Button } from '../ui/button';
+import { formatDate } from '../../Common/Commonfunction';
 
 interface Employee {
   _id: string;
   firstName: string;
   lastName: string;
   email: string;
+}
+
+interface ProgressEntry {
+  _id: string;
+  date: string;
+  workingHours: number;
+  progress: number;
+  updatedBy: { _id: string; firstName: string; lastName: string; role: string };
 }
 
 interface Ticket {
@@ -21,6 +30,8 @@ interface Ticket {
   description: string;
   createdAt: string;
   currentProgress: number;
+  progress?: ProgressEntry[];
+  completionDate?: string;
 }
 
 export default function TicketTable() {
@@ -31,12 +42,6 @@ export default function TicketTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTicketId, setDeleteTicketId] = useState<string | null>(null);
-
-  const formatDateSafe = (s?: string): string => {
-    if (!s) return '—';
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
-  };
 
 
   useEffect(() => {
@@ -141,19 +146,6 @@ export default function TicketTable() {
         )}
       </div>
 
-      <div className="mb-4">
-        <div className="relative">
-          <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search tickets..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
-          />
-        </div>
-      </div>
-
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -177,6 +169,9 @@ export default function TicketTable() {
                 Progress
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Duration Due Date/Completion Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -198,19 +193,19 @@ export default function TicketTable() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    ticket.priority === 'High' ? 'bg-red-100 text-red-800' :
-                    ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
+                    ticket.priority === 'High' ? 'bg-red-100 text-red-800 border-2 border-red-800' :
+                    ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-800' :
+                    'bg-green-100 text-green-800 border-2 border-green-800'
                   }`}>
-                    <AlertCircle className="h-3 w-3 mr-1" />
+                    {/* <AlertCircle className="h-3 w-3 mr-1" /> */}
                     {ticket.priority}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDateSafe(ticket.dueDate)}
+                  {formatDate(ticket.dueDate)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDateSafe(ticket.createdAt)}
+                  {formatDate(ticket.createdAt)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
@@ -225,6 +220,20 @@ export default function TicketTable() {
                     </span>
                   </div>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm gap-2 flex">
+                  <span className="text-pink-800 bg-pink-100 border-2 border-pink-800 p-1 rounded">
+                    {formatDate(ticket.dueDate)}
+                  </span>
+                  <span className="text-green-700 bg-green-100 border-2 border-green-800 p-1 rounded">
+                    {(() => {
+                      if (ticket.currentProgress === 100 && Array.isArray(ticket.progress) && ticket.progress.length > 0) {
+                        const lastEntry = ticket.progress[ticket.progress.length - 1];
+                        return formatDate(lastEntry.date);
+                      }
+                      return '--/--/--';
+                    })()}
+                  </span>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex items-center space-x-2">
                     <Button
@@ -235,14 +244,16 @@ export default function TicketTable() {
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button
-                      onClick={() => navigate(`/tickets/edit/${ticket._id}`)}
-                      variant="ghost"
-                      size="icon"
-                      title="Edit"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    {localStorage.getItem('role') !== 'Employee' && (
+                      <Button
+                        onClick={() => navigate(`/tickets/edit/${ticket._id}`)}
+                        variant="ghost"
+                        size="icon"
+                        title="Edit"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
                     {localStorage.getItem('role') !== 'Employee' && (
                       <Button
                         onClick={() => handleDelete(ticket._id)}
