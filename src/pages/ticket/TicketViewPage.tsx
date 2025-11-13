@@ -23,6 +23,7 @@ import { formatDate, formatDateTime } from "../../Common/Commonfunction";
 import socket from "../../utils/socket";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import MyCustomUploadAdapterPlugin from "../../utils/ckeditorUploadAdapter";
 import { Button } from "../../components/ui/button";
 import {
   AlertDialog,
@@ -112,13 +113,6 @@ export default function TicketViewPage() {
       console.error('Error decoding token:', err);
       return null;
     }
-  };
-
-  // Safe date formatter used during render
-  const formatDateTimeSafe = (s?: string): string => {
-    if (!s) return "—";
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? "—" : d.toLocaleString();
   };
 
   // Get file icon based on mimetype and filename
@@ -478,107 +472,118 @@ export default function TicketViewPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex gap-6">
-          <div className="flex-1 space-y-6">
-            {/* Header */}
-            <div className="border-b border-gray-200 pb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {ticket.title || "Untitled"}
-              </h2>
-              <div className="mt-2 flex items-center space-x-4">
-                <span
-                  className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${ticket.priority === "High"
-                    ? "bg-red-100 text-red-800"
-                    : ticket.priority === "Medium"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-green-100 text-green-800"
-                    }`}
-                >
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {ticket.priority || "Low"} Priority
-                </span>
-              </div>
-            </div>
+        <div className="flex gap-10">
 
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-500 mb-1">
-                    <User className="h-4 w-4" />
-                    <span>Assigned Employee</span>
+          <div className="grid grid-cols-12 gap-4">
+            {/* <!-- Left section (4 columns) --> */}
+            <div className="col-span-12 md:col-span-4 bg-gray-200 p-4 rounded-lg">
+              {/* Left Section */}
+              <div className="flex-1 space-y-6">
+                {/* Header */}
+                <div className="bg-white shadow p-4 rounded">
+                  <div className="border-b border-gray-200 pb-4">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {ticket.title || "Untitled"}
+                    </h2>
+                    <div className="mt-2 flex items-center space-x-4">
+                      <span
+                        className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${ticket.priority === "High"
+                          ? "bg-red-100 text-red-800"
+                          : ticket.priority === "Medium"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-green-100 text-green-800"
+                          }`}
+                      >
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        {ticket.priority || "Low"} Priority
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    {ticket.employee?.photo ? (
-                      <img
-                        src={`${(import.meta as any).env.VITE_API_URL ||
-                          "http://localhost:5000"
-                          }/${ticket.employee.photo}`}
-                        alt={employeeName}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
-                          {ticket.employee && ticket.employee.firstName
-                            ? ticket.employee.firstName[0] || ""
-                            : "—"}
-                          {ticket.employee && ticket.employee.lastName
-                            ? ticket.employee.lastName[0] || ""
-                            : ""}
-                        </span>
-                      </div>
-                    )}
-                    <div>
-                      <div className="text-gray-900 font-medium">
-                        {employeeName}
-                      </div>
-                      {ticket.employee?.email && (
-                        <div className="text-sm text-gray-500">
-                          {ticket.employee.email}
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex justify-center mt-6">
+                      <div className="bg-white shadow rounded-2xl p-6 w-[350px] text-center">
+                        {/* Assigned Employee Label */}
+                        <div className="flex items-center justify-center space-x-2 text-sm text-gray-500 mb-4">
+                          <User className="h-4 w-4" />
+                          <span className="font-medium">Assigned Employee</span>
                         </div>
-                      )}
+
+                        {/* Employee Image */}
+                        <div className="flex flex-col items-center">
+                          {ticket.employee?.photo ? (
+                            <img
+                              src={`${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/${ticket.employee.photo}`}
+                              alt={employeeName}
+                              className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md mb-3"
+                            />
+                          ) : (
+                            <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-semibold mb-3 shadow-md">
+                              {ticket.employee && ticket.employee.firstName
+                                ? ticket.employee.firstName[0] || ""
+                                : "—"}
+                              {ticket.employee && ticket.employee.lastName
+                                ? ticket.employee.lastName[0] || ""
+                                : ""}
+                            </div>
+                          )}
+
+                          {/* Employee Details */}
+                          <div>
+                            <div className="text-gray-900 font-semibold text-lg">
+                              {employeeName}
+                            </div>
+                            {ticket.employee?.email && (
+                              <div className="text-sm text-gray-500">
+                                {ticket.employee.email}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white shadow p-4 rounded">
+                      <div>
+                        <div className="flex items-center space-x-2 text-sm text-gray-500 mb-1">
+                          <Calendar className="h-4 w-4" />
+                          <span>Due Date</span>
+                        </div>
+                        <div className="text-gray-900 font-medium">
+                          {formatDate(ticket.dueDate)}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center space-x-2 text-sm text-gray-500 mb-1">
+                          <TrendingUp className="h-4 w-4" />
+                          <span>Progress</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${ticket.currentProgress ?? 0}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">
+                            {ticket.currentProgress ?? 0}%
+                          </span>
+                          <Button
+                            onClick={() => setShowProgressForm(true)}
+                            variant="ghost"
+                            size="icon"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-500 mb-1">
-                    <Calendar className="h-4 w-4" />
-                    <span>Due Date</span>
-                  </div>
-                  <div className="text-gray-900 font-medium">
-                    {formatDate(ticket.dueDate)}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-500 mb-1">
-                    <TrendingUp className="h-4 w-4" />
-                    <span>Progress</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-1 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${ticket.currentProgress ?? 0}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">
-                      {ticket.currentProgress ?? 0}%
-                    </span>
-                    <Button
-                      onClick={() => setShowProgressForm(true)}
-                      variant="ghost"
-                      size="icon"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
+                  {/* <div className="space-y-4">
                 <div>
                   <div className="text-sm text-gray-500 mb-1">Created</div>
                   <div className="text-gray-900 font-medium">
@@ -592,254 +597,300 @@ export default function TicketViewPage() {
                     {formatDateTime(ticket.updatedAt)}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <div className="text-sm text-gray-500 mb-2">Description</div>
-              <div className="bg-gray-50 rounded-lg p-4 text-gray-900 whitespace-pre-wrap">
-                {ticket.description || "No description provided."}
-              </div>
-            </div>
-
-            {/* Progress History */}
-            {Array.isArray(ticket.progress) && ticket.progress.length > 0 && (
-              <div>
-                <div className="text-sm text-gray-500 mb-2">
-                  Progress History
+              </div> */}
                 </div>
-                <div className="space-y-2">
-                  {ticket.progress.map((entry, index) => (
-                    <div
-                      key={entry._id ?? index}
-                      className="bg-gray-50 rounded-lg p-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">
-                              {formatDate(entry.date)}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Clock className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">
-                              {entry.workingHours ?? 0}h
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <TrendingUp className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm font-medium text-gray-900">
-                              {entry.progress ?? 0}%
-                            </span>
-                          </div>
-                        </div>
-                        {entry.updatedBy && (
-                          <div className="text-sm text-gray-500">
-                            by {entry.updatedBy.firstName || ""}{" "}
-                            {entry.updatedBy.lastName || ""} <br />
-                            <span>{entry.updatedBy.role}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
 
-          <div className="w-96">
-            {/* Comments Section */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <MessageCircle
-                  className="h-5 w-5 text-gray-600 transition-transform duration-300 ease-in-out hover:scale-125 hover:text-blue-500 animate-bounce-slow"
-                />
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Comments
-                </h3>
-              </div>
-
-              {/* Comments List */}
-              <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-                {comments.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    No comments yet. Start the conversation!
+                {/* Description */}
+                <div>
+                  <div className="text-sm text-gray-500 mb-2">Description</div>
+                  <div className="bg-gray-50 rounded-lg p-4 text-gray-900 whitespace-pre-wrap">
+                    {ticket.description || "No description provided."}
                   </div>
-                ) : (
-                  comments.map((comment) => (
-                    <div
-                      key={comment._id}
-                      className="bg-gray-50 rounded-lg p-4"
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className="flex-shrink-0">
-                          {comment.user.photo ? (
-                            <img
-                              src={`${(import.meta as any).env.VITE_API_URL ||
-                                "http://localhost:5000"
-                                }/${comment.user.photo}`}
-                              alt={`${comment.user.firstName || ""} ${comment.user.lastName || ""
-                                }`}
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                              <span className="text-white text-sm font-medium">
-                                {(comment.user.firstName?.[0] ?? "") +
-                                  (comment.user.lastName?.[0] ?? "")}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-gray-900">
-                              {comment.user.firstName} {comment.user.lastName}
-                            </span>
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${comment.user.role === "Admin"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-blue-100 text-blue-800"
-                                }`}
-                            >
-                              {comment.user.role}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {formatDateTime(comment.createdAt)}
-                            </span>
-                            {currentUserId === comment.user._id && (
-                              <button
-                                onClick={() => handleDeleteComment(comment._id)}
-                                className="text-red-600 hover:text-red-800 ml-2"
-                                title="Delete comment"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
+                </div>
+
+                {/* Progress History */}
+                {Array.isArray(ticket.progress) && ticket.progress.length > 0 && (
+                  <div>
+                    <div className="text-sm text-gray-500 mb-2">
+                      Progress History
+                    </div>
+                    <div className="space-y-2">
+                      {ticket.progress.map((entry, index) => (
+                        <div>
                           <div
-                            className="mt-1 text-sm text-gray-900"
-                            dangerouslySetInnerHTML={{
-                              __html: comment.message,
-                            }}
-                          />
-                          {comment.attachments && comment.attachments.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {comment.attachments.map((attachment, index) => (
-                                <a
-                                  key={index}
-                                  href={`${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-                                    }/uploads/${attachment.filename}`}
-                                  target="_blank"
-                                  download={attachment.originalname}
-                                  className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
-                                >
-                                  {getFileIcon(attachment.mimetype, attachment.originalname)}
-                                  <span style={{ fontSize: "10px" }}>Attached File</span>
-                                  {/* {attachment.originalname} */}
-                                </a>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Add Comment Form */}
-              <form onSubmit={handleAddComment} className="space-y-3">
-                {/* @ts-ignore */}
-                <CKEditor
-                  editor={ClassicEditor}
-                  data={newComment}
-                  onChange={(event, editor) => setNewComment(editor.getData())}
-                  config={{
-                    toolbar: [
-                      "bold",
-                      "italic",
-                      "underline",
-                      "strikethrough",
-                      "|",
-                      "numberedList",
-                      "bulletedList",
-                      "|",
-                      "link",
-                      "blockQuote",
-                      "|",
-                      "insertTable",
-                      "|",
-                      "undo",
-                      "redo",
-                    ],
-                    table: {
-                      contentToolbar: [
-                        "tableColumn",
-                        "tableRow",
-                        "mergeTableCells",
-                      ],
-                    },
-                  }}
-                />
-                <div className="w-full max-w-lg mx-auto">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Attach Files (Images, PDF, Excel, CSV, HTML, CSS, .env, JS, PHP, SQL)
-                  </label>
-
-                  <div className="relative">
-                    <input
-                      type="file"
-                      multiple
-                      accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 transition-colors">
-                      <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                      <p className="text-gray-500">
-                        Drag & drop files here, or click to select
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Supported formats: JPG, PNG, GIF, WebP, PDF, XLS, CSV, HTML, CSS, .env, JS, PHP, SQL
-                      </p>
-                    </div>
-                  </div>
-
-                  {selectedFiles.length > 0 && (
-                    <div className="mt-3 space-y-1">
-                      {selectedFiles.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md text-sm">
-                          <div className="flex items-center space-x-2">
-                            {getFileIcon(file.type, file.name)}
-                            <span className="truncate">{file.name}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeFile(index)}
-                            className="text-red-600 hover:text-red-800 ml-2"
+                            key={entry._id ?? index}
+                            className="bg-gray-50 rounded-lg p-3"
                           >
-                            <X className="h-4 w-4" />
-                          </button>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex items-center space-x-2">
+                                  <Calendar className="h-4 w-4 text-gray-400" />
+                                  <span className="text-sm text-gray-600">
+                                    {formatDate(entry.date)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Clock className="h-4 w-4 text-gray-400" />
+                                  <span className="text-sm text-gray-600">
+                                    {entry.workingHours ?? 0}h
+                                  </span>
+                                </div>
+
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <TrendingUp className="h-4 w-4 text-gray-400" />
+                                <span className="text-sm font-medium text-gray-900">
+                                  {entry.progress ?? 0}%
+                                </span>
+                              </div>
+                              {entry.updatedBy && (
+                                <div className="text-sm text-gray-500 mt-4">
+                                  by {entry.updatedBy.firstName || ""}{" "}
+                                  {entry.updatedBy.lastName || ""} <br />
+                                  <span>{entry.updatedBy.role}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                <Button
-                  type="submit"
-                  className="flex items-center space-x-2"
-                >
-                  <Send className="h-4 w-4" />
-                  <span>Send</span>
-                </Button>
-              </form>
+            {/* <!-- Right section (8 columns) --> */}
+            <div className="col-span-12 md:col-span-8 bg-gray-100 p-4 rounded-lg">
+              {/* Right Section */}
+              <div className="w-100 p-4 shadow-lg" >
+                {/* Comments Section */}
+                <div className="border-t border-gray-200 pt-6">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <MessageCircle
+                      className="h-5 w-5 text-blue-600 transition-transform duration-300 ease-in-out hover:scale-125 hover:text-blue-500 animate-lightning hover:shadow-lg hover:shadow-blue-300"
+                    />
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Comments
+                    </h3>
+                  </div>
+                  {/* Comments List */}
+                  <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                    {comments.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No comments yet. Start the conversation!
+                      </div>
+                    ) : (
+                      comments.map((comment) => (
+                        <div
+                          key={comment._id}
+                          className="bg-gray-50 rounded-lg p-4"
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              {comment.user.photo ? (
+                                <img
+                                  src={`${(import.meta as any).env.VITE_API_URL ||
+                                    "http://localhost:5000"
+                                    }/${comment.user.photo}`}
+                                  alt={`${comment.user.firstName || ""} ${comment.user.lastName || ""
+                                    }`}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-sm font-medium">
+                                    {(comment.user.firstName?.[0] ?? "") +
+                                      (comment.user.lastName?.[0] ?? "")}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {comment.user.firstName} {comment.user.lastName}
+                                </span>
+                                <span
+                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${comment.user.role === "Admin"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-blue-100 text-blue-800"
+                                    }`}
+                                >
+                                  {comment.user.role}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {formatDateTime(comment.createdAt)}
+                                </span>
+                                {currentUserId === comment.user._id && (
+                                  <button
+                                    onClick={() => handleDeleteComment(comment._id)}
+                                    className="text-red-600 hover:text-red-800 ml-2"
+                                    title="Delete comment"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                              <div className="mt-1 text-sm text-gray-900">
+                                <style>
+                                  {`
+                                .comment-content img {
+                                  max-width: 300px;
+                                  max-height: 200px;
+                                  width: auto;
+                                  height: auto;
+                                  border-radius: 8px;
+                                  margin: 8px 0;
+                                  object-fit: contain;
+                                }
+                                .comment-content img[style*="width"] {
+                                  max-width: 300px !important;
+                                  max-height: 200px !important;
+                                }
+                              `}
+                                </style>
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html: comment.message,
+                                  }}
+                                  className="comment-content"
+                                />
+                              </div>
+                              {comment.attachments && comment.attachments.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {comment.attachments.map((attachment, index) => (
+                                    <a
+                                      key={index}
+                                      href={`${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+                                        }/uploads/${attachment.filename}`}
+                                      target="_blank"
+                                      download={attachment.originalname}
+                                      className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                                    >
+                                      {getFileIcon(attachment.mimetype, attachment.originalname)}
+                                      <span style={{ fontSize: "10px" }}>Attached File</span>
+                                      {/* {attachment.originalname} */}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add Comment Form */}
+                  <form onSubmit={handleAddComment} className="space-y-3">
+                    {/* @ts-ignore */}
+                    <CKEditor
+                      editor={ClassicEditor}
+                      data={newComment}
+                      onChange={(event, editor) => setNewComment(editor.getData())}
+                      config={{
+                        extraPlugins: [MyCustomUploadAdapterPlugin],
+                        toolbar: [
+                          "bold",
+                          "italic",
+                          "underline",
+                          "strikethrough",
+                          "|",
+                          "numberedList",
+                          "bulletedList",
+                          "|",
+                          "link",
+                          "blockQuote",
+                          "|",
+                          "insertTable",
+                          "|",
+                          "undo",
+                          "redo", "|",
+                          "imageUpload",
+                        ],
+                        table: {
+                          contentToolbar: [
+                            "tableColumn",
+                            "tableRow",
+                            "mergeTableCells",
+                          ],
+                        },
+                        image: {
+                          toolbar: [
+                            'imageTextAlternative',
+                            '|',
+                            'imageStyle:alignLeft',
+                            'imageStyle:full',
+                            'imageStyle:alignRight'
+                          ],
+                          styles: [
+                            'full',
+                            'alignLeft',
+                            'alignRight'
+                          ]
+                        },
+                      }}
+                    />
+                    <div className="w-full max-w-lg mx-auto">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Attach Files (PDF, Excel, CSV, HTML, CSS, .env, JS, PHP, SQL)
+                      </label>
+
+                      <div className="relative">
+                        <input
+                          type="file"
+                          multiple
+                          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
+                          onChange={handleFileChange}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 transition-colors">
+                          <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                          <p className="text-gray-500">
+                            Drag & drop files here, or click to select
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Supported formats: GIF, WebP, PDF, XLS, CSV, HTML, CSS, .env, JS, PHP, SQL
+                          </p>
+                        </div>
+                      </div>
+
+                      {selectedFiles.length > 0 && (
+                        <div className="mt-3 space-y-1">
+                          {selectedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md text-sm">
+                              <div className="flex items-center space-x-2">
+                                {getFileIcon(file.type, file.name)}
+                                <span className="truncate">{file.name}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeFile(index)}
+                                className="text-red-600 hover:text-red-800 ml-2"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="flex items-center space-x-2"
+                    >
+                      <Send className="h-4 w-4" />
+                      <span>Send</span>
+                    </Button>
+                  </form>
+                </div>
+              </div>
             </div>
           </div>
         </div>
