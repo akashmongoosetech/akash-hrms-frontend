@@ -976,11 +976,19 @@ export default function TicketViewPage() {
               />
               <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
                 <Button
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = selectedImageSrc;
-                    link.download = selectedImageSrc.split('/').pop() || 'image.jpg';
-                    link.click();
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(selectedImageSrc);
+                      const blob = await response.blob();
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = selectedImageSrc.split('/').pop() || 'image.jpg';
+                      link.click();
+                      URL.revokeObjectURL(url);
+                    } catch (error) {
+                      console.error('Download failed:', error);
+                    }
                   }}
                   variant="outline"
                   className="flex items-center space-x-2"
