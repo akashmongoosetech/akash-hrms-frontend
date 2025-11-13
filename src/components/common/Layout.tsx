@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import LeftSidebar from "./RightSidebar";
 import Header from "./Header";
 import Toaster from "./Toaster";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
+import socket from "../../utils/socket";
 
 interface DashboardPreferences {
   projects: boolean;
@@ -29,6 +30,7 @@ export const useLayout = () => {
 
 export default function Layout() {
   usePushNotifications();
+  const navigate = useNavigate();
 
   const [dashboardPreferences, setDashboardPreferences] = useState<DashboardPreferences>({
     projects: true,
@@ -44,6 +46,23 @@ export default function Layout() {
       setDashboardPreferences(JSON.parse(savedPreferences));
     }
   }, []);
+
+  // Socket listener for logout
+  useEffect(() => {
+    socket.on('logout', (data) => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userName');
+      // Show message before redirect
+      alert('Your session has expired or your account has been removed by the Super Admin. Please contact your administrator.');
+      navigate('/login');
+    });
+
+    return () => {
+      socket.off('logout');
+    };
+  }, [navigate]);
 
   const updateDashboardPreferences = (preferences: DashboardPreferences) => {
     setDashboardPreferences(preferences);

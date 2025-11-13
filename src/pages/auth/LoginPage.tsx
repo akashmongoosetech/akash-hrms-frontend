@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import API from "../../utils/api";
 import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import socket from "../../utils/socket";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -65,6 +66,8 @@ export default function LoginPage() {
         "userName",
         `${res.data.firstName} ${res.data.lastName}`
       );
+      // Join socket room for real-time updates
+      socket.emit('join', res.data.userId);
       navigate("/dashboard");
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || "Login failed";
