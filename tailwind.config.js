@@ -4,7 +4,7 @@ module.exports = {
     extend: {
       animation: {
         'bounce-slow': 'bounce 2s infinite',
-        lightning: 'lightning 0.6s ease-in-out infinite', // Add custom lightning animation
+        lightning: 'lightning 0.6s ease-in-out infinite',
       },
       keyframes: {
         lightning: {

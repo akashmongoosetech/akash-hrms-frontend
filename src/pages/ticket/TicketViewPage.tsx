@@ -488,6 +488,17 @@ export default function TicketViewPage() {
 
   return (
     <div className="p-6 w-full">
+      <style>
+        {`
+          .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+          }
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari and Opera */
+          }
+        `}
+      </style>
       <div className="flex items-center mb-6">
         <h1 className="text-xl font-bold text-gray-900">Ticket Details</h1>
       </div>
@@ -643,7 +654,7 @@ export default function TicketViewPage() {
                 {/* Description */}
                 <div>
                   <div className="text-sm text-gray-500 mb-2">Description</div>
-                  <div className="bg-gray-50 rounded-lg p-4 text-gray-900 whitespace-pre-wrap">
+                  <div className="bg-gray-50 rounded-lg p-4 text-gray-900 whitespace-pre-wrap scrollbar-hide" style={{maxHeight:'400px', overflow:'auto'}}>
                     {ticket.description || "No description provided."}
                   </div>
                 </div>
@@ -760,11 +771,6 @@ export default function TicketViewPage() {
                             'imageStyle:full',
                             'imageStyle:alignRight'
                           ],
-                          styles: [
-                            'full',
-                            'alignLeft',
-                            'alignRight'
-                          ]
                         },
                       }}
                     />
