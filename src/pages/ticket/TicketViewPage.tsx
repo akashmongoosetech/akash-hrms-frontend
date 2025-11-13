@@ -18,6 +18,7 @@ import {
   Upload,
   X,
   Trash2,
+  Download,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "../../Common/Commonfunction";
 import socket from "../../utils/socket";
@@ -25,6 +26,8 @@ import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import MyCustomUploadAdapterPlugin from "../../utils/ckeditorUploadAdapter";
 import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Avatar, AvatarImage, AvatarFallback } from "../../components/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +38,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
+import ProgressUpdateModal from "../../components/ticket/ProgressUpdateModal";
 
 interface Employee {
   _id: string;
@@ -102,6 +106,8 @@ export default function TicketViewPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
 
   // Decode JWT to get user ID
   const decodeJWT = (token: string) => {
@@ -477,7 +483,6 @@ export default function TicketViewPage() {
           <div className="grid grid-cols-12 gap-4">
             {/* <!-- Left section (4 columns) --> */}
             <div className="col-span-12 md:col-span-4 bg-gray-200 p-4 rounded-lg">
-              {/* Left Section */}
               <div className="flex-1 space-y-6">
                 {/* Header */}
                 <div className="bg-white shadow p-4 rounded">
@@ -514,22 +519,21 @@ export default function TicketViewPage() {
 
                         {/* Employee Image */}
                         <div className="flex flex-col items-center">
-                          {ticket.employee?.photo ? (
-                            <img
+                          <Avatar className="w-32 h-32 mb-3">
+                            <AvatarImage
                               src={`${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/${ticket.employee.photo}`}
                               alt={employeeName}
-                              className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md mb-3"
+                              className="object-cover border-4 border-gray-200 shadow-md"
                             />
-                          ) : (
-                            <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-semibold mb-3 shadow-md">
+                            <AvatarFallback className="bg-blue-500 text-white text-2xl font-semibold shadow-md">
                               {ticket.employee && ticket.employee.firstName
                                 ? ticket.employee.firstName[0] || ""
                                 : "—"}
                               {ticket.employee && ticket.employee.lastName
                                 ? ticket.employee.lastName[0] || ""
                                 : ""}
-                            </div>
-                          )}
+                            </AvatarFallback>
+                          </Avatar>
 
                           {/* Employee Details */}
                           <div>
@@ -665,7 +669,6 @@ export default function TicketViewPage() {
 
             {/* <!-- Right section (8 columns) --> */}
             <div className="col-span-12 md:col-span-8 bg-gray-100 p-4 rounded-lg">
-              {/* Right Section */}
               <div className="w-100 p-4 shadow-lg" >
                 {/* Comments Section */}
                 <div className="border-t border-gray-200 pt-6">
@@ -677,113 +680,7 @@ export default function TicketViewPage() {
                       Comments
                     </h3>
                   </div>
-                  {/* Comments List */}
-                  <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-                    {comments.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        No comments yet. Start the conversation!
-                      </div>
-                    ) : (
-                      comments.map((comment) => (
-                        <div
-                          key={comment._id}
-                          className="bg-gray-50 rounded-lg p-4"
-                        >
-                          <div className="flex items-start space-x-3">
-                            <div className="flex-shrink-0">
-                              {comment.user.photo ? (
-                                <img
-                                  src={`${(import.meta as any).env.VITE_API_URL ||
-                                    "http://localhost:5000"
-                                    }/${comment.user.photo}`}
-                                  alt={`${comment.user.firstName || ""} ${comment.user.lastName || ""
-                                    }`}
-                                  className="w-8 h-8 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                                  <span className="text-white text-sm font-medium">
-                                    {(comment.user.firstName?.[0] ?? "") +
-                                      (comment.user.lastName?.[0] ?? "")}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {comment.user.firstName} {comment.user.lastName}
-                                </span>
-                                <span
-                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${comment.user.role === "Admin"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-blue-100 text-blue-800"
-                                    }`}
-                                >
-                                  {comment.user.role}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  {formatDateTime(comment.createdAt)}
-                                </span>
-                                {currentUserId === comment.user._id && (
-                                  <button
-                                    onClick={() => handleDeleteComment(comment._id)}
-                                    className="text-red-600 hover:text-red-800 ml-2"
-                                    title="Delete comment"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                )}
-                              </div>
-                              <div className="mt-1 text-sm text-gray-900">
-                                <style>
-                                  {`
-                                .comment-content img {
-                                  max-width: 300px;
-                                  max-height: 200px;
-                                  width: auto;
-                                  height: auto;
-                                  border-radius: 8px;
-                                  margin: 8px 0;
-                                  object-fit: contain;
-                                }
-                                .comment-content img[style*="width"] {
-                                  max-width: 300px !important;
-                                  max-height: 200px !important;
-                                }
-                              `}
-                                </style>
-                                <div
-                                  dangerouslySetInnerHTML={{
-                                    __html: comment.message,
-                                  }}
-                                  className="comment-content"
-                                />
-                              </div>
-                              {comment.attachments && comment.attachments.length > 0 && (
-                                <div className="mt-2 space-y-1">
-                                  {comment.attachments.map((attachment, index) => (
-                                    <a
-                                      key={index}
-                                      href={`${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-                                        }/uploads/${attachment.filename}`}
-                                      target="_blank"
-                                      download={attachment.originalname}
-                                      className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
-                                    >
-                                      {getFileIcon(attachment.mimetype, attachment.originalname)}
-                                      <span style={{ fontSize: "10px" }}>Attached File</span>
-                                      {/* {attachment.originalname} */}
-                                    </a>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                  
 
                   {/* Add Comment Form */}
                   <form onSubmit={handleAddComment} className="space-y-3">
@@ -835,13 +732,25 @@ export default function TicketViewPage() {
                         },
                       }}
                     />
+                    <style>
+                      {`
+                        .ck-editor__editable {
+                          height: 300px !important;  /* Fix the height */
+                          overflow: auto; /* Enable scrolling if content exceeds the height */
+                        }
+                        .ck-content img {
+                          width: 100px;
+                          height: auto;
+                        }
+                      `}
+                    </style>
                     <div className="w-full max-w-lg mx-auto">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Attach Files (PDF, Excel, CSV, HTML, CSS, .env, JS, PHP, SQL)
                       </label>
 
                       <div className="relative">
-                        <input
+                        <Input
                           type="file"
                           multiple
                           accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
@@ -868,13 +777,15 @@ export default function TicketViewPage() {
                                 {getFileIcon(file.type, file.name)}
                                 <span className="truncate">{file.name}</span>
                               </div>
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => removeFile(index)}
                                 className="text-red-600 hover:text-red-800 ml-2"
                               >
                                 <X className="h-4 w-4" />
-                              </button>
+                              </Button>
                             </div>
                           ))}
                         </div>
@@ -889,113 +800,143 @@ export default function TicketViewPage() {
                       <span>Send</span>
                     </Button>
                   </form>
+
+                  {/* Comments List */}
+                  <div className="space-y-4 mb-6 max-h-96 overflow-y-auto mt-4">
+                    {comments.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No comments yet. Start the conversation!
+                      </div>
+                    ) : (
+                      comments.map((comment) => (
+                        <div
+                          key={comment._id}
+                          className="bg-gray-50 rounded-lg p-4"
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage
+                                  src={`${(import.meta as any).env.VITE_API_URL ||
+                                    "http://localhost:5000"
+                                    }/${comment.user.photo}`}
+                                  alt={`${comment.user.firstName || ""} ${comment.user.lastName || ""
+                                    }`}
+                                  className="object-cover"
+                                />
+                                <AvatarFallback className="bg-blue-500 text-white text-sm font-medium">
+                                  {(comment.user.firstName?.[0] ?? "") +
+                                    (comment.user.lastName?.[0] ?? "")}
+                                </AvatarFallback>
+                              </Avatar>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {comment.user.firstName} {comment.user.lastName}
+                                </span>
+                                <span
+                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${comment.user.role === "Admin"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-blue-100 text-blue-800"
+                                    }`}
+                                >
+                                  {comment.user.role}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {formatDateTime(comment.createdAt)}
+                                </span>
+                                {currentUserId === comment.user._id && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteComment(comment._id)}
+                                    className="text-red-600 hover:text-red-800 ml-2"
+                                    title="Delete comment"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="mt-1 text-sm text-gray-900">
+                                <style>
+                                  {`
+                                .comment-content img {
+                                  max-width: 300px;
+                                  max-height: 200px;
+                                  width: auto;
+                                  height: auto;
+                                  border-radius: 8px;
+                                  margin: 8px 0;
+                                  object-fit: contain;
+                                }
+                                .comment-content img[style*="width"] {
+                                  max-width: 300px !important;
+                                  max-height: 200px !important;
+                                }
+                              `}
+                                </style>
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html: comment.message,
+                                  }}
+                                  className="comment-content"
+                                  onClick={(e) => {
+                                    if ((e.target as HTMLElement).tagName === 'IMG') {
+                                      setSelectedImageSrc((e.target as HTMLImageElement).src);
+                                      setShowImageModal(true);
+                                    }
+                                  }}
+                                />
+                              </div>
+                              {comment.attachments && comment.attachments.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {comment.attachments.map((attachment, index) => (
+                                    <a
+                                      key={index}
+                                      href={`${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
+                                        }/uploads/${attachment.filename}`}
+                                      target="_blank"
+                                      download={attachment.originalname}
+                                      className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                                    >
+                                      {getFileIcon(attachment.mimetype, attachment.originalname)}
+                                      <span style={{ fontSize: "10px" }}>Attached File</span>
+                                      {/* {attachment.originalname} */}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Progress Update Modal */}
-        {showProgressForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Update Progress
-              </h3>
-              {progressError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-600">{progressError}</p>
-                </div>
-              )}
-              <form onSubmit={handleUpdateProgress} className="space-y-4">
-                {localStorage.getItem("role") === "Employee" ? (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Date (Last Updated: {progressDate})
-                      </label>
-                      <input
-                        type="date"
-                        value={progressDate}
-                        onChange={(e) => setProgressDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                        min={progressDate}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Working Hours
-                      </label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={workingHours}
-                        onChange={(e) => setWorkingHours(e.target.value)}
-                        placeholder="Enter hours worked"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Progress (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={progressValue}
-                        onChange={(e) => setProgressValue(e.target.value)}
-                        placeholder="Enter progress percentage"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Current Progress (%)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={currentProgress}
-                      onChange={(e) => setCurrentProgress(e.target.value)}
-                      placeholder="Enter current progress"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-                )}
-                <div className="flex space-x-3 pt-4">
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setShowProgressForm(false);
-                      setProgressError(null);
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                    disabled={updatingProgress}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={updatingProgress}
-                  >
-                    {updatingProgress ? "Updating..." : "Update"}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <ProgressUpdateModal
+          isOpen={showProgressForm}
+          onClose={() => setShowProgressForm(false)}
+          progressError={progressError}
+          updatingProgress={updatingProgress}
+          progressDate={progressDate}
+          setProgressDate={setProgressDate}
+          workingHours={workingHours}
+          setWorkingHours={setWorkingHours}
+          progressValue={progressValue}
+          setProgressValue={setProgressValue}
+          currentProgress={currentProgress}
+          setCurrentProgress={setCurrentProgress}
+          ticket={ticket}
+          userRole={localStorage.getItem("role") || ""}
+          onSubmit={handleUpdateProgress}
+          setProgressError={setProgressError}
+        />
 
         {/* Delete Comment Confirmation Modal */}
         <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
@@ -1014,6 +955,50 @@ export default function TicketViewPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Image View Modal */}
+        {showImageModal && selectedImageSrc && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+            onClick={() => setShowImageModal(false)}
+          >
+            <div className="relative max-w-4xl max-h-full p-4 bg-white rounded-lg shadow-lg flex flex-col" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-2xl font-bold"
+              >
+                <X className="h-6 w-6" />
+              </button>
+              <img
+                src={selectedImageSrc}
+                alt="Full view"
+                className="max-w-full max-h-[80vh] object-contain rounded"
+              />
+              <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
+                <Button
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = selectedImageSrc;
+                    link.download = selectedImageSrc.split('/').pop() || 'image.jpg';
+                    link.click();
+                  }}
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download</span>
+                </Button>
+                <Button
+                  onClick={() => setShowImageModal(false)}
+                  className="flex items-center space-x-2"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Close</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
