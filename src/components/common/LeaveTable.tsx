@@ -8,6 +8,7 @@ import ViewLeaveModal from './modals/ViewLeaveModal/ViewLeaveModal';
 import EditLeaveModal from './modals/EditLeaveModal/EditLeaveModal';
 import socket from '../../utils/socket';
 import toast from 'react-hot-toast';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 
 interface Leave {
   _id: string;
@@ -64,10 +65,14 @@ export default function LeaveTable() {
     leaveType: 'Vacation' as 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal',
     reason: ''
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
   const role = localStorage.getItem('role');
 
   useEffect(() => {
-    fetchLeaves();
+    fetchLeaves(currentPage);
     fetchCurrentUser();
 
     // Socket listeners for real-time updates
@@ -112,9 +117,9 @@ export default function LeaveTable() {
     }
   };
 
-  const fetchLeaves = async () => {
+  const fetchLeaves = async (page: number = 1) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/leaves`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/leaves?page=${page}&limit=${itemsPerPage}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -122,7 +127,9 @@ export default function LeaveTable() {
 
       if (response.ok) {
         const data = await response.json();
-        setLeaves(data.leaves);
+        setLeaves(data.leaves || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || 0);
       } else {
         setError('Failed to fetch leaves');
       }
@@ -146,7 +153,7 @@ export default function LeaveTable() {
       });
 
       if (response.ok) {
-        fetchLeaves();
+        fetchLeaves(currentPage);
         setShowRequestModal(false);
         setRequestForm({ startDate: '', endDate: '', leaveType: 'Vacation' as 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal', reason: '' });
         toast.success('Leave request submitted successfully!');
@@ -174,7 +181,7 @@ export default function LeaveTable() {
       });
 
       if (response.ok) {
-        fetchLeaves();
+        fetchLeaves(currentPage);
         setShowStatusModal(false);
         setSelectedLeave(null);
         setStatusForm({ status: 'Approved' as 'Pending' | 'Approved' | 'Rejected', comments: '' });
@@ -203,7 +210,7 @@ export default function LeaveTable() {
       });
 
       if (response.ok) {
-        fetchLeaves();
+        fetchLeaves(currentPage);
         setShowEditModal(false);
         setSelectedLeave(null);
         setEditForm({ startDate: '', endDate: '', leaveType: 'Vacation' as 'Casual' | 'Sick' | 'Earned' | 'Vacation' | 'Personal', reason: '' });
@@ -235,7 +242,7 @@ export default function LeaveTable() {
       });
 
       if (response.ok) {
-        fetchLeaves();
+        fetchLeaves(currentPage);
         setShowDeleteModal(false);
         setDeleteLeaveId(null);
         toast.success('Leave deleted successfully!');
@@ -316,6 +323,7 @@ export default function LeaveTable() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
@@ -328,8 +336,11 @@ export default function LeaveTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {leaves.map((leave) => (
+            {leaves.map((leave, index) => (
               <tr key={leave._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {(currentPage - 1) * itemsPerPage + index + 1}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {leave.employee.firstName} {leave.employee.lastName}
                 </td>
@@ -417,6 +428,37 @@ export default function LeaveTable() {
       </div>
       {leaves.length === 0 && (
         <div className="text-center py-8 text-gray-500">No leave requests found</div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
 
       <RequestLeaveModal

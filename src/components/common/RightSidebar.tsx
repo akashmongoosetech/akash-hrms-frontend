@@ -238,7 +238,7 @@ export default function RightSidebar() {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 z-20">
         <div className="p-4 flex items-center justify-between border-b border-gray-100">
-          <h1 className="text-xl font-bold text-gray-800">Profilics <span className="text-yellow-600 italic">Sytems</span></h1>
+          <h1 className="text-xl font-bold text-gray-800">Profilics <span className="text-blue-600 italic">Sytems</span></h1>
           <button onClick={() => setIsOpen(!isOpen)} className="md:hidden">
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>

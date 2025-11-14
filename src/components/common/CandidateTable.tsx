@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Download, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { formatDate } from '../../Common/Commonfunction';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 
 interface Candidate {
   _id: string;
@@ -27,14 +28,16 @@ export default function CandidateTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
-    fetchCandidates();
-  }, []);
+    fetchCandidates(currentPage);
+  }, [currentPage]);
 
-  const fetchCandidates = async () => {
+  const fetchCandidates = async (page: number) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/candidates`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/candidates?page=${page}&limit=10`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -42,7 +45,8 @@ export default function CandidateTable() {
 
       if (response.ok) {
         const data = await response.json();
-        setCandidates(data);
+        setCandidates(data.candidates || []);
+        setTotalPages(Math.ceil(data.total / 10));
       } else {
         setError('Failed to fetch candidates');
       }
@@ -65,7 +69,7 @@ export default function CandidateTable() {
       });
 
       if (response.ok) {
-        fetchCandidates(); // Refresh the list
+        fetchCandidates(currentPage); // Refresh the list
       } else {
         setError('Failed to update candidate status');
       }
@@ -86,7 +90,7 @@ export default function CandidateTable() {
       if (response.ok) {
         const result = await response.json();
         alert(`Fetched and saved ${result.savedCount} new candidates`);
-        fetchCandidates(); // Refresh the list
+        fetchCandidates(currentPage); // Refresh the list
       } else {
         setError('Failed to fetch and save candidates');
       }
@@ -144,6 +148,7 @@ export default function CandidateTable() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Salary</th>
@@ -153,8 +158,11 @@ export default function CandidateTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {candidates.map((candidate) => (
+            {candidates.map((candidate, index) => (
               <tr key={candidate._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {(currentPage - 1) * 10 + index + 1}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {candidate.name} &nbsp; <span className='whitespace-nowrap text-sm text-gray-500'>{candidate.experience} years</span>
                   <div className='whitespace-nowrap text-sm text-gray-500'>
@@ -211,6 +219,36 @@ export default function CandidateTable() {
 
       {candidates.length === 0 && (
         <div className="text-center py-8 text-gray-500">No candidates found</div>
+      )}
+
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  isActive={page === currentPage}
+                  onClick={() => setCurrentPage(page)}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
 
       {/* Candidate Details Modal */}

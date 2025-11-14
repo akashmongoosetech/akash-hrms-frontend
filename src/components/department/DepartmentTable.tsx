@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
+import { Edit, Trash2, UserPlus, Search, Loader } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate } from '../../Common/Commonfunction';
 import toast from 'react-hot-toast';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 
 interface Department {
   _id: string;
@@ -20,28 +21,39 @@ export default function DepartmentTable() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteDepartmentId, setDeleteDepartmentId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', head: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchDepartments();
-  }, []);
+    fetchDepartments(currentPage);
+  }, [currentPage]);
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = async (page: number = 1) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/departments`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/departments?page=${page}&limit=${itemsPerPage}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setDepartments(data.departments);
+        setDepartments(data.departments || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || 0);
       } else {
         console.error('Failed to fetch departments');
         setDepartments([]);
+        setTotalPages(1);
+        setTotalItems(0);
       }
     } catch (error) {
       console.error('Error fetching departments:', error);
       setDepartments([]);
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
@@ -54,6 +66,7 @@ export default function DepartmentTable() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
       const url = editingDepartment
         ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/departments/${editingDepartment._id}`
@@ -71,7 +84,7 @@ export default function DepartmentTable() {
       });
 
       if (response.ok) {
-        fetchDepartments();
+        fetchDepartments(currentPage);
         setShowAddModal(false);
         setEditingDepartment(null);
         setFormData({ name: '', head: '' });
@@ -82,6 +95,8 @@ export default function DepartmentTable() {
     } catch (error) {
       console.error('Error saving department:', error);
       alert('Error saving department');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -107,7 +122,7 @@ export default function DepartmentTable() {
         }
       });
       if (response.ok) {
-        setDepartments(departments.filter(dept => dept._id !== deleteDepartmentId));
+        fetchDepartments(currentPage);
         setShowDeleteModal(false);
         setDeleteDepartmentId(null);
       } else {
@@ -158,6 +173,9 @@ export default function DepartmentTable() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Department Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -172,8 +190,11 @@ export default function DepartmentTable() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDepartments.map((department) => (
+              {filteredDepartments.map((department, index) => (
                 <tr key={department._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {department.name}
                   </td>
@@ -210,6 +231,37 @@ export default function DepartmentTable() {
         <div className="text-center py-12">
           <p className="text-gray-500">No departments found matching your search.</p>
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
 
       {/* Add/Edit Modal */}
@@ -256,9 +308,10 @@ export default function DepartmentTable() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {editingDepartment ? 'Update' : 'Add'}
+                  {submitting ? <Loader className="animate-spin h-5 w-5" /> : (editingDepartment ? 'Update' : 'Add')}
                 </button>
               </div>
             </form>

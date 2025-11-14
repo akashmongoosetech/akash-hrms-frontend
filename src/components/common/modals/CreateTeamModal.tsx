@@ -57,7 +57,7 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ showModal, onClose, o
   const fetchProjects = async () => {
     try {
       const response = await API.get('/projects');
-      setProjects(response.data);
+      setProjects(response.data.projects || []);
     } catch (err) {
       console.error('Error fetching projects:', err);
     }

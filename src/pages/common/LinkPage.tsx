@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import { GitBranch, FileSpreadsheet, Code, Plus, Edit, Eye, Trash2, FileText, Image, File, Archive, Music, Video } from "lucide-react";
 import API from "../../utils/api";
 import LinkModal from "../../components/common/LinkModal";
+import DeleteModal from "../../Common/DeleteModal";
 import { formatDate } from "../../Common/Commonfunction";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../components/ui/pagination';
 
 interface Link {
   _id: string;
@@ -21,6 +23,13 @@ export default function LinkPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit' | 'view'>('add');
   const [selectedLink, setSelectedLink] = useState<Link | undefined>();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [linkToDelete, setLinkToDelete] = useState<Link | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const tabs = [
     { id: 'git', label: 'Git', icon: GitBranch },
@@ -28,11 +37,13 @@ export default function LinkPage() {
     { id: 'codebase', label: 'Codebase', icon: Code },
   ];
 
-  const fetchLinks = async () => {
+  const fetchLinks = async (page: number = 1) => {
     setLoading(true);
     try {
-      const response = await API.get(`/links?type=${activeTab}`);
-      setLinks(response.data);
+      const response = await API.get(`/links?type=${activeTab}&page=${page}&limit=${itemsPerPage}`);
+      setLinks(response.data.links || []);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalItems(response.data.totalItems || 0);
     } catch (error) {
       console.error('Error fetching links:', error);
     } finally {
@@ -41,7 +52,8 @@ export default function LinkPage() {
   };
 
   useEffect(() => {
-    fetchLinks();
+    setCurrentPage(1);
+    fetchLinks(1);
   }, [activeTab]);
 
   const handleAdd = () => {
@@ -62,14 +74,23 @@ export default function LinkPage() {
     setModalOpen(true);
   };
 
-  const handleDelete = async (link: Link) => {
-    if (window.confirm('Are you sure you want to delete this link?')) {
-      try {
-        await API.delete(`/links/${link._id}`);
-        fetchLinks();
-      } catch (error) {
-        console.error('Error deleting link:', error);
-      }
+  const handleDelete = (link: Link) => {
+    setLinkToDelete(link);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!linkToDelete) return;
+    setDeleting(true);
+    try {
+      await API.delete(`/links/${linkToDelete._id}`);
+      fetchLinks(currentPage);
+      setDeleteModalOpen(false);
+      setLinkToDelete(null);
+    } catch (error) {
+      console.error('Error deleting link:', error);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -225,6 +246,7 @@ export default function LinkPage() {
             <table className="min-w-full bg-white border border-gray-300">
               <thead>
                 <tr className="bg-gray-50">
+                  <th className="px-4 py-2 border-b text-left">#</th>
                   <th className="px-4 py-2 border-b text-left">Title</th>
                   <th className="px-4 py-2 border-b text-left">URL</th>
                   {(activeTab === 'excel' || activeTab === 'codebase') && (
@@ -238,8 +260,11 @@ export default function LinkPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredLinks.map((link) => (
+                {filteredLinks.map((link, index) => (
                   <tr key={link._id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 border-b text-sm font-medium text-gray-900">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </td>
                     <td className="px-4 py-2 border-b">{link.title}</td>
                     <td className="px-4 py-2 border-b">
                       {link.url ? (
@@ -346,8 +371,48 @@ export default function LinkPage() {
           mode={modalMode}
           linkType={activeTab}
           link={selectedLink}
-          onSuccess={fetchLinks}
+          onSuccess={() => fetchLinks(currentPage)}
         />
+
+        <DeleteModal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete Link"
+          message={`Are you sure you want to delete "${linkToDelete?.title}"?`}
+          loading={deleting}
+        />
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination className="mt-6">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    onClick={() => setCurrentPage(page)}
+                    isActive={currentPage === page}
+                    className="cursor-pointer"
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
     </div>
   );

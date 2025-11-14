@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, Eye, Plus } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate } from '../../Common/Commonfunction';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 
 interface Employee {
   _id: string;
@@ -44,12 +45,16 @@ export default function EmployeeTable() {
   });
   const [departments, setDepartments] = useState<{ _id: string; name: string }[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchEmployees();
+    fetchEmployees(currentPage);
     fetchCurrentUser();
     fetchDepartments();
-  }, []);
+  }, [currentPage]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -98,9 +103,9 @@ export default function EmployeeTable() {
     }
   };
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (page: number = 1) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?page=${page}&limit=${itemsPerPage}&role=Employee`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -114,9 +119,9 @@ export default function EmployeeTable() {
 
       if (response.ok) {
         const data = await response.json();
-        // Filter to only employees
-        const filteredEmployees = data.users.filter((user: Employee) => user.role === 'Employee');
-        setEmployees(filteredEmployees);
+        setEmployees(data.users || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || 0);
       } else {
         setError('Failed to fetch employees');
       }
@@ -151,7 +156,7 @@ export default function EmployeeTable() {
         return;
       }
       if (response.ok) {
-        fetchEmployees();
+        fetchEmployees(currentPage);
         setShowModal(false);
         resetForm();
       } else {
@@ -179,7 +184,7 @@ export default function EmployeeTable() {
       });
 
       if (response.ok) {
-        fetchEmployees();
+        fetchEmployees(currentPage);
         setShowDeleteModal(false);
         setDeleteEmployeeId(null);
       } else {
@@ -260,6 +265,7 @@ export default function EmployeeTable() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -271,8 +277,11 @@ export default function EmployeeTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {employees.map((employee) => (
+            {employees.map((employee, index) => (
               <tr key={employee._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {(currentPage - 1) * itemsPerPage + index + 1}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-3">
                     {/* Profile Photo / Initials */}
@@ -352,6 +361,37 @@ export default function EmployeeTable() {
       </div>
       {employees.length === 0 && (
         <div className="text-center py-8 text-gray-500">No employees found</div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
 
       {/* View Modal */}

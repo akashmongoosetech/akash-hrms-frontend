@@ -3,6 +3,7 @@ import { Edit, Trash2, Eye, Search, Plus } from 'lucide-react';
 import DeleteModal from '../../../Common/DeleteModal';
 import { formatDate } from '../../../Common/Commonfunction';
 import toast from 'react-hot-toast';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../ui/pagination';
 
 interface Expense {
   _id: string;
@@ -30,28 +31,38 @@ export default function ExpenseTable({ onAdd, onEdit, onView }: ExpenseTableProp
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchExpenses();
-  }, []);
+    fetchExpenses(currentPage);
+  }, [currentPage]);
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = async (page: number = 1) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/expenses`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/expenses?page=${page}&limit=${itemsPerPage}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setExpenses(data.expenses);
+        setExpenses(data.expenses || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || 0);
       } else {
         console.error('Failed to fetch expenses');
         setExpenses([]);
+        setTotalPages(1);
+        setTotalItems(0);
       }
     } catch (error) {
       console.error('Error fetching expenses:', error);
       setExpenses([]);
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
@@ -82,7 +93,7 @@ export default function ExpenseTable({ onAdd, onEdit, onView }: ExpenseTableProp
         }
       });
       if (response.ok) {
-        setExpenses(expenses.filter(expense => expense._id !== deleteExpenseId));
+        fetchExpenses(currentPage);
         setShowDeleteModal(false);
         setDeleteExpenseId(null);
         toast.success('Expense deleted successfully');
@@ -174,6 +185,9 @@ export default function ExpenseTable({ onAdd, onEdit, onView }: ExpenseTableProp
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Expense ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -203,8 +217,11 @@ export default function ExpenseTable({ onAdd, onEdit, onView }: ExpenseTableProp
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredExpenses.map((expense) => (
+              {filteredExpenses.map((expense, index) => (
                 <tr key={expense._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {expense.expenseId}
                   </td>
@@ -269,6 +286,37 @@ export default function ExpenseTable({ onAdd, onEdit, onView }: ExpenseTableProp
         <div className="text-center py-12">
           <p className="text-gray-500">No expenses found matching your search.</p>
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
 
       <DeleteModal

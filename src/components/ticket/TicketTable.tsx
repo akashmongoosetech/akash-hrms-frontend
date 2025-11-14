@@ -5,6 +5,7 @@ import DeleteModal from '../../Common/DeleteModal';
 import toast from 'react-hot-toast';
 import { Button } from '../ui/button';
 import { formatDate } from '../../Common/Commonfunction';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 
 interface Employee {
   _id: string;
@@ -42,16 +43,20 @@ export default function TicketTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTicketId, setDeleteTicketId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
 
 
   useEffect(() => {
-    fetchTickets();
+    fetchTickets(currentPage);
     fetchEmployees();
-  }, []);
+  }, [currentPage]);
 
-  const fetchTickets = async () => {
+  const fetchTickets = async (page: number = 1) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/tickets`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/tickets?page=${page}&limit=${itemsPerPage}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -59,7 +64,9 @@ export default function TicketTable() {
 
       if (response.ok) {
         const data = await response.json();
-        setTickets(data);
+        setTickets(data.tickets || []);
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotalItems(data.pagination?.totalItems || 0);
       } else {
         toast.error('Failed to fetch tickets');
       }
@@ -106,7 +113,7 @@ export default function TicketTable() {
       });
 
       if (response.ok) {
-        fetchTickets();
+        fetchTickets(currentPage);
         setShowDeleteModal(false);
         setDeleteTicketId(null);
         toast.success('Ticket deleted successfully');
@@ -151,6 +158,9 @@ export default function TicketTable() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                #
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Title
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -177,8 +187,11 @@ export default function TicketTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredTickets.map((ticket) => (
+            {filteredTickets.map((ticket, index) => (
               <tr key={ticket._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {(currentPage - 1) * itemsPerPage + index + 1}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{ticket.title}</div>
                   <div className="text-sm text-gray-500 line-clamp-1 max-w-xs">{ticket.description}</div>
@@ -278,6 +291,36 @@ export default function TicketTable() {
         </div>
       )}
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
       <DeleteModal
         isOpen={showDeleteModal}

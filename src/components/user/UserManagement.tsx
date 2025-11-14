@@ -3,6 +3,7 @@ import API from '../../utils/api';
 import DeleteModal from '../../Common/DeleteModal';
 import toast from 'react-hot-toast';
 import { Edit, Trash2 } from 'lucide-react';
+import Loader from '../common/Loader';
 
 interface User {
   _id: string;
@@ -21,6 +22,7 @@ export default function UserManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -101,6 +103,7 @@ export default function UserManagement() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsCreating(true);
 
     try {
       await API.post('/users', formData);
@@ -118,6 +121,8 @@ export default function UserManagement() {
       fetchUsers();
     } catch (err: any) {
       toast.error('Failed to create user: ' + err?.response?.data?.message);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -203,7 +208,8 @@ export default function UserManagement() {
               {currentRole === 'SuperAdmin' && <option value="SuperAdmin">SuperAdmin</option>}
             </select>
             <div className="flex gap-2">
-              <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+              <button type="submit" disabled={isCreating} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                {isCreating && <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>}
                 Create
               </button>
               <button
@@ -298,6 +304,7 @@ export default function UserManagement() {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
@@ -306,8 +313,11 @@ export default function UserManagement() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
+            {users.map((user, index) => (
               <tr key={user._id}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {index + 1}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {user.firstName} {user.lastName}
                 </td>

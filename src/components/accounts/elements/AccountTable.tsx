@@ -4,6 +4,7 @@ import DeleteModal from '../../../Common/DeleteModal';
 import { formatDate } from '../../../Common/Commonfunction';
 import toast from 'react-hot-toast';
 import QRCode from 'qrcode';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../ui/pagination';
 
 interface Client {
   _id: string;
@@ -38,28 +39,38 @@ export default function AccountTable({ onAdd, onEdit, onView }: AccountTableProp
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchInvoices();
-  }, []);
+    fetchInvoices(currentPage);
+  }, [currentPage]);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (page: number = 1) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/invoices`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/invoices?page=${page}&limit=${itemsPerPage}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setInvoices(data.invoices);
+        setInvoices(data.invoices || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || 0);
       } else {
         console.error('Failed to fetch invoices');
         setInvoices([]);
+        setTotalPages(1);
+        setTotalItems(0);
       }
     } catch (error) {
       console.error('Error fetching invoices:', error);
       setInvoices([]);
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
@@ -89,7 +100,7 @@ export default function AccountTable({ onAdd, onEdit, onView }: AccountTableProp
         }
       });
       if (response.ok) {
-        setInvoices(invoices.filter(invoice => invoice._id !== deleteInvoiceId));
+        fetchInvoices(currentPage);
         setShowDeleteModal(false);
         setDeleteInvoiceId(null);
         toast.success('Invoice deleted successfully');
@@ -363,6 +374,9 @@ export default function AccountTable({ onAdd, onEdit, onView }: AccountTableProp
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Invoice No
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -386,8 +400,11 @@ export default function AccountTable({ onAdd, onEdit, onView }: AccountTableProp
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredInvoices.map((invoice) => (
+              {filteredInvoices.map((invoice, index) => (
                 <tr key={invoice._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {invoice.invoiceNo}
                   </td>
@@ -456,6 +473,37 @@ export default function AccountTable({ onAdd, onEdit, onView }: AccountTableProp
         <div className="text-center py-12">
           <p className="text-gray-500">No invoices found matching your search.</p>
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
 
       <DeleteModal

@@ -208,11 +208,10 @@ export default function ClientTable() {
         }
       });
       if (!resp.ok) throw new Error(`Failed to fetch projects: ${resp.status}`);
-      const projects = await resp.json();
+      const data = await resp.json();
+      const projects = data.projects || [];
       // filter by client id; projects are populated with client and teamMembers
-      const filtered = Array.isArray(projects)
-        ? projects.filter((p: any) => (p?.client && (p.client._id === client._id)))
-        : [];
+      const filtered = projects.filter((p: any) => (p?.client && (p.client._id === client._id)));
       setClientProjects(filtered);
     } catch (e: any) {
       setClientProjectsError(e?.message || 'Error loading projects');

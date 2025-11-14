@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { formatDate, formatDateTime } from '../../Common/Commonfunction';
 import socket from '../../utils/socket';
 import { Button } from '../ui/button';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 
 interface PunchTime {
   _id: string;
@@ -28,6 +29,10 @@ export default function PunchTimeTable() {
     fromDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Yesterday
     toDate: new Date().toISOString().split('T')[0] // Today
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
   const role = localStorage.getItem('role');
 
   useEffect(() => {
@@ -36,7 +41,7 @@ export default function PunchTimeTable() {
 
   useEffect(() => {
     if (currentUser) {
-      fetchPunchTimes();
+      fetchPunchTimes(currentPage);
       if (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') {
         fetchEmployees();
       }
@@ -95,9 +100,11 @@ export default function PunchTimeTable() {
     }
   };
 
-  const fetchPunchTimes = async () => {
+  const fetchPunchTimes = async (page: number = 1) => {
     try {
       const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', itemsPerPage.toString());
       if (filters.employee) queryParams.append('employee', filters.employee);
       if (filters.fromDate) queryParams.append('fromDate', filters.fromDate);
       if (filters.toDate) queryParams.append('toDate', filters.toDate);
@@ -110,7 +117,9 @@ export default function PunchTimeTable() {
 
       if (response.ok) {
         const data = await response.json();
-        setPunchTimes(data.punchTimes);
+        setPunchTimes(data.punchTimes || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || 0);
       } else {
         setError('Failed to fetch punch times');
       }
@@ -133,7 +142,8 @@ export default function PunchTimeTable() {
   };
 
   const applyFilters = () => {
-    fetchPunchTimes();
+    setCurrentPage(1);
+    fetchPunchTimes(1);
   };
 
   const clearFilters = () => {
@@ -142,7 +152,8 @@ export default function PunchTimeTable() {
       fromDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Yesterday
       toDate: new Date().toISOString().split('T')[0] // Today
     });
-    fetchPunchTimes();
+    setCurrentPage(1);
+    fetchPunchTimes(1);
   };
 
   // Check if user has access (Admin or SuperAdmin)
@@ -223,6 +234,7 @@ export default function PunchTimeTable() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punch In Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punch Out Time</th>
@@ -231,8 +243,11 @@ export default function PunchTimeTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {punchTimes.map((punchTime) => (
+            {punchTimes.map((punchTime, index) => (
               <tr key={punchTime._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {(currentPage - 1) * itemsPerPage + index + 1}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {punchTime.employee ? `${punchTime.employee.firstName} ${punchTime.employee.lastName}` : 'Unknown Employee'}
                 </td>
@@ -268,6 +283,37 @@ export default function PunchTimeTable() {
       </div>
       {punchTimes.length === 0 && (
         <div className="text-center py-8 text-gray-500">No punch times found</div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </div>
   );

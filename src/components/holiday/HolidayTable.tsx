@@ -3,6 +3,7 @@ import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate, formatDay } from '../../Common/Commonfunction';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 
 interface Holiday {
   _id: string;
@@ -20,30 +21,40 @@ export default function HolidayTable() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteHolidayId, setDeleteHolidayId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', date: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const role = localStorage.getItem('role');
 
   useEffect(() => {
-    fetchHolidays();
+    setCurrentPage(1);
   }, [searchTerm]);
 
-  const fetchHolidays = async () => {
+  useEffect(() => {
+    fetchHolidays(currentPage);
+  }, [currentPage]);
+
+  const fetchHolidays = async (page: number) => {
     try {
-      const searchParam = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '';
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays${searchParam}`, {
+      const searchParam = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays?page=${page}&limit=10${searchParam}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setHolidays(data || []);
+        setHolidays(data.holidays || []);
+        setTotalPages(data.pagination.totalPages);
       } else {
         console.error('Failed to fetch holidays');
         setHolidays([]);
+        setTotalPages(0);
       }
     } catch (error) {
       console.error('Error fetching holidays:', error);
       setHolidays([]);
+      setTotalPages(0);
     } finally {
       setLoading(false);
     }
@@ -52,6 +63,7 @@ export default function HolidayTable() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const url = editingHoliday
         ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays/${editingHoliday._id}`
@@ -69,7 +81,7 @@ export default function HolidayTable() {
       });
 
       if (response.ok) {
-        fetchHolidays();
+        fetchHolidays(currentPage);
         setShowAddModal(false);
         setEditingHoliday(null);
         setFormData({ name: '', date: '' });
@@ -81,6 +93,8 @@ export default function HolidayTable() {
     } catch (error) {
       console.error('Error saving holiday:', error);
       toast.error('Error saving holiday');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -106,7 +120,7 @@ export default function HolidayTable() {
         }
       });
       if (response.ok) {
-        setHolidays(holidays.filter(holiday => holiday._id !== deleteHolidayId));
+        fetchHolidays(currentPage);
         setShowDeleteModal(false);
         setDeleteHolidayId(null);
         toast.success('Holiday deleted successfully!');
@@ -151,7 +165,7 @@ export default function HolidayTable() {
       </div>
 
       {/* Search */}
-      {/* <div className="relative">
+      <div className="relative">
         <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
         <input
           type="text"
@@ -160,7 +174,7 @@ export default function HolidayTable() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
         />
-      </div> */}
+      </div>
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -168,6 +182,9 @@ export default function HolidayTable() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  #
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Holiday Name
                 </th>
@@ -185,8 +202,11 @@ export default function HolidayTable() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {holidays.map((holiday) => (
+              {holidays.map((holiday, index) => (
                 <tr key={holiday._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {(currentPage - 1) * 10 + index + 1}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {holiday.name}
                   </td>
@@ -220,6 +240,36 @@ export default function HolidayTable() {
           </table>
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  isActive={page === currentPage}
+                  onClick={() => setCurrentPage(page)}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
       {holidays.length === 0 && (
         <div className="text-center py-12">
@@ -271,9 +321,14 @@ export default function HolidayTable() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingHoliday ? 'Update' : 'Add'}
+                  {isSubmitting ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    editingHoliday ? 'Update' : 'Add'
+                  )}
                 </button>
               </div>
             </form>

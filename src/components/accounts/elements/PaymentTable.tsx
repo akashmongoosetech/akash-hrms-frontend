@@ -3,6 +3,7 @@ import { Edit, Trash2, Eye, Search, Plus } from 'lucide-react';
 import DeleteModal from '../../../Common/DeleteModal';
 import { formatDate } from '../../../Common/Commonfunction';
 import toast from 'react-hot-toast';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../ui/pagination';
 
 interface Employee {
   _id: string;
@@ -36,28 +37,38 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchPayments();
-  }, []);
+    fetchPayments(currentPage);
+  }, [currentPage]);
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (page: number = 1) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/payments`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/payments?page=${page}&limit=${itemsPerPage}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setPayments(data.payments);
+        setPayments(data.payments || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || 0);
       } else {
         console.error('Failed to fetch payments');
         setPayments([]);
+        setTotalPages(1);
+        setTotalItems(0);
       }
     } catch (error) {
       console.error('Error fetching payments:', error);
       setPayments([]);
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
@@ -88,7 +99,7 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
         }
       });
       if (response.ok) {
-        setPayments(payments.filter(payment => payment._id !== deletePaymentId));
+        fetchPayments(currentPage);
         setShowDeleteModal(false);
         setDeletePaymentId(null);
         toast.success('Payment deleted successfully');
@@ -165,6 +176,9 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Payment ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -188,8 +202,11 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPayments.map((payment) => (
+              {filteredPayments.map((payment, index) => (
                 <tr key={payment._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {payment.paymentId}
                   </td>
@@ -266,6 +283,37 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
         <div className="text-center py-12">
           <p className="text-gray-500">No payments found matching your search.</p>
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => setCurrentPage(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
 
       <DeleteModal

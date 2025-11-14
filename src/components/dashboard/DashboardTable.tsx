@@ -65,7 +65,7 @@ export default function DashboardTable() {
 
       if (response.ok) {
         const data = await response.json();
-        setProjects(data);
+        setProjects(data.projects || []);
       } else {
         setError('Failed to fetch projects');
       }

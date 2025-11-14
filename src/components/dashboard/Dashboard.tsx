@@ -100,7 +100,8 @@ export default function Dashboard() {
           }
         });
         if (response.ok) {
-          const todosData = await response.json();
+          const data = await response.json();
+          const todosData = data.todos || [];
           // Transform the data to match the Todo interface
           const transformedTodos: Todo[] = todosData.map((todo: any) => ({
             _id: todo._id,
@@ -127,7 +128,8 @@ export default function Dashboard() {
           }
         });
         if (response.ok) {
-          const ticketsData = await response.json();
+          const data = await response.json();
+          const ticketsData = data.tickets || [];
           // Transform the data to match the Ticket interface
           const transformedTickets: Ticket[] = ticketsData.map((ticket: any) => ({
             _id: ticket._id,

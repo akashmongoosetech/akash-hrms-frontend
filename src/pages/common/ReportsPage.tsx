@@ -8,6 +8,7 @@ import ReportTable from '../../components/Reports/ReportTable';
 import AddReportModal from '../../components/Reports/AddReportModal';
 import ViewReportModal from '../../components/Reports/ViewReportModal';
 import EditReportModal from '../../components/Reports/EditReportModal';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../components/ui/pagination';
 
 interface Report {
   _id: string;
@@ -65,9 +66,13 @@ export default function ReportsPage() {
        toDate: getToday(),
        employeeId: (role === 'Admin' || role === 'SuperAdmin') ? '' : userId || ''
      });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchAllReports();
+    fetchAllReports(currentPage);
     fetchEmployees();
 
     // Socket listeners for real-time updates
@@ -144,9 +149,9 @@ export default function ReportsPage() {
   };
 
   // Initial fetch without filters to get all reports, then filter client-side
-  const fetchAllReports = async () => {
+  const fetchAllReports = async (page: number = 1) => {
     try {
-      const response = await API.get('/reports');
+      const response = await API.get(`/reports?page=${page}&limit=${itemsPerPage}`);
       const allReports = response.data.reports;
       // Filter to only yesterday and today, and by employee if not admin
       const yesterday = getYesterday();
@@ -160,6 +165,8 @@ export default function ReportsPage() {
         );
       }
       setReports(filteredReports);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalItems(response.data.totalItems || 0);
     } catch (error) {
       console.error('Error fetching reports:', error);
       toast.error('Error loading reports');
@@ -186,7 +193,7 @@ export default function ReportsPage() {
       toast.success('Report deleted successfully!');
       setShowDeleteModal(false);
       setDeleteReportId(null);
-      fetchAllReports(); // Refresh reports list
+      fetchAllReports(currentPage); // Refresh reports list
     } catch (error) {
       console.error('Error deleting report:', error);
       toast.error('Error deleting report');
@@ -220,6 +227,37 @@ export default function ReportsPage() {
        onFiltersChange={setFilters}
        onApplyFilters={handleApplyFilters}
      />
+
+     {/* Pagination */}
+     {totalPages > 1 && (
+       <Pagination className="mt-6">
+         <PaginationContent>
+           <PaginationItem>
+             <PaginationPrevious
+               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+               className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+             />
+           </PaginationItem>
+           {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+             <PaginationItem key={page}>
+               <PaginationLink
+                 onClick={() => setCurrentPage(page)}
+                 isActive={currentPage === page}
+                 className="cursor-pointer"
+               >
+                 {page}
+               </PaginationLink>
+             </PaginationItem>
+           ))}
+           <PaginationItem>
+             <PaginationNext
+               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+               className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+             />
+           </PaginationItem>
+         </PaginationContent>
+       </Pagination>
+     )}
 
      <AddReportModal
        isOpen={isModalOpen}
