@@ -3,6 +3,7 @@ import { formatDate } from '../../Common/Commonfunction';
 import { Button } from '../ui/button';
 import ViewTeamModal from '../common/modals/ViewTeamModal';
 import { Eye } from 'lucide-react';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Team {
     _id: string;
@@ -75,7 +76,45 @@ export default function TeamDashboard() {
     };
 
     if (loading) {
-        return <div className="text-center py-8">Loading teams...</div>;
+        return (
+            <div className="mb-6 sm:mb-8">
+                <BaseSkeleton className="h-8 w-48 mb-4" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array(6).fill(0).map((_, index) => (
+                        <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                            <div className="mb-4">
+                                <BaseSkeleton className="h-6 w-32 mb-2" />
+                                <BaseSkeleton className="h-5 w-16" />
+                            </div>
+                            <div className="space-y-3">
+                                <div>
+                                    <BaseSkeleton className="h-4 w-12 mb-1" />
+                                    <BaseSkeleton className="h-4 w-24" />
+                                </div>
+                                <div>
+                                    <BaseSkeleton className="h-4 w-20 mb-1" />
+                                    <BaseSkeleton className="h-4 w-16" />
+                                </div>
+                                <div className="d-flex gap-4">
+                                    <div>
+                                        <BaseSkeleton className="h-4 w-12 mb-1" />
+                                        <BaseSkeleton className="h-4 w-20" />
+                                    </div>
+                                    <div>
+                                        <BaseSkeleton className="h-4 w-12 mb-1" />
+                                        <BaseSkeleton className="h-4 w-18" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <BaseSkeleton className="h-4 w-14 mb-1" />
+                                    <BaseSkeleton className="h-4 w-20" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
     }
 
     if (error) {

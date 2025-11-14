@@ -11,6 +11,7 @@ import {
   Filter,
 } from "lucide-react";
 import { formatDate } from "../../Common/Commonfunction";
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Todo {
   _id: string;
@@ -44,6 +45,7 @@ interface TodoTableProps {
   handleEdit: (todo: Todo) => void;
   handleDelete: (id: string) => void;
   handleStatusChange: (id: string, newStatus: "Pending" | "In Progress" | "Completed") => void;
+  loading?: boolean;
 }
 
 export default function TodoTable({
@@ -58,6 +60,7 @@ export default function TodoTable({
   handleEdit,
   handleDelete,
   handleStatusChange,
+  loading = false,
 }: TodoTableProps) {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -184,7 +187,54 @@ export default function TodoTable({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTodos.map((todo, index) => (
+              {loading ? (
+                Array.from({ length: 5 }, (_, rowIndex) => (
+                  <tr key={rowIndex} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <BaseSkeleton className="h-5 w-8" />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        <BaseSkeleton className="h-4 w-24 mb-1" />
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        <BaseSkeleton className="h-3 w-32" />
+                      </div>
+                    </td>
+                    {role !== 'Employee' && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <BaseSkeleton className="h-4 w-4 mr-2" />
+                          <div className="text-sm text-gray-900">
+                            <BaseSkeleton className="h-4 w-20" />
+                          </div>
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-900">
+                        <BaseSkeleton className="h-4 w-4 mr-2" />
+                        <BaseSkeleton className="h-4 w-16" />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <BaseSkeleton className="h-5 w-16" />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <BaseSkeleton className="h-5 w-20" />
+                    </td>
+                    {role !== 'Employee' && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <BaseSkeleton className="h-6 w-6 rounded" />
+                          <BaseSkeleton className="h-6 w-6 rounded" />
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))
+              ) : (
+                filteredTodos.map((todo, index) => (
                 <tr key={todo._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {index + 1}
@@ -257,7 +307,8 @@ export default function TodoTable({
                     </td>
                   )}
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>

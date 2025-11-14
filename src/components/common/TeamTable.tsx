@@ -4,6 +4,7 @@ import DeleteModal from '../../Common/DeleteModal';
 import { formatDate } from '../../Common/Commonfunction';
 import CreateTeamModal from './modals/CreateTeamModal';
 import ViewTeamModal from './modals/ViewTeamModal';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Team {
   _id: string;
@@ -137,7 +138,50 @@ export default function TeamTable() {
   };
 
   if (loading) {
-    return <div className="text-center py-8">Loading teams...</div>;
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <BaseSkeleton className="h-6 w-20" />
+          <BaseSkeleton className="h-10 w-32" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <BaseSkeleton className="h-6 w-32 mb-2" />
+                  <BaseSkeleton className="h-5 w-16" />
+                </div>
+                <BaseSkeleton className="h-8 w-8 rounded-full" />
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <BaseSkeleton className="h-4 w-12 mb-1" />
+                  <BaseSkeleton className="h-4 w-24" />
+                </div>
+
+                <div>
+                  <BaseSkeleton className="h-4 w-20 mb-1" />
+                  <BaseSkeleton className="h-4 w-16" />
+                </div>
+
+                <div>
+                  <BaseSkeleton className="h-4 w-12 mb-1" />
+                  <BaseSkeleton className="h-4 w-28" />
+                </div>
+
+                <div>
+                  <BaseSkeleton className="h-4 w-14 mb-1" />
+                  <BaseSkeleton className="h-4 w-20" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {

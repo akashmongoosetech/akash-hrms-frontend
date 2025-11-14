@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Code } from 'lucide-react';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Client {
   _id: string;
@@ -106,10 +107,102 @@ export default function DashboardTable() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="text-gray-500 mt-2">Loading projects...</p>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
+          <BaseSkeleton className="h-6 w-32" />
+          <BaseSkeleton className="h-4 w-16" />
+        </div>
+
+        {/* Mobile Card View Skeleton */}
+        <div className="block md:hidden space-y-4">
+          {Array(5).fill(0).map((_, index) => (
+            <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center flex-1 min-w-0">
+                  <UniversalSkeleton type="avatar" size={32} className="mr-3" />
+                  <div className="min-w-0 flex-1">
+                    <BaseSkeleton className="h-4 w-24 mb-1" />
+                    <BaseSkeleton className="h-3 w-32" />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <BaseSkeleton className="h-4 w-12 mb-1" />
+                  <BaseSkeleton className="h-4 w-20" />
+                  <BaseSkeleton className="h-3 w-40" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <BaseSkeleton className="h-4 w-16" />
+                  <div className="flex items-center">
+                    <UniversalSkeleton type="avatar" size={24} />
+                    <UniversalSkeleton type="avatar" size={24} className="ml-1" />
+                    <BaseSkeleton className="h-6 w-6 rounded-full ml-1" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-end mt-2">
+                  <BaseSkeleton className="h-5 w-16" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View Skeleton */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-12" />
+                </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-20" />
+                </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-20" />
+                </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-16" />
+                </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-12" />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {Array(5).fill(0).map((_, rowIndex) => (
+                <tr key={rowIndex} className="hover:bg-gray-50">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <UniversalSkeleton type="avatar" size={32} className="mr-3" />
+                      <div>
+                        <BaseSkeleton className="h-4 w-20 mb-1" />
+                        <BaseSkeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4">
+                    <div className="flex items-center">
+                      <UniversalSkeleton type="avatar" size={32} className="" />
+                      <UniversalSkeleton type="avatar" size={32} className="ml-1" />
+                      <BaseSkeleton className="h-8 w-8 rounded-full ml-1" />
+                    </div>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <BaseSkeleton className="h-4 w-24 mb-1" />
+                    <BaseSkeleton className="h-3 w-32" />
+                  </td>
+                  <td className="px-4 sm:px-6 py-4">
+                    <BaseSkeleton className="h-4 w-16" />
+                  </td>
+                  <td className="px-4 sm:px-6 py-4">
+                    <BaseSkeleton className="h-5 w-16" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );

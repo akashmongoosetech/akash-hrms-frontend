@@ -1,4 +1,5 @@
 import React from 'react';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface BreakRecord {
   _id: string;
@@ -22,9 +23,10 @@ interface BreakRecord {
 
 interface ActivitiesTimelineProps {
   breaks: BreakRecord[];
+  loading?: boolean;
 }
 
-const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks }) => {
+const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks, loading = false }) => {
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', {
@@ -47,7 +49,43 @@ const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks }) => {
         {/* Vertical Line */}
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-300 via-gray-200 to-transparent"></div>
 
-        {breaks.length > 0 ? (
+        {loading ? (
+          Array.from({ length: 5 }, (_, index) => (
+            <React.Fragment key={index}>
+              {/* Date Separator Skeleton */}
+              {index === 0 && (
+                <div className="flex items-center my-8">
+                  <div className="flex-1 border-t border-gray-300"></div>
+                  <div className="mx-3 px-4 py-1 border border-gray-300 rounded-full bg-gray-50 text-gray-600 text-sm font-medium shadow-sm">
+                    <BaseSkeleton className="h-4 w-20" />
+                  </div>
+                  <div className="flex-1 border-t border-gray-300"></div>
+                </div>
+              )}
+
+              {/* Timeline Item Skeleton */}
+              <div className="relative pl-14 mb-8 group">
+                {/* Node circle skeleton */}
+                <div className="absolute left-5 top-2 w-3 h-3 bg-gray-300 rounded-full border-2 border-white shadow-md"></div>
+
+                <div className="flex items-start gap-4">
+                  {/* Profile Image Skeleton */}
+                  <UniversalSkeleton type="avatar" size={40} />
+
+                  {/* Content Skeleton */}
+                  <div className="flex-1 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <div className="flex justify-between items-center mb-1">
+                      <BaseSkeleton className="h-5 w-32" />
+                      <BaseSkeleton className="h-4 w-12" />
+                    </div>
+                    <BaseSkeleton className="h-4 w-48 mb-2" />
+                    <BaseSkeleton className="h-3 w-40" />
+                  </div>
+                </div>
+              </div>
+            </React.Fragment>
+          ))
+        ) : breaks.length > 0 ? (
           breaks.map((activity, index) => {
             // --- Date Separator Logic ---
             let showSeparator = false;

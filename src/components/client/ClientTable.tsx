@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Edit, Trash2, Plus, Search, MoreHorizontal, Eye } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { Button } from '../ui/button';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Client {
   _id: string;
@@ -234,7 +235,45 @@ export default function ClientTable() {
   }, []);
 
   if (loading) {
-    return <div className="text-center py-8">Loading clients...</div>;
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <BaseSkeleton className="h-6 w-20" />
+          <BaseSkeleton className="h-10 w-32" />
+        </div>
+
+        <div className="mb-4">
+          <BaseSkeleton className="h-10 w-full" />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="relative border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-3">
+                  <UniversalSkeleton type="avatar" size={48} />
+                  <div>
+                    <BaseSkeleton className="h-4 w-24 mb-1" />
+                    <BaseSkeleton className="h-3 w-32" />
+                  </div>
+                </div>
+                <BaseSkeleton className="h-8 w-8 rounded" />
+              </div>
+              <div className="mt-3 text-sm text-gray-700 line-clamp-3">
+                <BaseSkeleton className="h-4 w-full mb-1" />
+                <BaseSkeleton className="h-4 w-3/4" />
+              </div>
+              <div className="mt-3 text-xs text-gray-500">
+                <BaseSkeleton className="h-3 w-20" />
+              </div>
+              <div className="mt-3">
+                <BaseSkeleton className="h-5 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {

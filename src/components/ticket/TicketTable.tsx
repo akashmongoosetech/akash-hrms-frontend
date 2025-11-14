@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Button } from '../ui/button';
 import { formatDate } from '../../Common/Commonfunction';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Employee {
   _id: string;
@@ -135,7 +136,103 @@ export default function TicketTable() {
 
 
   if (loading) {
-    return <div className="text-center py-8">Loading tickets...</div>;
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <BaseSkeleton className="h-6 w-20" />
+          <BaseSkeleton className="h-10 w-32" />
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-4" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-12" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-16" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-16" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-16" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-20" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-16" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-32" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-14" />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {Array.from({ length: 10 }, (_, rowIndex) => (
+                <tr key={rowIndex} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <BaseSkeleton className="h-5 w-8" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      <BaseSkeleton className="h-4 w-24 mb-1" />
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      <BaseSkeleton className="h-3 w-32" />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      <BaseSkeleton className="h-4 w-20 mb-1" />
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      <BaseSkeleton className="h-3 w-24" />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <BaseSkeleton className="h-5 w-16" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <BaseSkeleton className="h-5 w-16" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <BaseSkeleton className="h-5 w-20" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <BaseSkeleton className="h-2 w-12 rounded-full" />
+                      </div>
+                      <BaseSkeleton className="h-4 w-8" />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm gap-2 flex">
+                    <BaseSkeleton className="h-6 w-16" />
+                    <BaseSkeleton className="h-6 w-16" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center space-x-2">
+                      <BaseSkeleton className="h-8 w-8 rounded" />
+                      <BaseSkeleton className="h-8 w-8 rounded" />
+                      <BaseSkeleton className="h-8 w-8 rounded" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
   }
 
   return (

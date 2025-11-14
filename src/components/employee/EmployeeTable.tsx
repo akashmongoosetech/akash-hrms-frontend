@@ -4,6 +4,7 @@ import { Edit, Trash2, Eye, Plus } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate } from '../../Common/Commonfunction';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Employee {
   _id: string;
@@ -236,7 +237,92 @@ export default function EmployeeTable() {
 
 
   if (loading) {
-    return <div className="text-center py-8">Loading employees...</div>;
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <BaseSkeleton className="h-6 w-32" />
+          <BaseSkeleton className="h-10 w-32" />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-4" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-12" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-16" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-12" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-20" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-12" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-8" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-12" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-14" />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {Array.from({ length: itemsPerPage }, (_, rowIndex) => (
+                <tr key={rowIndex} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <BaseSkeleton className="h-5 w-8" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-3">
+                      <UniversalSkeleton type="avatar" size={40} />
+                      <div className="flex flex-col space-y-1">
+                        <BaseSkeleton className="h-4 w-24" />
+                        <BaseSkeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <BaseSkeleton className="h-5 w-20" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <BaseSkeleton className="h-5 w-16" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <BaseSkeleton className="h-5 w-20" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <BaseSkeleton className="h-5 w-24" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <BaseSkeleton className="h-5 w-20" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <BaseSkeleton className="h-5 w-16" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
+                    <div className="flex space-x-2">
+                      <BaseSkeleton className="h-8 w-8 rounded" />
+                      <BaseSkeleton className="h-8 w-8 rounded" />
+                      <BaseSkeleton className="h-8 w-8 rounded" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
   }
 
   if (error) {

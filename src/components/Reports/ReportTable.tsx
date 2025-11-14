@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Edit, Trash2, NotebookPen } from 'lucide-react';
 import { formatDate } from '../../Common/Commonfunction';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Report {
   _id: string;
@@ -132,9 +133,125 @@ const ReportTable: React.FC<ReportTableProps> = ({
       </div>
 
       {fetchingReports ? (
-        <div className="p-6 text-center">
-          <div className="text-gray-600">Loading reports...</div>
-        </div>
+        <>
+          {/* Mobile Card View Skeleton */}
+          <div className="block sm:hidden space-y-4 p-4">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <UniversalSkeleton type="avatar" size={40} />
+                    <div className="ml-3">
+                      <BaseSkeleton className="h-4 w-24 mb-1" />
+                      <BaseSkeleton className="h-3 w-32" />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <BaseSkeleton className="h-6 w-6 rounded" />
+                    <BaseSkeleton className="h-6 w-6 rounded" />
+                    <BaseSkeleton className="h-6 w-6 rounded" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <BaseSkeleton className="h-4 w-16 mb-2" />
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <BaseSkeleton className="h-4 w-20" />
+                    <BaseSkeleton className="h-4 w-24" />
+                    <BaseSkeleton className="h-4 w-24" />
+                    <BaseSkeleton className="h-4 w-20" />
+                    <BaseSkeleton className="h-4 w-28" />
+                    <BaseSkeleton className="h-4 w-20" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop Table View Skeleton */}
+          <div className="hidden sm:block">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <BaseSkeleton className="h-4 w-4" />
+                    </th>
+                    {role && role !== 'Employee' && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-16" />
+                      </th>
+                    )}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <BaseSkeleton className="h-4 w-8" />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <BaseSkeleton className="h-4 w-16" />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <BaseSkeleton className="h-4 w-12" />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <BaseSkeleton className="h-4 w-16" />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <BaseSkeleton className="h-4 w-20" />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <BaseSkeleton className="h-4 w-16" />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <BaseSkeleton className="h-4 w-14" />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {Array.from({ length: 5 }, (_, rowIndex) => (
+                    <tr key={rowIndex} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <BaseSkeleton className="h-5 w-8" />
+                      </td>
+                      {role && role !== 'Employee' && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <UniversalSkeleton type="avatar" size={32} />
+                            <div className="ml-3">
+                              <BaseSkeleton className="h-4 w-20 mb-1" />
+                              <BaseSkeleton className="h-3 w-24" />
+                            </div>
+                          </div>
+                        </td>
+                      )}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <BaseSkeleton className="h-5 w-16" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <BaseSkeleton className="h-5 w-12" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <BaseSkeleton className="h-5 w-12" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <BaseSkeleton className="h-5 w-8" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <BaseSkeleton className="h-5 w-12" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                        <BaseSkeleton className="h-5 w-12" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <BaseSkeleton className="h-6 w-6 rounded" />
+                          <BaseSkeleton className="h-6 w-6 rounded" />
+                          <BaseSkeleton className="h-6 w-6 rounded" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       ) : reports.length === 0 ? (
         <div className="p-6 text-center">
           <p className="text-gray-600">No reports found.</p>

@@ -3,6 +3,7 @@ import { formatDate } from '../../Common/Commonfunction';
 import { Eye, Printer } from "lucide-react";
 import PayrollViewModal from './modals/PayrollViewModal/PayrollViewModal';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Employee {
   _id: string;
@@ -63,7 +64,71 @@ export default function PayrollTable() {
   };
 
   if (loading) {
-    return <div className="text-center py-8">Loading employees...</div>;
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <BaseSkeleton className="h-6 w-40" />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-4" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-16" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-20" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-16" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-24" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-12" />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {Array.from({ length: 10 }, (_, rowIndex) => (
+                <tr key={rowIndex} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <BaseSkeleton className="h-5 w-8" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <div className="flex items-center">
+                      <UniversalSkeleton type="avatar" size={40} />
+                      <div className="ml-4">
+                        <BaseSkeleton className="h-4 w-24" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <BaseSkeleton className="h-5 w-20" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <BaseSkeleton className="h-5 w-16" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <BaseSkeleton className="h-5 w-16" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <BaseSkeleton className="h-8 w-8 rounded" />
+                      <BaseSkeleton className="h-8 w-8 rounded" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
   }
 
   if (error) {

@@ -12,6 +12,7 @@ import EmployeeTodos from "./EmployeeTodos";
 import DashboardTickets from "./DashboardTickets";
 import TeamDashboard from "./TeamDashboard";
 import { useLayout } from "../common/Layout";
+import { UniversalSkeleton, BaseSkeleton } from "../ui/skeleton";
 
 interface Todo {
   _id: string;
@@ -41,6 +42,7 @@ export default function Dashboard() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [holidays, setHolidays] = useState([]);
   const [events, setEvents] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   // Mock data for dashboard
   const [stats, setStats] = useState({
@@ -85,6 +87,8 @@ export default function Dashboard() {
             ...prevStats,
             totalEmployees: totalEmployees
           }));
+
+          setStatsLoading(false);
         }
       } catch (error) {
         console.error('Error fetching user stats:', error);
@@ -268,46 +272,65 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="p-4 sm:p-6">
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          {statCards.map((card, index) => (
-            <div
-              key={card.title}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-600 truncate">
-                    {card.title}
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
-                    {card.value}
-                  </p>
-                  {/* {card.breakdown && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      <div>Admins: {card.breakdown.admins}</div>
-                      <div>Super Admins: {card.breakdown.superAdmins}</div>
-                    </div>
-                  )} */}
-                  <p
-                    className={`text-xs mt-1 ${card.change.startsWith("+")
-                        ? "text-green-600"
-                        : "text-red-600"
-                      }`}
-                  >
-                    {/* {card.change} from last month */}
-                  </p>
-                </div>
-                <div
-                  className={`p-2 sm:p-3 rounded-full ${getStatCardColor(
-                    index
-                  )} flex-shrink-0 ml-3`}
-                >
-                  {card.icon}
+        {statsLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            {Array(5).fill(0).map((_, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <BaseSkeleton className="h-4 w-16 mb-2" />
+                    <BaseSkeleton className="h-8 w-12 mb-1" />
+                  </div>
+                  <BaseSkeleton className="h-10 w-10 rounded-full" />
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            {statCards.map((card, index) => (
+              <div
+                key={card.title}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-600 truncate">
+                      {card.title}
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
+                      {card.value}
+                    </p>
+                    {/* {card.breakdown && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        <div>Admins: {card.breakdown.admins}</div>
+                        <div>Super Admins: {card.breakdown.superAdmins}</div>
+                      </div>
+                    )} */}
+                    <p
+                      className={`text-xs mt-1 ${card.change.startsWith("+")
+                          ? "text-green-600"
+                          : "text-red-600"
+                        }`}
+                    >
+                      {/* {card.change} from last month */}
+                    </p>
+                  </div>
+                  <div
+                    className={`p-2 sm:p-3 rounded-full ${getStatCardColor(
+                      index
+                    )} flex-shrink-0 ml-3`}
+                  >
+                    {card.icon}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Projects Table */}
         {dashboardPreferences.projects && (

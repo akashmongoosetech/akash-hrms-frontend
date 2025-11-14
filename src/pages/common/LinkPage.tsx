@@ -6,6 +6,7 @@ import DeleteModal from "../../Common/DeleteModal";
 import { formatDate } from "../../Common/Commonfunction";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../components/ui/pagination';
 import Icon from "../../components/common/Icon";
+import { UniversalSkeleton, BaseSkeleton } from '../../components/ui/skeleton';
 
 interface Link {
   _id: string;
@@ -250,7 +251,68 @@ export default function LinkPage() {
         </div>
 
         {loading ? (
-          <p className="text-gray-600">Loading...</p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-300">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-4 py-2 border-b text-left">
+                    <BaseSkeleton className="h-4 w-4" />
+                  </th>
+                  <th className="px-4 py-2 border-b text-left">
+                    <BaseSkeleton className="h-4 w-12" />
+                  </th>
+                  <th className="px-4 py-2 border-b text-left">
+                    <BaseSkeleton className="h-4 w-8" />
+                  </th>
+                  {(activeTab === 'excel' || activeTab === 'codebase') && (
+                    <>
+                      <th className="px-4 py-2 border-b text-left">
+                        <BaseSkeleton className="h-4 w-8" />
+                      </th>
+                    </>
+                  )}
+                  <th className="px-4 py-2 border-b text-left">
+                    <BaseSkeleton className="h-4 w-12" />
+                  </th>
+                  <th className="px-4 py-2 border-b text-left">
+                    <BaseSkeleton className="h-4 w-14" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 5 }, (_, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 border-b text-sm font-medium text-gray-900">
+                      <BaseSkeleton className="h-5 w-8" />
+                    </td>
+                    <td className="px-4 py-2 border-b">
+                      <BaseSkeleton className="h-4 w-24" />
+                    </td>
+                    <td className="px-4 py-2 border-b">
+                      <BaseSkeleton className="h-4 w-32" />
+                    </td>
+                    {(activeTab === 'excel' || activeTab === 'codebase') && (
+                      <>
+                        <td className="px-4 py-2 border-b">
+                          <BaseSkeleton className="h-8 w-8 rounded" />
+                        </td>
+                      </>
+                    )}
+                    <td className="px-4 py-2 border-b">
+                      <BaseSkeleton className="h-4 w-16" />
+                    </td>
+                    <td className="px-4 py-2 border-b">
+                      <div className="flex space-x-2">
+                        <BaseSkeleton className="h-6 w-6 rounded" />
+                        <BaseSkeleton className="h-6 w-6 rounded" />
+                        <BaseSkeleton className="h-6 w-6 rounded" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : filteredLinks.length === 0 ? (
           <p className="text-gray-600">No {activeTab} links found.</p>
         ) : (

@@ -5,6 +5,7 @@ import { formatDate } from '../../Common/Commonfunction';
 import ViewProjectModal from './ViewProjectModal';
 import AddEditProjectModal from './AddEditProjectModal';
 import ProjectCard from './ProjectCard';
+import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Client {
   _id: string;
@@ -230,7 +231,50 @@ export default function ProjectTable() {
   }, []);
 
   if (loading) {
-    return <div className="text-center py-8">Loading projects...</div>;
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <BaseSkeleton className="h-6 w-20" />
+          <BaseSkeleton className="h-10 w-32" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <BaseSkeleton className="h-5 w-32 mb-2" />
+                  <BaseSkeleton className="h-4 w-48 mb-3" />
+                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+                    <div className="flex items-center space-x-1">
+                      <BaseSkeleton className="h-4 w-4" />
+                      <BaseSkeleton className="h-4 w-16" />
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <BaseSkeleton className="h-4 w-4" />
+                      <BaseSkeleton className="h-4 w-12" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <BaseSkeleton className="h-6 w-6 rounded-full" />
+                      <BaseSkeleton className="h-6 w-6 rounded-full" />
+                      <BaseSkeleton className="h-6 w-6 rounded-full" />
+                      <BaseSkeleton className="h-6 w-6 rounded-full" />
+                    </div>
+                    <BaseSkeleton className="h-8 w-8 rounded" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <BaseSkeleton className="h-5 w-16" />
+                <BaseSkeleton className="h-6 w-20" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
