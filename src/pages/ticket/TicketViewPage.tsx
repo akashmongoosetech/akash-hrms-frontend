@@ -10,16 +10,12 @@ import {
   TrendingUp,
   Clock,
   Edit,
-  File,
-  FileImage,
-  FileText,
-  FileCode,
-  FileSpreadsheet,
   Upload,
   X,
   Trash2,
   Download,
 } from "lucide-react";
+import Icon from "../../components/common/Icon";
 import { formatDate, formatDateTime } from "../../Common/Commonfunction";
 import socket from "../../utils/socket";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
@@ -122,14 +118,45 @@ export default function TicketViewPage() {
     }
   };
 
-  // Get file icon based on mimetype and filename
-  const getFileIcon = (mimetype: string, filename: string) => {
-    if (mimetype.startsWith('image/')) return <FileImage className="h-6 w-6" />;
-    if (mimetype === 'application/pdf') return <FileText className="h-6 w-6" />;
-    if (mimetype.includes('spreadsheet') || mimetype === 'text/csv') return <FileSpreadsheet className="h-6 w-6" />;
-    if (mimetype.includes('javascript') || mimetype.includes('php') || mimetype === 'application/sql' || mimetype === 'text/html' || mimetype === 'text/css') return <FileCode className="h-6 w-6" />;
-    if (filename.toLowerCase().endsWith('.env') || filename.toLowerCase().endsWith('.js') || filename.toLowerCase().endsWith('.php') || filename.toLowerCase().endsWith('.sql')) return <FileCode className="h-6 w-6" />;
-    return <File className="h-6 w-6" />;
+  // Get file icon type based on mimetype and filename
+  const getIconType = (mimetype: string, filename: string): string => {
+    const ext = filename.toLowerCase().split('.').pop() || '';
+    const extToIcon: Record<string, string> = {
+      'pdf': 'pdf',
+      'doc': 'doc',
+      'docx': 'docx',
+      'xls': 'xls',
+      'xlsx': 'xlsx',
+      'csv': 'csv',
+      'ppt': 'ppt',
+      'pptx': 'pptx',
+      'txt': 'txt',
+      'html': 'html',
+      'css': 'css',
+      'js': 'code',
+      'php': 'code',
+      'sql': 'sql',
+      'xml': 'xml',
+      'png': 'png',
+      'jpg': 'image',
+      'jpeg': 'image',
+      'gif': 'gif',
+      'webp': 'webp',
+      'svg': 'svg',
+      'mp4': 'mp4',
+      'avi': 'avi',
+      'mpeg': 'mpeg',
+      'zip': 'zip',
+      'exe': 'exe',
+      'dmg': 'dmg',
+      'psd': 'psd',
+      'ai': 'ai',
+      'fig': 'fig',
+      'aep': 'aep',
+      'java': 'java',
+      'env': 'txt',
+    };
+    return extToIcon[ext] || 'txt';
   };
 
   // Fetch ticket, robust handling
@@ -816,7 +843,7 @@ export default function TicketViewPage() {
                           {selectedFiles.map((file, index) => (
                             <div key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md text-sm">
                               <div className="flex items-center space-x-2">
-                                {getFileIcon(file.type, file.name)}
+                                <Icon type={getIconType(file.type, file.name) as any} size={16} />
                                 <span className="truncate">{file.name}</span>
                               </div>
                               <Button
@@ -942,7 +969,7 @@ export default function TicketViewPage() {
                                       download={attachment.originalname}
                                       className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
                                     >
-                                      {getFileIcon(attachment.mimetype, attachment.originalname)}
+                                      <Icon type={getIconType(attachment.mimetype, attachment.originalname) as any} size={16} />
                                       <span style={{ fontSize: "10px" }}>Attached File</span>
                                       {/* {attachment.originalname} */}
                                     </a>

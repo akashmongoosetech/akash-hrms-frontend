@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { GitBranch, FileSpreadsheet, Code, Plus, Edit, Eye, Trash2, FileText, Image, File, Archive, Music, Video } from "lucide-react";
+import { GitBranch, FileSpreadsheet, Code, Plus, Edit, Eye, Trash2 } from "lucide-react";
 import API from "../../utils/api";
 import LinkModal from "../../components/common/LinkModal";
 import DeleteModal from "../../Common/DeleteModal";
 import { formatDate } from "../../Common/Commonfunction";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../../components/ui/pagination';
+import Icon from "../../components/common/Icon";
 
 interface Link {
   _id: string;
@@ -94,131 +95,142 @@ export default function LinkPage() {
     }
   };
 
-  const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    switch (extension) {
-      case 'pdf':
-        return <FileText size={16} className="text-red-500" />;
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-      case 'bmp':
-      case 'tif':
-      case 'tiff':
-      case 'svg':
-      case 'webp':
-      case 'heif':
-      case 'heic':
-      case 'raw':
-      case 'cr2':
-      case 'nef':
-      case 'orf':
-      case 'arw':
-      case 'dng':
-      case 'ico':
-      case 'psd':
-      case 'ai':
-        return <Image size={16} className="text-green-500" />;
-      case 'doc':
-      case 'docx':
-      case 'odt':
-      case 'rtf':
-      case 'txt':
-      case 'md':
-      case 'tex':
-      case 'epub':
-      case 'mobi':
-      case 'azw3':
-        return <FileText size={16} className="text-blue-500" />;
-      case 'xls':
-      case 'xlsx':
-      case 'ods':
-      case 'csv':
-      case 'tsv':
-        return <FileSpreadsheet size={16} className="text-green-600" />;
-      case 'ppt':
-      case 'pptx':
-      case 'odp':
-      case 'key':
-        return <File size={16} className="text-orange-500" />;
-      case 'mp3':
-      case 'wav':
-      case 'aac':
-      case 'flac':
-      case 'ogg':
-      case 'wma':
-      case 'mid':
-      case 'midi':
-      case 'm4a':
-        return <Music size={16} className="text-purple-500" />;
-      case 'mp4':
-      case 'avi':
-      case 'mov':
-      case 'mkv':
-      case 'wmv':
-      case 'flv':
-      case 'webm':
-      case '3gp':
-      case 'm4v':
-        return <Video size={16} className="text-pink-500" />;
-      case 'zip':
-      case 'rar':
-      case '7z':
-      case 'tar':
-      case 'gz':
-      case 'bz2':
-      case 'iso':
-        return <Archive size={16} className="text-yellow-500" />;
-      case 'exe':
-      case 'bat':
-      case 'sh':
-      case 'app':
-      case 'dll':
-      case 'sys':
-        return <File size={16} className="text-gray-500" />;
-      case 'html':
-      case 'htm':
-      case 'css':
-      case 'js':
-      case 'mjs':
-      case 'ts':
-      case 'tsx':
-      case 'jsx':
-      case 'json':
-      case 'xml':
-      case 'yml':
-      case 'yaml':
-      case 'py':
-      case 'java':
-      case 'c':
-      case 'cpp':
-      case 'h':
-      case 'hpp':
-      case 'php':
-      case 'rb':
-      case 'go':
-      case 'sql':
-      case 'db':
-      case 'bson':
-      case 'crt':
-      case 'cer':
-      case 'pem':
-      case 'pub':
-      case 'pfx':
-      case 'p12':
-      case 'dwg':
-      case 'dxf':
-      case 'obj':
-      case 'fbx':
-      case 'stl':
-      case '3ds':
-      case 'sketch':
-      case 'fig':
-        return <Code size={16} className="text-indigo-500" />;
-      default:
-        return <File size={16} className="text-gray-400" />;
+  // Handle file download
+  const handleFileDownload = async (filePath: string) => {
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${filePath}`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filePath.split('/').pop() || 'download';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download failed:', error);
     }
+  };
+
+  // Get file icon type based on filename
+  const getIconType = (fileName: string): string => {
+    const ext = fileName.toLowerCase().split('.').pop() || '';
+    const extToIcon: Record<string, string> = {
+      'pdf': 'pdf',
+      'doc': 'doc',
+      'docx': 'docx',
+      'xls': 'xls',
+      'xlsx': 'xlsx',
+      'csv': 'csv',
+      'ppt': 'ppt',
+      'pptx': 'pptx',
+      'txt': 'txt',
+      'html': 'html',
+      'css': 'css',
+      'js': 'code',
+      'php': 'code',
+      'sql': 'sql',
+      'xml': 'xml',
+      'png': 'png',
+      'jpg': 'image',
+      'jpeg': 'image',
+      'gif': 'gif',
+      'webp': 'webp',
+      'svg': 'svg',
+      'mp4': 'mp4',
+      'avi': 'avi',
+      'mpeg': 'mpeg',
+      'zip': 'zip',
+      'exe': 'exe',
+      'dmg': 'dmg',
+      'psd': 'psd',
+      'ai': 'ai',
+      'fig': 'fig',
+      'aep': 'aep',
+      'java': 'java',
+      'env': 'txt',
+      'md': 'txt',
+      'tex': 'txt',
+      'epub': 'txt',
+      'mobi': 'txt',
+      'azw3': 'txt',
+      'ods': 'spreadsheets',
+      'tsv': 'csv',
+      'odp': 'ppt',
+      'key': 'ppt',
+      'mp3': 'audio',
+      'wav': 'audio',
+      'aac': 'audio',
+      'flac': 'audio',
+      'ogg': 'audio',
+      'wma': 'audio',
+      'mid': 'audio',
+      'midi': 'audio',
+      'm4a': 'audio',
+      'mov': 'video',
+      'mkv': 'video',
+      'wmv': 'video',
+      'flv': 'video',
+      'webm': 'video',
+      '3gp': 'video',
+      'm4v': 'video',
+      'rar': 'zip',
+      '7z': 'zip',
+      'tar': 'zip',
+      'gz': 'zip',
+      'bz2': 'zip',
+      'iso': 'zip',
+      'bat': 'exe',
+      'sh': 'exe',
+      'app': 'exe',
+      'dll': 'exe',
+      'sys': 'exe',
+      'mjs': 'code',
+      'ts': 'code',
+      'tsx': 'code',
+      'jsx': 'code',
+      'json': 'code',
+      'yml': 'code',
+      'yaml': 'code',
+      'py': 'code',
+      'c': 'code',
+      'cpp': 'code',
+      'h': 'code',
+      'hpp': 'code',
+      'rb': 'code',
+      'go': 'code',
+      'db': 'code',
+      'bson': 'code',
+      'crt': 'code',
+      'cer': 'code',
+      'pem': 'code',
+      'pub': 'code',
+      'pfx': 'code',
+      'p12': 'code',
+      'dwg': 'code',
+      'dxf': 'code',
+      'obj': 'code',
+      'fbx': 'code',
+      'stl': 'code',
+      '3ds': 'code',
+      'sketch': 'code',
+      'bmp': 'image',
+      'tif': 'image',
+      'tiff': 'image',
+      'heif': 'image',
+      'heic': 'image',
+      'raw': 'image',
+      'cr2': 'image',
+      'nef': 'image',
+      'orf': 'image',
+      'arw': 'image',
+      'dng': 'image',
+      'ico': 'image',
+      'odt': 'doc',
+      'rtf': 'doc',
+    };
+    return extToIcon[ext] || 'txt';
   };
 
   const renderTable = () => {
@@ -293,15 +305,15 @@ export default function LinkPage() {
                           )}
                         </td> */}
                         <td className="px-4 py-2 border-b">
-                          {link.file ? (
-                            <a href={`http://localhost:5000/${link.file}`} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 text-blue-600 hover:underline">
-                              {getFileIcon(link.file)}
-                              {/* <span>Download</span> */}
-                            </a>
-                          ) : (
-                            '-'
-                          )}
-                        </td>
+                            {link.file ? (
+                              <button onClick={() => handleFileDownload(link.file)} className="flex items-center space-x-2 text-blue-600 hover:underline">
+                                <Icon type={getIconType(link.file) as any} size={30} />
+                                {/* <span>Download</span> */}
+                              </button>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
                       </>
                     )}
                     <td className="px-4 py-2 border-b">{formatDate(link.createdAt)}</td>

@@ -28,6 +28,7 @@ export default function LinkModal({ isOpen, onClose, mode, linkType, link, onSuc
     file: null as File | null,
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (mode === 'edit' || mode === 'view') {
@@ -40,10 +41,23 @@ export default function LinkModal({ isOpen, onClose, mode, linkType, link, onSuc
     } else {
       setFormData({ title: '', url: '', image: '', file: null });
     }
+    setError('');
   }, [mode, link]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
+    if (linkType === 'git' && !formData.url.trim()) {
+      setError('URL is required for Git links.');
+      return;
+    }
+    if ((linkType === 'excel' || linkType === 'codebase') && !formData.url.trim() && !formData.file) {
+      setError('At least one of URL or File is required.');
+      return;
+    }
+
+    setError('');
     setLoading(true);
 
     try {
@@ -178,7 +192,7 @@ export default function LinkModal({ isOpen, onClose, mode, linkType, link, onSuc
 
             {(linkType === 'excel' || linkType === 'codebase') && (
               <>
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700">Image URL</label>
                   <input
                     type="url"
@@ -187,7 +201,7 @@ export default function LinkModal({ isOpen, onClose, mode, linkType, link, onSuc
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                     disabled={isViewMode}
                   />
-                </div>
+                </div> */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Upload File</label>
                   <input
@@ -200,6 +214,8 @@ export default function LinkModal({ isOpen, onClose, mode, linkType, link, onSuc
                 </div>
               </>
             )}
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
             <div className="flex justify-end space-x-2">
               <button
