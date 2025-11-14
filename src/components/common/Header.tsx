@@ -13,6 +13,7 @@ import {
   X,
   Plus,
 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import socket from "../../utils/socket";
 import { formatDate } from "../../Common/Commonfunction";
 import { CKEditor } from '@ckeditor/ckeditor5-react';
@@ -681,25 +682,12 @@ export default function Header() {
                 onClick={toggleDropdown}
                 className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                {userPhoto ? (
-                  <>
-                  <img
-                    src={userPhoto}
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full object-cover"
-                    />
-                  </>
-                ) : (
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {userName
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()}
-                    </span>
-                  </div>
-                )}
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={userPhoto} alt="Profile" onError={(e) => { e.currentTarget.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaAsJaTD22xdCgfrjTCJzLQmODiZ-tYaXisA&s"; }} />
+                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium">
+                    {userName.split(" ").map((n) => n[0]).join("").toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 {/* <div className="text-left">
                   <p className="text-sm font-medium text-gray-900">
                     {userName}

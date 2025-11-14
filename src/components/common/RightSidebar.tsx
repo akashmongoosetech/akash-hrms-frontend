@@ -26,6 +26,8 @@ import {
   Briefcase,
   BadgeIndianRupee,
   Group,
+  MessageSquareMore,
+  Rss
 } from "lucide-react";
 import SettingsSidebar from "./SettingsSidebar";
 
@@ -214,6 +216,20 @@ export default function RightSidebar() {
           icon: <Link className="h-5 w-5" />,
           path: "/link",
           roles: ["Admin", "SuperAdmin"],
+        },
+      ],
+    },
+
+    {
+      title: "More",
+      icon: <MessageSquareMore className="h-4 w-4 text-gray-500" />,
+      items: [
+        {
+          id: "blog",
+          name: "Blog",
+          icon: <Rss className="h-5 w-5" />,
+          path: "/blog",
+          roles: ["Admin", "SuperAdmin", "Employee"],
         },
       ],
     },
