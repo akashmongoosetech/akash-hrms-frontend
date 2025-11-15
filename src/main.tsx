@@ -37,6 +37,10 @@ import PunchTime from './components/Punch/PunchTime';
 import SaturdaySetting from './components/SaturdaySetting/SaturdaySetting';
 import TeamTable from './components/common/TeamTable';
 import AccountPage from './components/accounts/AccountPage';
+import BlogViewPage from './pages/blog/BlogViewPage';
+import BlogAddPage from './pages/blog/BlogAddPage';
+import Blog from './components/AdminPanel/elements/Blog';
+import AdminPanel from './components/AdminPanel/AdminPanel';
 import './index.css';
 
 function AppRoutes() {
@@ -148,6 +152,36 @@ function AppRoutes() {
           <Route path="/accounts" element={
             <ProtectedRoute requiredRole="Admin">
               <AccountPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/blog" element={
+            <ProtectedRoute requiredRole="Employee">
+              <Blog />
+            </ProtectedRoute>
+          } />
+          <Route path="/blog/:slug" element={
+            <ProtectedRoute requiredRole="Employee">
+              <BlogViewPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/blog-admin" element={
+            <ProtectedRoute requiredRole="Admin">
+              <AdminPanel />
+            </ProtectedRoute>
+          } />
+          <Route path="/blogs/:slug" element={
+            <ProtectedRoute requiredRole="Employee">
+              <BlogViewPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/blogs/add" element={
+            <ProtectedRoute requiredRole="Admin">
+              <BlogAddPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/blogs/edit/:slug" element={
+            <ProtectedRoute requiredRole="Admin">
+              <BlogAddPage />
             </ProtectedRoute>
           } />
           <Route path="/attendance" element={<AttendancePage/>} />

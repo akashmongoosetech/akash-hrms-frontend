@@ -231,6 +231,13 @@ export default function RightSidebar() {
           path: "/blog",
           roles: ["Admin", "SuperAdmin", "Employee"],
         },
+        {
+          id: "add-blog",
+          name: "Add Blog",
+          icon: <Rss className="h-5 w-5" />,
+          path: "/blog-admin",
+          roles: ["Admin", "SuperAdmin"],
+        },
       ],
     },
   ];
