@@ -41,6 +41,7 @@ import BlogViewPage from './pages/blog/BlogViewPage';
 import BlogAddPage from './pages/blog/BlogAddPage';
 import Blog from './components/AdminPanel/elements/Blog';
 import AdminPanel from './components/AdminPanel/AdminPanel';
+import ChatMain from './components/Chat/ChatMain';
 import './index.css';
 
 function AppRoutes() {
@@ -192,6 +193,11 @@ function AppRoutes() {
           <Route path="/alternate-saturday" element={
             <ProtectedRoute requiredRole="Admin">
               <SaturdaySetting/>
+            </ProtectedRoute>
+          } />
+          <Route path="/chat" element={
+            <ProtectedRoute requiredRole="Employee">
+              <ChatMain />
             </ProtectedRoute>
           } />
         </Route>

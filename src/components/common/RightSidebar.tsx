@@ -225,6 +225,13 @@ export default function RightSidebar() {
       icon: <MessageSquareMore className="h-4 w-4 text-gray-500" />,
       items: [
         {
+          id: "chat",
+          name: "Chat",
+          icon: <MessageSquareMore className="h-5 w-5" />,
+          path: "/chat",
+          roles: ["Admin", "SuperAdmin", "Employee"],
+        },
+        {
           id: "blog",
           name: "Blog",
           icon: <Rss className="h-5 w-5" />,
