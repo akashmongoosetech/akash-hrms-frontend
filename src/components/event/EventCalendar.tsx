@@ -213,7 +213,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
         const holidaysData = await response.json();
 
         // Transform holidays to HolidayEvent format
-        const holidayEvents: HolidayEvent[] = holidaysData.map((holiday: any) => ({
+        const holidayEvents: HolidayEvent[] = holidaysData.holidays.map((holiday: any) => ({
           _id: holiday._id,
           name: holiday.name,
           date: holiday.date.split('T')[0], // Ensure YYYY-MM-DD format
@@ -472,52 +472,69 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     return [];
   }, [leaves, selectedFilter, userRole, currentUserId]);
 
-  // Generate alternate Saturday events (memoized)
-  const alternateSaturdayEvents: SaturdayEvent[] = useMemo(() => {
-    const events: SaturdayEvent[] = [];
+  // Generate alternate Saturday dates and events (memoized)
+  const alternateSaturdayDates: Set<string> = useMemo(() => {
+    const dates = new Set<string>();
     alternateSaturdays.forEach(altSat => {
       const saturdays = getSaturdaysInMonth(altSat.month, altSat.year);
       altSat.workingSaturdays.forEach(satNum => {
         if (satNum <= saturdays.length) {
           const date = saturdays[satNum - 1];
           const dateStr = date.toISOString().split('T')[0];
-          events.push({
-            _id: `alt-sat-${altSat._id}-${satNum}`,
-            name: 'Working Saturday',
-            date: dateStr,
-            type: 'saturday' as const,
-            isWeekend: false,
-          });
+          dates.add(dateStr);
         }
       });
     });
-    return events;
+    return dates;
   }, [alternateSaturdays]);
+
+  const alternateSaturdayEvents: SaturdayEvent[] = useMemo(() => {
+    const events: SaturdayEvent[] = [];
+    alternateSaturdayDates.forEach(dateStr => {
+      events.push({
+        _id: `alt-sat-${dateStr}`,
+        name: 'Working Saturday',
+        date: dateStr,
+        type: 'saturday' as const,
+        isWeekend: false,
+      });
+    });
+    return events;
+  }, [alternateSaturdayDates]);
 
   const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...saturdays, ...alternateSaturdayEvents];
 
   // Helper function to get color based on working hours
   const getReportColor = (workingHours: string) => {
     const hours = parseFloat(workingHours.split(' ')[0]);
-    if (hours >= 8) return '#10B981'; // green
-    if (hours >= 4) return '#3B82F6'; // blue
-    return '#EF4444'; // red
+    if (hours >= 8) return 'green';
+    if (hours >= 4) return 'blue';
+    return 'red';
   };
 
-  // Prepare events for FullCalendar
-  const calendarEvents: any[] = allEvents.map(event => ({
+// In your calendarEvents mapping:
+const calendarEvents: any[] = allEvents
+  .filter(event => !event._id.startsWith('alt-sat-'))
+  .map(event => ({
     id: event._id,
     title: 'type' in event && event.type === 'report' ? event.workingHours : event.name,
     date: event.date,
-    color: 'type' in event && event.type === 'birthday' ? '#3B82F6' :
-           ('type' in event && event.type === 'holiday' ? '#EF4444' :
+    display: ('type' in event && (
+      event.type === 'holiday' ||
+      event.type === 'leave' ||
+      event.type === 'saturday' ||
+      event.type === 'birthday'
+    )) ? 'background' : 'auto',
+    color: 'type' in event && event.type === 'birthday' ? 'rgba(59, 130, 246, 0.3)' :
+           ('type' in event && event.type === 'holiday' ? 'rgba(239, 68, 68, 0.3)' :
             'type' in event && event.type === 'report' ? getReportColor(event.workingHours) :
-            'type' in event && event.type === 'leave' ? '#EF4444' :
-            'type' in event && event.type === 'saturday' ? (event.isWeekend ? '#8B5CF6' : '#10B981') : '#10B981'),
+            'type' in event && event.type === 'leave' ? 'rgba(239, 68, 68, 0.3)' :
+            'type' in event && event.type === 'saturday' ? (event.isWeekend ? 'yellow' : 'rgba(16, 185, 129, 0.3)') : '#10B981'),
     extendedProps: {
       originalEvent: event
     }
   }));
+
 
   const handleEventClick = (info: any) => {
     const originalEvent = info.event.extendedProps.originalEvent;
@@ -739,6 +756,15 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
           eventTextColor="#FFFFFF"
           dayMaxEvents={true}
           moreLinkClick="popover"
+          dayCellDidMount={(info) => {
+            const dateStr = info.date.toISOString().split('T')[0];
+            if (alternateSaturdayDates.has(dateStr)) {
+              const innerDiv = info.el.querySelector('.fc-daygrid-day-frame');
+              if (innerDiv) {
+                (innerDiv as HTMLElement).style.backgroundColor = 'rgba(34, 197, 94, 0.1)'; // light green background for working Saturdays
+              }
+            }
+          }}
         />
       </div>
 
