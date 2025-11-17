@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, X, User, Users, Camera, Trash2 } from "lucide-react";
+import { Upload, X, User, Users, Camera, Trash2, Download } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import toast from "react-hot-toast";
+import DeleteModal from "../../Common/DeleteModal";
 import {
   uploadProfilePicture,
   getGalleryPictures,
@@ -29,6 +30,11 @@ export default function GalleryPage() {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [users, setUsers] = useState<User[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{url: string, userId: string} | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteItem, setDeleteItem] = useState<{userId: string, url: string} | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,8 +119,6 @@ export default function GalleryPage() {
   };
 
   const handleDeletePicture = async (userId: string, pictureUrl: string) => {
-    if (!confirm("Are you sure you want to delete this picture?")) return;
-
     try {
       await deleteProfilePicture(userId, pictureUrl);
       toast.success("Picture deleted successfully");
@@ -122,6 +126,25 @@ export default function GalleryPage() {
     } catch (error) {
       console.error("Error deleting picture:", error);
       toast.error("Failed to delete picture");
+    }
+  };
+
+  const handleDownload = async (url: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const filename = url.split('/').pop() || 'image.jpg';
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download failed', error);
+      toast.error('Failed to download image');
     }
   };
 
@@ -208,7 +231,11 @@ export default function GalleryPage() {
                       <img
                         src={picture}
                         alt={`Profile picture ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg"
+                        className="w-full h-24 object-cover rounded-lg cursor-pointer"
+                        onClick={() => {
+                          setSelectedImage({ url: picture, userId: item.user._id });
+                          setShowImageModal(true);
+                        }}
                       />
                       {canDelete(item.user._id) && (
                         <button
@@ -297,6 +324,68 @@ export default function GalleryPage() {
           </div>
         </div>
       )}
+
+      {/* Image Modal */}
+      {showImageModal && selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">View Image</h2>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="flex justify-center mb-4">
+              <img
+                src={selectedImage.url}
+                alt="Selected image"
+                className="max-w-full max-h-[60vh] object-contain"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                onClick={() => handleDownload(selectedImage.url)}
+                className="flex items-center gap-2 bg-blue-500 text-white hover:bg-blue-600"
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </Button>
+              {canDelete(selectedImage.userId) && (
+                <Button
+                  onClick={() => {
+                    setDeleteItem({ userId: selectedImage.userId, url: selectedImage.url });
+                    setShowDeleteModal(true);
+                  }}
+                  className="flex items-center gap-2 bg-red-500 text-white hover:bg-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={async () => {
+          if (deleteItem) {
+            setDeleting(true);
+            await handleDeletePicture(deleteItem.userId, deleteItem.url);
+            setDeleting(false);
+            setShowDeleteModal(false);
+            setShowImageModal(false);
+          }
+        }}
+        title="Delete Image"
+        message="Are you sure you want to delete this image? This action cannot be undone."
+        loading={deleting}
+      />
     </div>
   );
 }

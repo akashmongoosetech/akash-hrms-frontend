@@ -119,6 +119,15 @@ interface SaturdayEvent {
   isWeekend: boolean;
 }
 
+interface AlternateSaturday {
+  _id?: string;
+  month: number;
+  year: number;
+  workingSaturdays: number[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface EventCalendarProps {
   events: Event[];
   onEventClick?: (event: Event) => void;
@@ -135,6 +144,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
    const [reports, setReports] = useState<Report[]>([]);
    const [leaves, setLeaves] = useState<Leave[]>([]);
    const [saturdays, setSaturdays] = useState<SaturdayEvent[]>([]);
+   const [alternateSaturdays, setAlternateSaturdays] = useState<AlternateSaturday[]>([]);
    const [loading, setLoading] = useState(true);
    const [showDeleteModal, setShowDeleteModal] = useState(false);
    const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
@@ -146,6 +156,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
      fetchHolidays();
      fetchCurrentUser();
      fetchSaturdays();
+     if (userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin')) {
+       fetchAlternateSaturdays();
+     }
    }, []);
 
   useEffect(() => {
@@ -311,6 +324,43 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     }
   };
 
+  const fetchAlternateSaturdays = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/alternate-saturdays`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAlternateSaturdays(data.alternateSaturdays || []);
+      } else {
+        console.error('Failed to fetch alternate Saturdays');
+        setAlternateSaturdays([]);
+      }
+    } catch (error) {
+      console.error('Error fetching alternate Saturdays:', error);
+      setAlternateSaturdays([]);
+    }
+  };
+
+  const getSaturdaysInMonth = (month: number, year: number): Date[] => {
+    const saturdays: Date[] = [];
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+
+    for (let date = new Date(firstDay); date <= lastDay; date.setDate(date.getDate() + 1)) {
+      if (date.getDay() === 6) { // Saturday
+        saturdays.push(new Date(date));
+      }
+    }
+
+    return saturdays;
+  };
+
   // Helper to format YYYY-MM-DD without timezone issues
   const formatYMD = (y: number, m: number, d: number) => {
     const mm = String(m + 1).padStart(2, '0');
@@ -422,7 +472,29 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     return [];
   }, [leaves, selectedFilter, userRole, currentUserId]);
 
-  const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...saturdays];
+  // Generate alternate Saturday events (memoized)
+  const alternateSaturdayEvents: SaturdayEvent[] = useMemo(() => {
+    const events: SaturdayEvent[] = [];
+    alternateSaturdays.forEach(altSat => {
+      const saturdays = getSaturdaysInMonth(altSat.month, altSat.year);
+      altSat.workingSaturdays.forEach(satNum => {
+        if (satNum <= saturdays.length) {
+          const date = saturdays[satNum - 1];
+          const dateStr = date.toISOString().split('T')[0];
+          events.push({
+            _id: `alt-sat-${altSat._id}-${satNum}`,
+            name: 'Working Saturday',
+            date: dateStr,
+            type: 'saturday' as const,
+            isWeekend: false,
+          });
+        }
+      });
+    });
+    return events;
+  }, [alternateSaturdays]);
+
+  const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...saturdays, ...alternateSaturdayEvents];
 
   // Helper function to get color based on working hours
   const getReportColor = (workingHours: string) => {
@@ -682,6 +754,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
               // Refresh data after deletion
               fetchUsers();
               fetchHolidays();
+              if (userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin')) {
+                fetchAlternateSaturdays();
+              }
               if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
                 fetchReports();
                 fetchLeaves();
@@ -691,6 +766,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
               // Refresh data even on error to ensure consistency
               fetchUsers();
               fetchHolidays();
+              if (userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin')) {
+                fetchAlternateSaturdays();
+              }
               if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
                 fetchReports();
                 fetchLeaves();
