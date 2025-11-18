@@ -34,6 +34,7 @@ interface Message {
     type: string;
     size: number;
   };
+  isDeletedForEveryone?: boolean;
 }
 
 type IconType = 'audio' | 'code' | 'document' | 'empty' | 'folder' | 'image' | 'img' | 'spreadsheets' | 'video' | 'video-01' | 'video-02' | 'aep' | 'ai' | 'avi' | 'css' | 'csv' | 'dmg' | 'doc' | 'docx' | 'exe' | 'fig' | 'gif' | 'html' | 'java' | 'mp4' | 'mpeg' | 'pdf' | 'pdf-simple' | 'png' | 'ppt' | 'pptx' | 'psd' | 'sql' | 'svg' | 'txt' | 'webp' | 'xls' | 'xlsx' | 'xml' | 'zip';
@@ -92,8 +93,18 @@ const ChatMain: React.FC = () => {
       fetchChatUsers();
     };
 
-    const handleMessageDeleted = (data: { messageId: string; deletedForEveryone: boolean }) => {
-      setMessages(prev => prev.filter(msg => msg._id !== data.messageId));
+    const handleMessageDeleted = (data: { messageId: string; isDeletedForEveryone: boolean }) => {
+      if (data.isDeletedForEveryone) {
+        // Update the message to show "Deleted by user" instead of removing it
+        setMessages(prev => prev.map(msg =>
+          msg._id === data.messageId
+            ? { ...msg, message: 'Deleted by user', file: undefined, isDeletedForEveryone: true }
+            : msg
+        ));
+      } else {
+        // Remove the message (delete for me)
+        setMessages(prev => prev.filter(msg => msg._id !== data.messageId));
+      }
       // Update chat users list
       fetchChatUsers();
     };
@@ -215,8 +226,18 @@ const ChatMain: React.FC = () => {
 
       await Promise.all(deletePromises);
 
-      // Remove deleted messages from local state
-      setMessages(prev => prev.filter(msg => !selectedMessages.includes(msg._id)));
+      if (deleteForEveryone) {
+        // Update messages to show "Deleted by user" instead of removing them
+        setMessages(prev => prev.map(msg =>
+          selectedMessages.includes(msg._id)
+            ? { ...msg, message: 'Deleted by user', file: undefined, isDeletedForEveryone: true }
+            : msg
+        ));
+      } else {
+        // Remove deleted messages from local state (delete for me)
+        setMessages(prev => prev.filter(msg => !selectedMessages.includes(msg._id)));
+      }
+
       setSelectedMessages([]);
       setIsSelectionMode(false);
       setShowDeleteModal(false);
@@ -448,12 +469,15 @@ const ChatMain: React.FC = () => {
                     />
                   )}
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${message.sender._id === currentUserId
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${
+                      message.isDeletedForEveryone
+                        ? 'bg-gray-100 text-gray-500 italic border border-gray-200'
+                        : message.sender._id === currentUserId
                         ? 'bg-blue-500 text-white'
                         : 'bg-gray-200 text-gray-800'
-                      } ${selectedMessages.includes(message._id) ? 'ring-2 ring-red-500' : ''}`}
+                    } ${selectedMessages.includes(message._id) ? 'ring-2 ring-red-500' : ''}`}
                   >
-                    {message.file && (
+                    {message.file && !message.isDeletedForEveryone && (
                       <div className="mb-2">
                         {message.file.type.startsWith('image/') ? (
                           <img
@@ -487,8 +511,8 @@ const ChatMain: React.FC = () => {
                         )}
                       </div>
                     )}
-                    <p>{message.message}</p>
-                    <span className="text-xs opacity-75">
+                    <p className={message.isDeletedForEveryone ? 'text-sm' : ''}>{message.message}</p>
+                    <span className={`text-xs ${message.isDeletedForEveryone ? 'text-gray-400' : 'opacity-75'}`}>
                       {new Date(message.createdAt).toLocaleTimeString()}
                     </span>
                   </div>
