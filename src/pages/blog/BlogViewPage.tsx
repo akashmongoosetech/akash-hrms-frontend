@@ -84,7 +84,7 @@ export default function BlogViewPage() {
           const related = allBlogs
             .filter((b: Blog) => b._id !== blog._id && b.tags.some(tag => blog.tags.includes(tag)))
             .sort((a: Blog, b: Blog) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-            .slice(0, 4);
+            .slice(0, 2);
           setRelatedBlogs(related);
         } catch (error) {
           console.error("Error fetching related blogs:", error);
@@ -410,71 +410,128 @@ export default function BlogViewPage() {
             </div>
           )}
 
-          {/* Related Posts */}
-          <div className="mt-16 pt-12 border-t border-gray-200">
-            <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-              Related Posts
-            </h3>
-
-            {relatedBlogs.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {relatedBlogs.map((relatedBlog) => (
-                  <BlogCard
-                    key={relatedBlog._id}
-                    blog={relatedBlog}
-                    onView={(slug) => navigate(`/blog/${slug}`)}
-                    onEdit={() => { }}
-                    onDelete={() => { }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="bg-gray-50 p-4 rounded-lg border">
-                  <h4 className="font-medium text-gray-800">
-                    Thanks for reading "{blog.title}"
-                  </h4>
-                  <p className="text-lg text-gray-800 mt-1">
-                      Written by:
-                      {/* {blog.author.firstName} {blog.author.lastName} */}
-                  </p>
-                  <div className="flex justify-items-center">
-                    <div className="">
-                      <img
-                        src={
-                          blog.author.photo
-                            ? `${apiURL}/${blog.author.photo}`
-                            : "/default-avatar.png"
-                        }
-                        alt={blog.author.firstName}
-                        className="w-14 h-14 rounded-full object-cover mt-3 border-2 border-white shadow-md"
-                      />
-                    </div>
-                      <div className="">
-                        <p className="mt-4 ml-4 text-sm text-gray-600">{blog.author.firstName} {blog.author.lastName}</p>
-                        <p className="ml-4 text-sm text-gray-600">{blog.author.email}</p>
-                   </div>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg border">
-                  <h4 className="font-medium text-gray-800">
-                    Welcome back, {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Reader'}!
-                  </h4>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Keep exploring our blog posts.
-                  </p>
-                  {currentUser && currentUser.photo && (
+          {/* Thanks Cards */}
+          <div className=" pt-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <h4 className="font-medium text-gray-800">
+                  Thanks for reading "{blog.title}"
+                </h4>
+                <p className="text-lg text-gray-800 mt-1">
+                  Written by:
+                  {/* {blog.author.firstName} {blog.author.lastName} */}
+                </p>
+                <div className="flex justify-items-center">
+                  <div className="">
                     <img
-                      src={`${apiURL}/${currentUser.photo}`}
-                      alt={currentUser.firstName}
+                      src={
+                        blog.author.photo
+                          ? `${apiURL}/${blog.author.photo}`
+                          : "/default-avatar.png"
+                      }
+                      alt={blog.author.firstName}
                       className="w-14 h-14 rounded-full object-cover mt-3 border-2 border-white shadow-md"
                     />
-                  )}
+                  </div>
+                  <div className="">
+                    <p className="mt-4 ml-4 text-sm text-gray-600">{blog.author.firstName} {blog.author.lastName}</p>
+                    <p className="ml-4 text-sm text-gray-600">{blog.author.email}</p>
+                  </div>
                 </div>
               </div>
-            )}
+
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <h4 className="font-medium text-gray-800">
+                  Welcome back, {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Reader'}!
+                </h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  Keep exploring our blog posts.
+                </p>
+                {currentUser && currentUser.photo && (
+                  <img
+                    src={`${apiURL}/${currentUser.photo}`}
+                    alt={currentUser.firstName}
+                    className="w-14 h-14 rounded-full object-cover mt-3 border-2 border-white shadow-md"
+                  />
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* Related Posts */}
+          {relatedBlogs.length > 0 && (
+            <div className="mt-16 pt-12 border-t border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">Related Posts</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {relatedBlogs.map((relBlog) => (
+                  <div
+                    key={relBlog._id}
+                    className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => navigate(`/blog/${relBlog.slug}`)}
+                  >
+                    {/* Featured Image */}
+                    {relBlog.featuredImage && (
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={`${apiURL}/${relBlog.featuredImage}`}
+                          alt={relBlog.title}
+                          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                        />
+                      </div>
+                    )}
+
+                    <div className="p-6">
+                      {/* Title */}
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                        {relBlog.title}
+                      </h3>
+
+                      {/* Excerpt */}
+                      {relBlog.excerpt && (
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                          {relBlog.excerpt}
+                        </p>
+                      )}
+
+                      {/* Author and Date */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          {relBlog.author.photo ? (
+                            <img
+                              src={`${apiURL}/${relBlog.author.photo}`}
+                              alt={relBlog.author.firstName}
+                              className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-medium text-gray-600">
+                                {relBlog.author.firstName[0]}{relBlog.author.lastName[0]}
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {relBlog.author.firstName} {relBlog.author.lastName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(relBlog.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                          Read More
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
