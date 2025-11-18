@@ -8,7 +8,7 @@ import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 interface Team {
     _id: string;
     name: string;
-    manager: {
+    manager?: {
         _id: string;
         firstName: string;
         lastName: string;
@@ -59,7 +59,7 @@ export default function TeamDashboard() {
 
                 if (role === 'Employee' && userId) {
                     filteredTeams = data.filter((team: Team) =>
-                        team.manager._id === userId ||
+                        (team.manager && team.manager._id === userId) ||
                         team.teamMembers.some(member => member._id === userId)
                     );
                 }
@@ -158,7 +158,7 @@ export default function TeamDashboard() {
                                 <div>
                                     <div className="text-sm text-gray-500">Manager</div>
                                     <div className="text-sm font-medium text-gray-900">
-                                        {team.manager.firstName} {team.manager.lastName}
+                                        {team.manager ? `${team.manager.firstName} ${team.manager.lastName}` : 'No Manager'}
                                     </div>
                                 </div>
 

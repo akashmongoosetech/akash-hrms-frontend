@@ -54,7 +54,8 @@ export default function StatisticsPage() {
     try {
       const response = await API.get('/users');
       if (response.data.users) {
-        setEmployeesData(response.data.users);
+        const filteredEmployees = response.data.users.filter((user: any) => user.role === 'Employee');
+        setEmployeesData(filteredEmployees);
         setIsLoading(false);
       } else {
         setErrorMessage('Failed to fetch employees data');
@@ -276,12 +277,12 @@ export default function StatisticsPage() {
                     />
                   </div>
       
-                  <div className="legend-container ml-auto">
-                    <span className="leave">Leave</span>
-                    <span className="halfDay">Half day</span>
-                    <span className="extraWorking">Extra working</span>
-                    <span className="holiday">Holiday</span>
-                    <span className="alternateHoliday">Weekend</span>
+                  <div className="legend-container ml-auto gap-2 flex">
+                    <p className="leave bg-red-100 text-red-800 border-2 border-red-800 p-1 rounded">Leave</p>
+                    <p className="halfDay bg-blue-100 text-blue-800 border-2 border-blue-800 p-1 rounded">Half day</p>
+                    <p className="extraWorking bg-green-100 text-green-800 border-2 border-green-800 p-1 rounded">Extra working</p>
+                    <p className="holiday bg-orange-100 text-orange-800 border-2 border-orange-800 p-1 rounded">Holiday</p>
+                    <p className="alternateHoliday bg-yellow-100 text-yellow-800 border-2 border-yellow-800 p-1 rounded">Weekend</p>
                   </div>
                 </div>
               </div>
@@ -294,7 +295,7 @@ export default function StatisticsPage() {
             />
           ) : (
             <div style={{ overflowX: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#a2c4c9 #ffffff', scrollBehavior: 'smooth' }}>
-              <table className="table table-bordered table-sm text-center" style={{ minWidth: '600px' }}>
+              <table className="table table-bordegreen table-sm text-center" style={{ minWidth: '600px' }}>
                 <thead style={{ backgroundColor: "#a2c4c9" }}>
                   <tr>
                     <th style={{ padding: "14px" }}>Date</th>
@@ -325,7 +326,7 @@ export default function StatisticsPage() {
                           let cellStyle = {};
 
                           const matchingLeave = leavesData.find((leave) =>
-                            leave.employee._id === employee._id &&
+                            leave.employee && leave.employee._id === employee._id &&
                             day.key >= leave.startDate &&
                             day.key <= leave.endDate
                           );

@@ -810,6 +810,7 @@ const calendarEvents: any[] = allEvents
                 fetchReports();
                 fetchLeaves();
               }
+              throw error; // Re-throw to let DeleteModal show error message
             }
           }
         }}

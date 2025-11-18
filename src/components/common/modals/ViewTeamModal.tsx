@@ -4,7 +4,7 @@ import { formatDateTime } from '../../../Common/Commonfunction';
 interface Team {
   _id: string;
   name: string;
-  manager: {
+  manager?: {
     _id: string;
     firstName: string;
     lastName: string;
@@ -100,27 +100,36 @@ const ViewTeamModal: React.FC<ViewTeamModalProps> = ({ showModal, onClose, team 
           </section>
 
           {/* Manager */}
-          <section>
-            <h4 className="text-gray-600 text-sm mb-2 font-medium">Manager</h4>
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 flex items-center space-x-4 hover:shadow-md transition-all">
-              <img
-                src={
-                  team.manager.photo
-                    ? team.manager.photo
-                    : '/default-avatar.png'
-                }
-                alt={`${team.manager.firstName} ${team.manager.lastName}`}
-                className="w-14 h-14 rounded-full ring-2 ring-blue-100 object-cover"
-                onError={(e) => ((e.target as HTMLImageElement).src = '/default-avatar.png')}
-              />
-              <div>
-                <p className="font-semibold text-gray-800">
-                  {team.manager.firstName} {team.manager.lastName}
-                </p>
-                <p className="text-sm text-gray-600">{team.manager.email}</p>
+          {team.manager ? (
+            <section>
+              <h4 className="text-gray-600 text-sm mb-2 font-medium">Manager</h4>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 flex items-center space-x-4 hover:shadow-md transition-all">
+                <img
+                  src={
+                    team.manager.photo
+                      ? team.manager.photo
+                      : '/default-avatar.png'
+                  }
+                  alt={`${team.manager.firstName} ${team.manager.lastName}`}
+                  className="w-14 h-14 rounded-full ring-2 ring-blue-100 object-cover"
+                  onError={(e) => ((e.target as HTMLImageElement).src = '/default-avatar.png')}
+                />
+                <div>
+                  <p className="font-semibold text-gray-800">
+                    {team.manager.firstName} {team.manager.lastName}
+                  </p>
+                  <p className="text-sm text-gray-600">{team.manager.email}</p>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          ) : (
+            <section>
+              <h4 className="text-gray-600 text-sm mb-2 font-medium">Manager</h4>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4">
+                <p className="text-gray-500">No Manager Assigned</p>
+              </div>
+            </section>
+          )}
 
           {/* Team Members */}
           <section>

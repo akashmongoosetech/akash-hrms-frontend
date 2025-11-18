@@ -9,7 +9,7 @@ import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 interface Team {
   _id: string;
   name: string;
-  manager: {
+  manager?: {
     _id: string;
     firstName: string;
     lastName: string;
@@ -250,7 +250,7 @@ export default function TeamTable() {
                 <div>
                   <div className="text-sm text-gray-500">Manager</div>
                   <div className="text-sm font-medium text-gray-900">
-                    {team.manager.firstName} {team.manager.lastName}
+                    {team.manager ? `${team.manager.firstName} ${team.manager.lastName}` : 'No Manager'}
                   </div>
                 </div>
 

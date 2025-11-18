@@ -101,10 +101,11 @@ export default function EventTable() {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = async () => {
-    if (!deleteEventId) return;
+  const confirmDelete = async (eventId?: string) => {
+    const idToDelete = eventId || deleteEventId;
+    if (!idToDelete) return;
 
-    const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/events/${deleteEventId}`, {
+    const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/events/${idToDelete}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -112,7 +113,7 @@ export default function EventTable() {
     });
 
     if (response.ok) {
-      setEvents(events.filter(event => event._id !== deleteEventId));
+      setEvents(events.filter(event => event._id !== idToDelete));
     } else {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Failed to delete event');
