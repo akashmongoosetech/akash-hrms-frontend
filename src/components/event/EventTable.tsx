@@ -101,28 +101,21 @@ export default function EventTable() {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = async (eventId: string) => {
-    try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/events/${eventId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        setEvents(events.filter(event => event._id !== eventId));
-        toast.success('Event deleted successfully');
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to delete event');
-        // Refresh the events list to ensure it's up to date
-        fetchEvents();
+  const confirmDelete = async () => {
+    if (!deleteEventId) return;
+
+    const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/events/${deleteEventId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      toast.error('Error deleting event');
-      // Refresh the events list
-      fetchEvents();
+    });
+
+    if (response.ok) {
+      setEvents(events.filter(event => event._id !== deleteEventId));
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to delete event');
     }
   };
 
@@ -331,16 +324,14 @@ export default function EventTable() {
 
       <DeleteModal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => {
-          if (deleteEventId) {
-            confirmDelete(deleteEventId);
-            setShowDeleteModal(false);
-            setDeleteEventId(null);
-          }
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteEventId(null);
         }}
+        onConfirm={confirmDelete}
         title="Delete Event"
         message="Are you sure you want to delete this event? This action cannot be undone."
+        successMessage="Event deleted successfully!"
       />
     </div>
   );

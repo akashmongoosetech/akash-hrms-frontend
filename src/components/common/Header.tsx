@@ -387,10 +387,7 @@ export default function Header() {
     ? `${userData.firstName} ${userData.lastName}`
     : localStorage.getItem("userName") || "User";
   const baseUrl = ((import.meta as any).env.VITE_API_URL || "http://localhost:5000").replace('', '');
-  const userPhoto = userData?.photo
-    ? `${baseUrl}/uploads/${userData.photo.split(/[/\\]/).pop()
-    }`
-    : null;
+  const userPhoto = userData?.photo || null;
 
   const handleLogout = () => {
     localStorage.removeItem("token");

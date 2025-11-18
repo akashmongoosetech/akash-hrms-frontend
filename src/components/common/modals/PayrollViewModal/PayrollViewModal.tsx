@@ -108,7 +108,7 @@ const PayrollViewModal: React.FC<PayrollViewModalProps> = ({ showModal, onClose,
               {selectedEmployee.photo ? (
                 <img
                   className="h-14 w-14 rounded-full object-cover shadow-md"
-                  src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${selectedEmployee.photo}`}
+                  src={selectedEmployee.photo}
                   alt={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`}
                 />
               ) : (

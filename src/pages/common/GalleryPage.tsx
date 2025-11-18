@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, X, User, Users, Camera, Trash2, Download } from "lucide-react";
+import { Upload, User, Users, Camera, Trash2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import toast from "react-hot-toast";
@@ -11,11 +11,14 @@ import {
   deleteProfilePicture,
   getUsers
 } from "../../utils/galleryApi";
+import UploadModal from '../../components/gallery/UploadModal';
+import ImageModal from '../../components/gallery/ImageModal';
 
 interface User {
   _id: string;
   firstName: string;
   lastName: string;
+  photo: string;
 }
 
 interface GalleryItem {
@@ -34,7 +37,6 @@ export default function GalleryPage() {
   const [selectedImage, setSelectedImage] = useState<{url: string, userId: string} | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteItem, setDeleteItem] = useState<{userId: string, url: string} | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -123,7 +125,6 @@ export default function GalleryPage() {
   const handleDeletePicture = async (userId: string, pictureUrl: string) => {
     try {
       await deleteProfilePicture(userId, pictureUrl);
-      toast.success("Picture deleted successfully");
       fetchGallery(); // Refresh gallery
     } catch (error) {
       console.error("Error deleting picture:", error);
@@ -206,10 +207,18 @@ export default function GalleryPage() {
           {gallery.map((item) => (
             <Card key={item.user._id} className="p-4">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">
-                    {item.user.firstName[0]}{item.user.lastName[0]}
-                  </span>
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                  {item.user.photo ? (
+                    <img
+                      src={item.user.photo}
+                      alt={`${item.user.firstName} ${item.user.lastName}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-gray-600 text-sm font-semibold">
+                      {item.user.firstName.charAt(0)}{item.user.lastName.charAt(0)}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-900">
@@ -241,7 +250,10 @@ export default function GalleryPage() {
                       />
                       {canDelete(item.user._id) && (
                         <button
-                          onClick={() => handleDeletePicture(item.user._id, picture)}
+                          onClick={() => {
+                            setDeleteItem({ userId: item.user._id, url: picture });
+                            setShowDeleteModal(true);
+                          }}
                           className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -256,137 +268,39 @@ export default function GalleryPage() {
         </div>
       )}
 
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Upload Profile Picture</h2>
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
+      <UploadModal
+        showUploadModal={showUploadModal}
+        setShowUploadModal={setShowUploadModal}
+        userRole={userRole}
+        selectedUserId={selectedUserId}
+        setSelectedUserId={setSelectedUserId}
+        users={users}
+        handleFileUpload={handleFileUpload}
+        uploading={uploading}
+        fileInputRef={fileInputRef}
+      />
 
-            {userRole !== "Employee" && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Employee
-                </label>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select an employee...</option>
-                  {users.map((user) => (
-                    <option key={user._id} value={user._id}>
-                      {user.firstName} {user.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Image
-              </label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={uploading}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Maximum file size: 5MB. Supported formats: JPG, PNG, GIF
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowUploadModal(false)}
-                disabled={uploading}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading || (userRole !== "Employee" && !selectedUserId)}
-                loading={uploading}
-              >
-                {uploading ? "Uploading..." : "Upload"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Image Modal */}
-      {showImageModal && selectedImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">View Image</h2>
-              <button
-                onClick={() => setShowImageModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            <div className="flex justify-center mb-4">
-              <img
-                src={selectedImage.url}
-                alt="Selected image"
-                className="max-w-full max-h-[60vh] object-contain"
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button
-                onClick={() => handleDownload(selectedImage.url)}
-                className="flex items-center gap-2 bg-blue-500 text-white hover:bg-blue-600"
-              >
-                <Download className="h-4 w-4" />
-                Download
-              </Button>
-              {canDelete(selectedImage.userId) && (
-                <Button
-                  onClick={() => {
-                    setDeleteItem({ userId: selectedImage.userId, url: selectedImage.url });
-                    setShowDeleteModal(true);
-                  }}
-                  className="flex items-center gap-2 bg-red-500 text-white hover:bg-red-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ImageModal
+        showImageModal={showImageModal}
+        setShowImageModal={setShowImageModal}
+        selectedImage={selectedImage}
+        handleDownload={handleDownload}
+        canDelete={canDelete}
+        setDeleteItem={setDeleteItem}
+        setShowDeleteModal={setShowDeleteModal}
+      />
 
       <DeleteModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={async () => {
           if (deleteItem) {
-            setDeleting(true);
             await handleDeletePicture(deleteItem.userId, deleteItem.url);
-            setDeleting(false);
-            setShowDeleteModal(false);
             setShowImageModal(false);
           }
         }}
         title="Delete Image"
         message="Are you sure you want to delete this image? This action cannot be undone."
-        loading={deleting}
       />
     </div>
   );

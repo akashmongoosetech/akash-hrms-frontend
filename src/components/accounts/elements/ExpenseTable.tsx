@@ -31,7 +31,6 @@ export default function ExpenseTable({ onAdd, onEdit, onView }: ExpenseTableProp
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -85,29 +84,20 @@ export default function ExpenseTable({ onAdd, onEdit, onView }: ExpenseTableProp
   const confirmDelete = async () => {
     if (!deleteExpenseId) return;
 
-    setDeleteLoading(true);
-    try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/expenses/${deleteExpenseId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        fetchExpenses(currentPage);
-        setShowDeleteModal(false);
-        setDeleteExpenseId(null);
-        toast.success('Expense deleted successfully');
-      } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to delete expense');
+    const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/expenses/${deleteExpenseId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
-    } catch (error) {
-      console.error('Error deleting expense:', error);
-      toast.error('Error deleting expense');
-    } finally {
-      setDeleteLoading(false);
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete expense');
     }
+
+    fetchExpenses(currentPage);
+    setDeleteExpenseId(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -411,11 +401,14 @@ export default function ExpenseTable({ onAdd, onEdit, onView }: ExpenseTableProp
 
       <DeleteModal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteExpenseId(null);
+        }}
         onConfirm={confirmDelete}
         title="Delete Expense"
         message="Are you sure you want to delete this expense? This action cannot be undone."
-        loading={deleteLoading}
+        successMessage="Expense deleted successfully!"
       />
     </div>
   );

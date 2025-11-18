@@ -55,7 +55,7 @@ export default function ProfileManagement() {
       setProfile(res.data);
       setFormData(res.data);
       if (res.data.photo) {
-        setPhotoPreview(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${res.data.photo}`);
+        setPhotoPreview(res.data.photo);
       }
     } catch (err: any) {
       toast.error('Failed to fetch profile: ' + err?.response?.data?.message);
@@ -314,7 +314,7 @@ export default function ProfileManagement() {
                 onClick={() => {
                   setEditing(false);
                   setFormData(profile);
-                  setPhotoPreview(profile.photo ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${profile.photo}` : null);
+                  setPhotoPreview(profile.photo || null);
                 }}
                 className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               >

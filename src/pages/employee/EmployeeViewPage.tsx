@@ -147,7 +147,7 @@ export default function EmployeeViewPage() {
               <div className="flex-shrink-0">
                 {employee.photo ? (
                   <img
-                    src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/uploads/${employee.photo.split(/[/\\]/).pop()}`}
+                    src={employee.photo}
                     alt="Profile"
                     className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
                     onError={(e) => {
@@ -448,7 +448,7 @@ export default function EmployeeViewPage() {
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.photo ? (
                       <img
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/uploads/${employee.photo.split(/[/\\]/).pop()}`}
+                        src={employee.photo}
                         alt="Profile"
                         className="w-full h-32 object-cover rounded-md"
                         onError={(e) => {
@@ -474,7 +474,7 @@ export default function EmployeeViewPage() {
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.aadharCardFile ? (
                       <embed
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${employee.aadharCardFile.replace(/^uploads\//, '')}`}
+                        src={employee.aadharCardFile}
                         className="w-full h-32 rounded-md"
                         type="application/pdf"
                       />
@@ -490,7 +490,7 @@ export default function EmployeeViewPage() {
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.panCardFile ? (
                       <embed
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${employee.panCardFile.replace(/^uploads\//, '')}`}
+                        src={employee.panCardFile}
                         className="w-full h-32 rounded-md"
                         type="application/pdf"
                       />
@@ -506,7 +506,7 @@ export default function EmployeeViewPage() {
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.drivingLicenseFile ? (
                       <embed
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${employee.drivingLicenseFile.replace(/^uploads\//, '')}`}
+                        src={employee.drivingLicenseFile}
                         className="w-full h-32 rounded-md"
                         type="application/pdf"
                       />
@@ -522,7 +522,7 @@ export default function EmployeeViewPage() {
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.resume ? (
                       <embed
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${employee.resume.replace(/^uploads\//, '')}`}
+                        src={employee.resume}
                         className="w-full h-32 rounded-md"
                         type="application/pdf"
                       />

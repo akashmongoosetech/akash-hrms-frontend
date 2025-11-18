@@ -215,28 +215,48 @@ const ChatMain: React.FC = () => {
     }
   };
 
+  // Check if any received messages are selected
+  const hasReceivedMessagesSelected = () => {
+    return selectedMessages.some(messageId => {
+      const message = messages.find(msg => msg._id === messageId);
+      return message && message.sender._id !== currentUserId;
+    });
+  };
+
   // Delete selected messages
   const deleteMessages = async (deleteForEveryone: boolean) => {
     if (selectedMessages.length === 0) return;
 
     try {
-      const deletePromises = selectedMessages.map(messageId =>
-        API.delete(deleteForEveryone ? `/chats/delete-for-everyone/${messageId}` : `/chats/delete-for-me/${messageId}`)
-      );
+      // For each selected message, determine the appropriate deletion endpoint
+      const deletePromises = selectedMessages.map(messageId => {
+        const message = messages.find(msg => msg._id === messageId);
+        if (!message) return Promise.resolve();
+
+        // If deleting for everyone, only allow if user is the sender
+        const isSentMessage = message.sender._id === currentUserId;
+        const shouldDeleteForEveryone = deleteForEveryone && isSentMessage;
+
+        return API.delete(shouldDeleteForEveryone ? `/chats/delete-for-everyone/${messageId}` : `/chats/delete-for-me/${messageId}`);
+      });
 
       await Promise.all(deletePromises);
 
-      if (deleteForEveryone) {
-        // Update messages to show "Deleted by user" instead of removing them
-        setMessages(prev => prev.map(msg =>
-          selectedMessages.includes(msg._id)
-            ? { ...msg, message: 'Deleted by user', file: undefined, isDeletedForEveryone: true }
-            : msg
-        ));
-      } else {
-        // Remove deleted messages from local state (delete for me)
-        setMessages(prev => prev.filter(msg => !selectedMessages.includes(msg._id)));
-      }
+      // Update local state based on deletion type
+      setMessages(prev => prev.map(msg => {
+        if (!selectedMessages.includes(msg._id)) return msg;
+
+        const isSentMessage = msg.sender._id === currentUserId;
+        const shouldDeleteForEveryone = deleteForEveryone && isSentMessage;
+
+        if (shouldDeleteForEveryone) {
+          // Update message to show "Deleted by user"
+          return { ...msg, message: 'Deleted by user', file: undefined, isDeletedForEveryone: true };
+        } else {
+          // For "delete for me", remove the message from local state
+          return null;
+        }
+      }).filter(Boolean) as Message[]);
 
       setSelectedMessages([]);
       setIsSelectionMode(false);
@@ -322,7 +342,7 @@ const ChatMain: React.FC = () => {
                   <div className="flex items-center">
                     {user.photo ? (
                       <img
-                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/${user.photo}`}
+                        src={user.photo}
                         alt={`${user.firstName} ${user.lastName}`}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -363,7 +383,7 @@ const ChatMain: React.FC = () => {
                   <div className="flex items-center">
                     {user.photo ? (
                       <img
-                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/${user.photo}`}
+                        src={user.photo}
                         alt={`${user.firstName} ${user.lastName}`}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -405,7 +425,7 @@ const ChatMain: React.FC = () => {
                 <div className="flex items-center">
                   {selectedUser.photo ? (
                     <img
-                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/${selectedUser.photo}`}
+                      src={selectedUser.photo}
                       alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
                       className="w-10 h-10 rounded-full object-cover"
                     />
@@ -460,7 +480,7 @@ const ChatMain: React.FC = () => {
                   key={message._id}
                   className={`flex ${message.sender._id === currentUserId ? 'justify-end' : 'justify-start'}`}
                 >
-                  {isSelectionMode && message.sender._id === currentUserId && (
+                  {isSelectionMode && (
                     <input
                       type="checkbox"
                       checked={selectedMessages.includes(message._id)}
@@ -481,26 +501,26 @@ const ChatMain: React.FC = () => {
                       <div className="mb-2">
                         {message.file.type.startsWith('image/') ? (
                           <img
-                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${message.file.path.split('/').pop()}`}
+                            src={message.file.path}
                             alt={message.file.name}
                             className="max-w-full h-auto rounded cursor-pointer"
-                            onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${message.file.path.split('/').pop()}`, '_blank')}
+                            onClick={() => window.open(message.file.path, '_blank')}
                           />
                         ) : message.file.type.startsWith('video/') ? (
                           <video
                             controls
                             className="max-w-full h-auto rounded"
-                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${message.file.path.split('/').pop()}`}
+                            src={message.file.path}
                           />
                         ) : message.file.type.startsWith('audio/') ? (
                           <audio
                             controls
                             className="max-w-full"
-                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${message.file.path.split('/').pop()}`}
+                            src={message.file.path}
                           />
                         ) : (
                           <a
-                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${message.file.path.split('/').pop()}`}
+                            href={message.file.path}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`underline ${message.sender._id === currentUserId ? 'text-blue-200' : 'text-blue-600'}`}
@@ -603,11 +623,19 @@ const ChatMain: React.FC = () => {
               <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
                 You are about to delete <strong>{selectedMessages.length}</strong>{" "}
                 message{selectedMessages.length > 1 ? "s" : ""}.
-                This action cannot be undone.
+                {hasReceivedMessagesSelected() ? (
+                  <span className="block mt-2 text-sm text-orange-600 dark:text-orange-400">
+                    Note: Received messages can only be deleted from your chat feed.
+                  </span>
+                ) : (
+                  <span className="block mt-2 text-sm text-gray-500">
+                    Choose how you want to delete these messages.
+                  </span>
+                )}
               </p>
 
               {/* Buttons */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className={`grid gap-3 ${hasReceivedMessagesSelected() ? 'grid-cols-2' : 'grid-cols-3'}`}>
 
                 {/* Delete for me */}
                 <button
@@ -617,13 +645,15 @@ const ChatMain: React.FC = () => {
                   For Me
                 </button>
 
-                {/* Delete for Everyone */}
-                <button
-                  onClick={() => deleteMessages(true)}
-                  className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition-all shadow-sm hover:shadow-md"
-                >
-                  For All
-                </button>
+                {/* Delete for Everyone - only show if no received messages are selected */}
+                {!hasReceivedMessagesSelected() && (
+                  <button
+                    onClick={() => deleteMessages(true)}
+                    className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition-all shadow-sm hover:shadow-md"
+                  >
+                    For All
+                  </button>
+                )}
 
                 {/* Cancel */}
                 <button

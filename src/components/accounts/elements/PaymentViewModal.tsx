@@ -91,7 +91,7 @@ export default function PaymentViewModal({
                   {payment.employee.photo ? (
                     <img
                       className="h-16 w-16 rounded-full object-cover"
-                      src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${payment.employee.photo}`}
+                      src={payment.employee.photo}
                       alt={`${payment.employee.firstName} ${payment.employee.lastName}`}
                     />
                   ) : (

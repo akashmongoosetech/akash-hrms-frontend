@@ -574,7 +574,7 @@ export default function TicketViewPage() {
                         <div className="flex flex-col items-center">
                           <Avatar className="w-32 h-32 mb-3">
                             <AvatarImage
-                              src={`${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/${ticket.employee.photo}`}
+                              src={ticket.employee.photo}
                               alt={employeeName}
                               className="object-cover border-4 border-gray-200 shadow-md"
                             />
@@ -886,9 +886,7 @@ export default function TicketViewPage() {
                             <div className="flex-shrink-0">
                               <Avatar className="w-8 h-8">
                                 <AvatarImage
-                                  src={`${(import.meta as any).env.VITE_API_URL ||
-                                    "http://localhost:5000"
-                                    }/${comment.user.photo}`}
+                                  src={comment.user.photo}
                                   alt={`${comment.user.firstName || ""} ${comment.user.lastName || ""
                                     }`}
                                   className="object-cover"
@@ -963,8 +961,7 @@ export default function TicketViewPage() {
                                   {comment.attachments.map((attachment, index) => (
                                     <a
                                       key={index}
-                                      href={`${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-                                        }/uploads/${attachment.filename}`}
+                                      href={attachment.filename}
                                       target="_blank"
                                       download={attachment.originalname}
                                       className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"

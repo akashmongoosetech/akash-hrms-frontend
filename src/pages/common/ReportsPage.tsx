@@ -184,20 +184,13 @@ export default function ReportsPage() {
   const confirmDelete = async () => {
     if (!deleteReportId) return;
 
-    try {
-      await API.delete(`/reports/${deleteReportId}`);
+    await API.delete(`/reports/${deleteReportId}`);
 
-      // Emit socket event for real-time update
-      socket.emit('reportDeleted', deleteReportId);
+    // Emit socket event for real-time update
+    socket.emit('reportDeleted', deleteReportId);
 
-      toast.success('Report deleted successfully!');
-      setShowDeleteModal(false);
-      setDeleteReportId(null);
-      fetchAllReports(currentPage); // Refresh reports list
-    } catch (error) {
-      console.error('Error deleting report:', error);
-      toast.error('Error deleting report');
-    }
+    setDeleteReportId(null);
+    fetchAllReports(currentPage); // Refresh reports list
   };
 
   return (
@@ -291,6 +284,7 @@ export default function ReportsPage() {
         onConfirm={confirmDelete}
         title="Delete Report"
         message="Are you sure you want to delete this report? This action cannot be undone."
+        successMessage="Report deleted successfully!"
       />
     </div>
   );

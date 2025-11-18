@@ -67,7 +67,7 @@ export default function BlogCard({ blog, onView, onEdit, onDelete }: BlogCardPro
           <div className="flex items-center space-x-2">
             {blog.author.photo ? (
               <img
-                src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${blog.author.photo}`}
+                src={blog.author.photo}
                 alt={blog.author.firstName}
                 className="w-8 h-8 rounded-full object-cover border border-gray-200"
               />

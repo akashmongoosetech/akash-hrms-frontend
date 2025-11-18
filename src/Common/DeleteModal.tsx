@@ -1,18 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import toast from 'react-hot-toast';
 
 interface DeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   title: string;
   message: string;
-  loading?: boolean;
+  successMessage?: string;
 }
 
-export default function DeleteModal({ isOpen, onClose, onConfirm, title, message, loading = false }: DeleteModalProps) {
+export default function DeleteModal({ isOpen, onClose, onConfirm, title, message, successMessage = "Deleted successfully!" }: DeleteModalProps) {
+  const [loading, setLoading] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      await onConfirm();
+      toast.success(successMessage);
+      onClose();
+    } catch (error) {
+      console.error('Delete operation failed:', error);
+      toast.error('Failed to delete item');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -26,13 +43,15 @@ export default function DeleteModal({ isOpen, onClose, onConfirm, title, message
           <Button
             onClick={onClose}
             variant="outline"
+            disabled={loading}
           >
             Cancel
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={handleConfirm}
             variant="delete"
             loading={loading}
+            disabled={loading}
           >
             Delete
           </Button>

@@ -113,26 +113,19 @@ export default function HolidayTable() {
   const confirmDelete = async () => {
     if (!deleteHolidayId) return;
 
-    try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays/${deleteHolidayId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        fetchHolidays(currentPage);
-        setShowDeleteModal(false);
-        setDeleteHolidayId(null);
-        toast.success('Holiday deleted successfully!');
-      } else {
-        console.error('Failed to delete holiday');
-        toast.error('Failed to delete holiday');
+    const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/holidays/${deleteHolidayId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
-    } catch (error) {
-      console.error('Error deleting holiday:', error);
-      toast.error('Error deleting holiday');
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete holiday');
     }
+
+    fetchHolidays(currentPage);
+    setDeleteHolidayId(null);
   };
 
   const closeModal = () => {
@@ -397,10 +390,14 @@ export default function HolidayTable() {
 
       <DeleteModal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteHolidayId(null);
+        }}
         onConfirm={confirmDelete}
         title="Delete Holiday"
         message="Are you sure you want to delete this holiday? This action cannot be undone."
+        successMessage="Holiday deleted successfully!"
       />
     </div>
   );

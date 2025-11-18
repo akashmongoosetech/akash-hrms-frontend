@@ -37,7 +37,6 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -91,7 +90,6 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
   const confirmDelete = async () => {
     if (!deletePaymentId) return;
 
-    setDeleteLoading(true);
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/payments/${deletePaymentId}`, {
         method: 'DELETE',
@@ -111,8 +109,6 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
     } catch (error) {
       console.error('Error deleting payment:', error);
       toast.error('Error deleting payment');
-    } finally {
-      setDeleteLoading(false);
     }
   };
 
@@ -300,7 +296,7 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
                         {payment.employee.photo ? (
                           <img
                             className="h-10 w-10 rounded-full object-cover"
-                            src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${payment.employee.photo}`}
+                            src={payment.employee.photo}
                             alt={`${payment.employee.firstName} ${payment.employee.lastName}`}
                           />
                         ) : (
@@ -406,7 +402,6 @@ export default function PaymentTable({ onAdd, onEdit, onView }: PaymentTableProp
         onConfirm={confirmDelete}
         title="Delete Payment"
         message="Are you sure you want to delete this payment? This action cannot be undone."
-        loading={deleteLoading}
       />
     </div>
   );

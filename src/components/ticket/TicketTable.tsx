@@ -105,25 +105,19 @@ export default function TicketTable() {
   const confirmDelete = async () => {
     if (!deleteTicketId) return;
 
-    try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/tickets/${deleteTicketId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        fetchTickets(currentPage);
-        setShowDeleteModal(false);
-        setDeleteTicketId(null);
-        toast.success('Ticket deleted successfully');
-      } else {
-        toast.error('Failed to delete ticket');
+    const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/tickets/${deleteTicketId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
-    } catch (err) {
-      toast.error('Error deleting ticket');
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete ticket');
     }
+
+    fetchTickets(currentPage);
+    setDeleteTicketId(null);
   };
 
   const filteredTickets = tickets.filter(ticket => {
@@ -421,10 +415,14 @@ export default function TicketTable() {
 
       <DeleteModal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteTicketId(null);
+        }}
         onConfirm={confirmDelete}
         title="Delete Ticket"
         message="Are you sure you want to delete this ticket? This action cannot be undone."
+        successMessage="Ticket deleted successfully!"
       />
     </div>
   );

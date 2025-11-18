@@ -312,7 +312,7 @@ export default function UserTable() {
                       {user.photo ? (
                         <img
                           className="h-10 w-10 rounded-full object-cover"
-                          src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${user.photo}`}
+                          src={user.photo}
                           alt={`${user.firstName} ${user.lastName}`}
                         />
                       ) : (

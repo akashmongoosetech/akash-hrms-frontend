@@ -162,7 +162,7 @@ export default function PayrollTable() {
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10">
                       {employee.photo ? (
-                        <img className="h-10 w-10 rounded-full object-cover" src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${employee.photo}`} alt="Profile" />
+                        <img className="h-10 w-10 rounded-full object-cover" src={employee.photo} alt="Profile" />
                       ) : (
                         <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                           <span className="text-gray-600 font-medium text-sm">

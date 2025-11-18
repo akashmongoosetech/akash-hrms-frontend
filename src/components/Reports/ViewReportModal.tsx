@@ -65,7 +65,7 @@ const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose, repo
                 {report.employee.photo ? (
                   <img
                     className="h-14 w-14 rounded-full object-cover shadow-md"
-                    src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${report.employee.photo}`}
+                    src={report.employee.photo}
                     alt={`${report.employee.firstName} ${report.employee.lastName}`}
                   />
                 ) : (

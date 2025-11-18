@@ -28,7 +28,6 @@ export default function ClientTable() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const menuRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [formData, setFormData] = useState({
     name: '',
@@ -137,7 +136,6 @@ export default function ClientTable() {
   const confirmDelete = async () => {
     if (!deleteClientId) return;
 
-    setDeleteLoading(true);
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/clients/${deleteClientId}`, {
         method: 'DELETE',
@@ -155,8 +153,6 @@ export default function ClientTable() {
       }
     } catch (err) {
       setError('Error deleting client');
-    } finally {
-      setDeleteLoading(false);
     }
   };
 
@@ -525,7 +521,7 @@ export default function ClientTable() {
                             .toUpperCase()
                         : m?.email?.[0]?.toUpperCase() || 'U';
                       const photo = m?.photo
-                        ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${m.photo}`
+                        ? m.photo
                         : null;
                       return (
                         <div key={m._id || m} className="relative group">
@@ -692,7 +688,6 @@ export default function ClientTable() {
         onConfirm={confirmDelete}
         title="Delete Client"
         message="Are you sure you want to delete this client? This action cannot be undone."
-        loading={deleteLoading}
       />
     </div>
   );

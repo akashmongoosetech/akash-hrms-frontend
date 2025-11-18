@@ -111,8 +111,8 @@ export default function Dashboard() {
           // Transform the data to match the Todo interface
           const transformedTodos: Todo[] = todosData.map((todo: any) => ({
             _id: todo._id,
-            employeeName: `${todo.employee.firstName} ${todo.employee.lastName}`,
-            employeePhoto: todo.employee.photo,
+            employeeName: todo.employee ? `${todo.employee.firstName} ${todo.employee.lastName}` : 'Unknown Employee',
+            employeePhoto: todo.employee ? todo.employee.photo : undefined,
             title: todo.title,
             dueDate: new Date(todo.dueDate).toLocaleDateString(),
             status: todo.status,
@@ -139,8 +139,8 @@ export default function Dashboard() {
           // Transform the data to match the Ticket interface
           const transformedTickets: Ticket[] = ticketsData.map((ticket: any) => ({
             _id: ticket._id,
-            employeeName: `${ticket.employee.firstName} ${ticket.employee.lastName}`,
-            employeePhoto: ticket.employee.photo,
+            employeeName: ticket.employee ? `${ticket.employee.firstName} ${ticket.employee.lastName}` : 'Unknown Employee',
+            employeePhoto: ticket.employee ? ticket.employee.photo : undefined,
             title: ticket.title,
             priority: ticket.priority,
             dueDate: new Date(ticket.dueDate).toLocaleDateString('en-GB'), // DD/MM/YYYY format

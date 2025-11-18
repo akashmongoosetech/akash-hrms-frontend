@@ -270,7 +270,7 @@ const ReportTable: React.FC<ReportTableProps> = ({
                         {report.employee.photo ? (
                           <img
                             className="h-10 w-10 rounded-full object-cover"
-                            src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${report.employee.photo}`}
+                            src={report.employee.photo}
                             alt={`${report.employee.firstName} ${report.employee.lastName}`}
                           />
                         ) : (
@@ -389,7 +389,7 @@ const ReportTable: React.FC<ReportTableProps> = ({
                               {report.employee.photo ? (
                                 <img
                                   className="h-8 w-8 rounded-full object-cover"
-                                  src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${report.employee.photo}`}
+                                  src={report.employee.photo}
                                   alt={`${report.employee.firstName} ${report.employee.lastName}`}
                                 />
                               ) : (

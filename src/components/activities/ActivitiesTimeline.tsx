@@ -150,8 +150,8 @@ const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks, loading
                     {/* Profile Image */}
                     {activity.employee.photo ? (
                       <img
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${activity.employee.photo}`}
-                        alt="Profile"
+                          src={activity.employee.photo}
+                          alt="Profile"
                         className="w-10 h-10 rounded-full object-cover border-2 border-blue-100 shadow-sm"
                       />
                     ) : (

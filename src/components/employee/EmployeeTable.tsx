@@ -374,7 +374,7 @@ export default function EmployeeTable() {
                     <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                       {employee.photo ? (
                         <img
-                          src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${employee.photo}`}
+                          src={employee.photo}
                           alt={`${employee.firstName} ${employee.lastName}`}
                           className="h-full w-full object-cover"
                         />

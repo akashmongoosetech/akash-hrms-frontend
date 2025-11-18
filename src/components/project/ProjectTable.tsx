@@ -45,7 +45,6 @@ export default function ProjectTable() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const menuRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Safe helpers
@@ -179,27 +178,19 @@ export default function ProjectTable() {
   const confirmDelete = async () => {
     if (!deleteProjectId) return;
 
-    setDeleteLoading(true);
-    try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/projects/${deleteProjectId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        fetchProjects();
-        setShowDeleteModal(false);
-        setDeleteProjectId(null);
-      } else {
-        setError('Failed to delete project');
+    const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/projects/${deleteProjectId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
-    } catch (err) {
-      setError('Error deleting project');
-    } finally {
-      setDeleteLoading(false);
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete project');
     }
+
+    fetchProjects();
+    setDeleteProjectId(null);
   };
 
 
@@ -347,11 +338,14 @@ export default function ProjectTable() {
 
       <DeleteModal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteProjectId(null);
+        }}
         onConfirm={confirmDelete}
         title="Delete Project"
         message="Are you sure you want to delete this project? This action cannot be undone."
-        loading={deleteLoading}
+        successMessage="Project deleted successfully!"
       />
     </div>
   );

@@ -106,7 +106,7 @@ const ViewTeamModal: React.FC<ViewTeamModalProps> = ({ showModal, onClose, team 
               <img
                 src={
                   team.manager.photo
-                    ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${team.manager.photo}`
+                    ? team.manager.photo
                     : '/default-avatar.png'
                 }
                 alt={`${team.manager.firstName} ${team.manager.lastName}`}
@@ -138,7 +138,7 @@ const ViewTeamModal: React.FC<ViewTeamModalProps> = ({ showModal, onClose, team 
                       <img
                         src={
                           member.photo
-                            ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${member.photo}`
+                            ? member.photo
                             : '/default-avatar.png'
                         }
                         alt={`${member.firstName} ${member.lastName}`}

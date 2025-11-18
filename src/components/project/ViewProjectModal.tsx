@@ -116,7 +116,7 @@ export default function ViewProjectModal({ viewProject, onClose, onEdit }: ViewP
                   {member.photo ? (
                     <img
                       className="h-8 w-8 rounded-full object-cover shadow-sm"
-                      src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${member.photo}`}
+                      src={member.photo}
                       alt={`${member.firstName} ${member.lastName}`}
                     />
                   ) : (
