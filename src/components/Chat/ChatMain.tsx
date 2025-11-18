@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import API from '../../utils/api';
 import socket from '../../utils/socket';
-import { Send, MessageCircle, Search, Paperclip } from 'lucide-react';
+import { Send, MessageCircle, Search, Paperclip, Trash2, X } from 'lucide-react';
 import Icon from '../common/Icon';
+import { motion, AnimatePresence } from "framer-motion";
 
 interface User {
   _id: string;
@@ -47,6 +48,9 @@ const ChatMain: React.FC = () => {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUserId = localStorage.getItem('userId');
 
@@ -78,7 +82,7 @@ const ChatMain: React.FC = () => {
     }
   }, [currentUserId]);
 
-  // Listen for new messages
+  // Listen for new messages and message deletions
   useEffect(() => {
     const handleNewMessage = (message: Message) => {
       if (selectedUser && (message.sender._id === selectedUser._id || message.receiver === selectedUser._id)) {
@@ -88,10 +92,18 @@ const ChatMain: React.FC = () => {
       fetchChatUsers();
     };
 
+    const handleMessageDeleted = (data: { messageId: string; deletedForEveryone: boolean }) => {
+      setMessages(prev => prev.filter(msg => msg._id !== data.messageId));
+      // Update chat users list
+      fetchChatUsers();
+    };
+
     socket.on('newMessage', handleNewMessage);
+    socket.on('messageDeleted', handleMessageDeleted);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
+      socket.off('messageDeleted', handleMessageDeleted);
     };
   }, [selectedUser]);
 
@@ -170,7 +182,50 @@ const ChatMain: React.FC = () => {
   // Handle user selection
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);
+    setSelectedMessages([]);
+    setIsSelectionMode(false);
     fetchMessages(user._id);
+  };
+
+  // Handle message selection
+  const handleMessageSelect = (messageId: string) => {
+    setSelectedMessages(prev =>
+      prev.includes(messageId)
+        ? prev.filter(id => id !== messageId)
+        : [...prev, messageId]
+    );
+  };
+
+  // Toggle selection mode
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    if (isSelectionMode) {
+      setSelectedMessages([]);
+    }
+  };
+
+  // Delete selected messages
+  const deleteMessages = async (deleteForEveryone: boolean) => {
+    if (selectedMessages.length === 0) return;
+
+    try {
+      const deletePromises = selectedMessages.map(messageId =>
+        API.delete(deleteForEveryone ? `/chats/delete-for-everyone/${messageId}` : `/chats/delete-for-me/${messageId}`)
+      );
+
+      await Promise.all(deletePromises);
+
+      // Remove deleted messages from local state
+      setMessages(prev => prev.filter(msg => !selectedMessages.includes(msg._id)));
+      setSelectedMessages([]);
+      setIsSelectionMode(false);
+      setShowDeleteModal(false);
+
+      // Update chat users list
+      fetchChatUsers();
+    } catch (error) {
+      console.error('Error deleting messages:', error);
+    }
   };
 
   // Handle enter key
@@ -281,9 +336,8 @@ const ChatMain: React.FC = () => {
                 <div
                   key={user._id}
                   onClick={() => handleUserSelect(user)}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 ${
-                    selectedUser?._id === user._id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                  }`}
+                  className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 ${selectedUser?._id === user._id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                    }`}
                 >
                   <div className="flex items-center">
                     {user.photo ? (
@@ -326,23 +380,54 @@ const ChatMain: React.FC = () => {
           <>
             {/* Chat Header */}
             <div className="p-4 bg-white border-b border-gray-200">
-              <div className="flex items-center">
-                {selectedUser.photo ? (
-                  <img
-                    src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/${selectedUser.photo}`}
-                    alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                    {selectedUser.firstName[0]}{selectedUser.lastName[0]}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  {selectedUser.photo ? (
+                    <img
+                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/${selectedUser.photo}`}
+                      alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                      {selectedUser.firstName[0]}{selectedUser.lastName[0]}
+                    </div>
+                  )}
+                  <div className="ml-3">
+                    <p className="font-medium text-gray-900">
+                      {selectedUser.firstName} {selectedUser.lastName}
+                    </p>
+                    <p className="text-sm text-gray-500">{selectedUser.email}</p>
                   </div>
-                )}
-                <div className="ml-3">
-                  <p className="font-medium text-gray-900">
-                    {selectedUser.firstName} {selectedUser.lastName}
-                  </p>
-                  <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {isSelectionMode ? (
+                    <>
+                      {selectedMessages.length > 0 && (
+                        <button
+                          onClick={() => setShowDeleteModal(true)}
+                          className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+                        >
+                          <Trash2 className="h-4 w-4 inline mr-1" />
+                          Delete ({selectedMessages.length})
+                        </button>
+                      )}
+                      <button
+                        onClick={toggleSelectionMode}
+                        className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                      >
+                        <X className="h-4 w-4 inline mr-1" />
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={toggleSelectionMode}
+                      className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+                    >
+                      Select
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -354,12 +439,19 @@ const ChatMain: React.FC = () => {
                   key={message._id}
                   className={`flex ${message.sender._id === currentUserId ? 'justify-end' : 'justify-start'}`}
                 >
+                  {isSelectionMode && message.sender._id === currentUserId && (
+                    <input
+                      type="checkbox"
+                      checked={selectedMessages.includes(message._id)}
+                      onChange={() => handleMessageSelect(message._id)}
+                      className="mr-2 mt-2"
+                    />
+                  )}
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      message.sender._id === currentUserId
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${message.sender._id === currentUserId
                         ? 'bg-blue-500 text-white'
                         : 'bg-gray-200 text-gray-800'
-                    }`}
+                      } ${selectedMessages.includes(message._id) ? 'ring-2 ring-red-500' : ''}`}
                   >
                     {message.file && (
                       <div className="mb-2">
@@ -461,6 +553,66 @@ const ChatMain: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40"
+          >
+            {/* Modal Card */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 max-w-md w-full mx-4 border border-gray-200 dark:border-gray-700"
+            >
+              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                Confirm Deletion
+              </h3>
+
+              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                You are about to delete <strong>{selectedMessages.length}</strong>{" "}
+                message{selectedMessages.length > 1 ? "s" : ""}.
+                This action cannot be undone.
+              </p>
+
+              {/* Buttons */}
+              <div className="grid grid-cols-3 gap-3">
+
+                {/* Delete for me */}
+                <button
+                  onClick={() => deleteMessages(false)}
+                  className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all shadow-sm hover:shadow-md"
+                >
+                  For Me
+                </button>
+
+                {/* Delete for Everyone */}
+                <button
+                  onClick={() => deleteMessages(true)}
+                  className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition-all shadow-sm hover:shadow-md"
+                >
+                  For All
+                </button>
+
+                {/* Cancel */}
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all shadow-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>
+      )}
     </div>
   );
 };
