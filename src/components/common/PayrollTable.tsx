@@ -42,7 +42,7 @@ export default function PayrollTable() {
 
   const fetchEmployees = async (page: number = 1) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?page=${page}&limit=${itemsPerPage}&role=Employee`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?page=${page}&limit=${itemsPerPage}&role=Employee&status=Active`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

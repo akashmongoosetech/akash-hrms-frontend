@@ -46,8 +46,8 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ showModal, onClose, o
     try {
       const response = await API.get('/users');
       const data = response.data;
-      // Filter only employees
-      const employeesOnly = data.users.filter((user: any) => user.role === 'Employee');
+      // Filter only active employees
+      const employeesOnly = data.users.filter((user: any) => user.role === 'Employee' && user.status === 'Active');
       setEmployees(employeesOnly);
     } catch (err) {
       console.error('Error fetching employees:', err);

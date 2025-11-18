@@ -9,6 +9,7 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
+  photo?: string;
   role?: string;
   lastMessage?: string;
   lastMessageTime?: string;
@@ -20,6 +21,7 @@ interface Message {
     _id: string;
     firstName: string;
     lastName: string;
+    photo?: string;
   };
   receiver: string;
   message: string;
@@ -242,9 +244,17 @@ const ChatMain: React.FC = () => {
                   className="p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100"
                 >
                   <div className="flex items-center">
-                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {user.firstName[0]}{user.lastName[0]}
-                    </div>
+                    {user.photo ? (
+                      <img
+                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/${user.photo}`}
+                        alt={`${user.firstName} ${user.lastName}`}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {user.firstName[0]}{user.lastName[0]}
+                      </div>
+                    )}
                     <div className="ml-3 flex-1">
                       <p className="font-medium text-gray-900">
                         {user.firstName} {user.lastName}
@@ -276,9 +286,17 @@ const ChatMain: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-center">
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {user.firstName[0]}{user.lastName[0]}
-                    </div>
+                    {user.photo ? (
+                      <img
+                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/${user.photo}`}
+                        alt={`${user.firstName} ${user.lastName}`}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {user.firstName[0]}{user.lastName[0]}
+                      </div>
+                    )}
                     <div className="ml-3 flex-1">
                       <p className="font-medium text-gray-900">
                         {user.firstName} {user.lastName}
@@ -309,9 +327,17 @@ const ChatMain: React.FC = () => {
             {/* Chat Header */}
             <div className="p-4 bg-white border-b border-gray-200">
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                  {selectedUser.firstName[0]}{selectedUser.lastName[0]}
-                </div>
+                {selectedUser.photo ? (
+                  <img
+                    src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/${selectedUser.photo}`}
+                    alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    {selectedUser.firstName[0]}{selectedUser.lastName[0]}
+                  </div>
+                )}
                 <div className="ml-3">
                   <p className="font-medium text-gray-900">
                     {selectedUser.firstName} {selectedUser.lastName}

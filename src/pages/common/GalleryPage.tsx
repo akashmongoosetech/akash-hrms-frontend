@@ -77,7 +77,9 @@ export default function GalleryPage() {
   const fetchUsers = async () => {
     try {
       const data = await getUsers();
-      setUsers(data.users);
+      // Filter only active users
+      const activeUsers = data.users.filter((user: any) => user.status === 'Active');
+      setUsers(activeUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
     }

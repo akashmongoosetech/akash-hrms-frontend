@@ -130,8 +130,8 @@ export default function ProjectTable() {
 
       if (response.ok) {
         const data = await response.json();
-        // Filter only employees
-        const employeesOnly = data.users.filter((user: any) => user.role === 'Employee');
+        // Filter only active employees
+        const employeesOnly = data.users.filter((user: any) => user.role === 'Employee' && user.status === 'Active');
         setEmployees(employeesOnly);
       }
     } catch (err) {
