@@ -21,12 +21,25 @@ interface BreakRecord {
   };
 }
 
+interface PunchRecord {
+  _id: string;
+  employee: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    photo?: string;
+  };
+  action: 'Punch In' | 'Punch Out';
+  timestamp: string;
+  date: string;
+}
+
 interface ActivitiesTimelineProps {
-  breaks: BreakRecord[];
+  activities: (BreakRecord | PunchRecord)[];
   loading?: boolean;
 }
 
-const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks, loading = false }) => {
+const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ activities, loading = false }) => {
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', {
@@ -34,6 +47,16 @@ const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks, loading
       minute: '2-digit',
       hour12: true,
     });
+  };
+
+  const getActionColor = (action: string) => {
+    switch (action) {
+      case 'Break In': return 'text-green-600';
+      case 'Break Out': return 'text-red-500';
+      case 'Punch In': return 'text-blue-600';
+      case 'Punch Out': return 'text-orange-500';
+      default: return 'text-gray-600';
+    }
   };
 
   return (
@@ -85,13 +108,13 @@ const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks, loading
               </div>
             </React.Fragment>
           ))
-        ) : breaks.length > 0 ? (
-          breaks.map((activity, index) => {
+        ) : activities.length > 0 ? (
+          activities.map((activity, index) => {
             // --- Date Separator Logic ---
             let showSeparator = false;
             let displayDate = '';
             const currentDateStr = activity.date;
-            if (index === 0 || currentDateStr !== breaks[index - 1].date) {
+            if (index === 0 || currentDateStr !== activities[index - 1].date) {
               showSeparator = true;
             }
 
@@ -121,9 +144,8 @@ const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks, loading
             }
 
             const key = activity._id || index;
-            const type = activity.action === 'Break In' ? 'Break_in' : 'Break_out';
             const time = formatTime(activity.timestamp);
-            const description = activity.reason || '';
+            const description = 'reason' in activity ? activity.reason || '' : '';
 
             if (!activity.employee) return null;
 
@@ -167,12 +189,8 @@ const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks, loading
                         <span className="font-semibold text-gray-800">
                           {activity.employee.firstName} {activity.employee.lastName}
                           <span className="mx-2 text-gray-400">|</span>
-                          <span
-                            className={`${
-                              type === 'Break_in' ? 'text-green-600' : 'text-red-500'
-                            } font-medium`}
-                          >
-                            {type === 'Break_in' ? 'Break In' : 'Break Out'}
+                          <span className={`${getActionColor(activity.action)} font-medium`}>
+                            {activity.action}
                           </span>
                         </span>
                         <small className="text-gray-500">{time}</small>
@@ -184,7 +202,7 @@ const ActivitiesTimeline: React.FC<ActivitiesTimelineProps> = ({ breaks, loading
                         </p>
                       )}
 
-                      {activity.addedBy && (
+                      {'addedBy' in activity && activity.addedBy && (
                         <small className="block text-blue-600 mt-1">
                           Added by {activity.addedBy.firstName} {activity.addedBy.lastName} ({activity.addedBy.role})
                         </small>

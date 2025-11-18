@@ -119,14 +119,6 @@ interface SaturdayEvent {
   isWeekend: boolean;
 }
 
-interface AlternateSaturday {
-  _id?: string;
-  month: number;
-  year: number;
-  workingSaturdays: number[];
-  createdAt?: string;
-  updatedAt?: string;
-}
 
 interface EventCalendarProps {
   events: Event[];
@@ -144,7 +136,6 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
    const [reports, setReports] = useState<Report[]>([]);
    const [leaves, setLeaves] = useState<Leave[]>([]);
    const [saturdays, setSaturdays] = useState<SaturdayEvent[]>([]);
-   const [alternateSaturdays, setAlternateSaturdays] = useState<AlternateSaturday[]>([]);
    const [loading, setLoading] = useState(true);
    const [showDeleteModal, setShowDeleteModal] = useState(false);
    const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
@@ -152,14 +143,11 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
    const [currentUserId, setCurrentUserId] = useState<string>('');
 
   useEffect(() => {
-     fetchUsers();
-     fetchHolidays();
-     fetchCurrentUser();
-     fetchSaturdays();
-     if (userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin')) {
-       fetchAlternateSaturdays();
-     }
-   }, []);
+      fetchUsers();
+      fetchHolidays();
+      fetchCurrentUser();
+      fetchSaturdays();
+    }, []);
 
   useEffect(() => {
     if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
@@ -324,28 +312,6 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     }
   };
 
-  const fetchAlternateSaturdays = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/alternate-saturdays`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setAlternateSaturdays(data.alternateSaturdays || []);
-      } else {
-        console.error('Failed to fetch alternate Saturdays');
-        setAlternateSaturdays([]);
-      }
-    } catch (error) {
-      console.error('Error fetching alternate Saturdays:', error);
-      setAlternateSaturdays([]);
-    }
-  };
 
   const getSaturdaysInMonth = (month: number, year: number): Date[] => {
     const saturdays: Date[] = [];
@@ -472,37 +438,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     return [];
   }, [leaves, selectedFilter, userRole, currentUserId]);
 
-  // Generate alternate Saturday dates and events (memoized)
-  const alternateSaturdayDates: Set<string> = useMemo(() => {
-    const dates = new Set<string>();
-    alternateSaturdays.forEach(altSat => {
-      const saturdays = getSaturdaysInMonth(altSat.month, altSat.year);
-      altSat.workingSaturdays.forEach(satNum => {
-        if (satNum <= saturdays.length) {
-          const date = saturdays[satNum - 1];
-          const dateStr = date.toISOString().split('T')[0];
-          dates.add(dateStr);
-        }
-      });
-    });
-    return dates;
-  }, [alternateSaturdays]);
 
-  const alternateSaturdayEvents: SaturdayEvent[] = useMemo(() => {
-    const events: SaturdayEvent[] = [];
-    alternateSaturdayDates.forEach(dateStr => {
-      events.push({
-        _id: `alt-sat-${dateStr}`,
-        name: 'Working Saturday',
-        date: dateStr,
-        type: 'saturday' as const,
-        isWeekend: false,
-      });
-    });
-    return events;
-  }, [alternateSaturdayDates]);
-
-  const allEvents = useMemo(() => [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...saturdays, ...alternateSaturdayEvents], [events, birthdayEvents, holidays, reportEvents, leaveEvents, saturdays, alternateSaturdayEvents]);
+  const allEvents = useMemo(() => [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...saturdays], [events, birthdayEvents, holidays, reportEvents, leaveEvents, saturdays]);
 
   // Helper function to get color based on working hours
   const getReportColor = (workingHours: string) => {
@@ -514,7 +451,6 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
 
 // In your calendarEvents mapping:
 const calendarEvents: any[] = allEvents
-  .filter(event => !event._id.startsWith('alt-sat-'))
   .map(event => ({
     id: event._id,
     title: 'type' in event && event.type === 'report' ? event.workingHours : event.name,
@@ -768,13 +704,7 @@ const calendarEvents: any[] = allEvents
           dayMaxEvents={true}
           moreLinkClick="popover"
           dayCellDidMount={(info) => {
-            const dateStr = info.date.toISOString().split('T')[0];
-            if (alternateSaturdayDates.has(dateStr)) {
-              const innerDiv = info.el.querySelector('.fc-daygrid-day-frame');
-              if (innerDiv) {
-                (innerDiv as HTMLElement).style.backgroundColor = 'rgba(34, 197, 94, 0.1)'; // light green background for working Saturdays
-              }
-            }
+            // Removed alternate Saturday highlighting
           }}
         />
       </div>
@@ -791,9 +721,6 @@ const calendarEvents: any[] = allEvents
               // Refresh data after deletion
               fetchUsers();
               fetchHolidays();
-              if (userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin')) {
-                fetchAlternateSaturdays();
-              }
               if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
                 fetchReports();
                 fetchLeaves();
@@ -803,9 +730,6 @@ const calendarEvents: any[] = allEvents
               // Refresh data even on error to ensure consistency
               fetchUsers();
               fetchHolidays();
-              if (userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin')) {
-                fetchAlternateSaturdays();
-              }
               if (selectedFilter === 'Reports' || (selectedFilter !== 'All Events' && selectedFilter !== 'Reports')) {
                 fetchReports();
                 fetchLeaves();

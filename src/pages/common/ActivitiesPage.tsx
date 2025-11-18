@@ -27,6 +27,19 @@ interface BreakRecord {
   };
 }
 
+interface PunchRecord {
+  _id: string;
+  employee: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    photo?: string;
+  };
+  action: 'Punch In' | 'Punch Out';
+  timestamp: string;
+  date: string;
+}
+
 interface Employee {
   _id: string;
   firstName: string;
@@ -35,6 +48,7 @@ interface Employee {
 
 export default function ActivitiesPage() {
   const [breaks, setBreaks] = useState<BreakRecord[]>([]);
+  const [punches, setPunches] = useState<PunchRecord[]>([]);
   const [isOnBreak, setIsOnBreak] = useState(false);
   const [isPunchedIn, setIsPunchedIn] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -54,6 +68,7 @@ export default function ActivitiesPage() {
 
   useEffect(() => {
     fetchBreaks();
+    fetchPunches();
     fetchPunchStatus();
     if (role === 'Admin' || role === 'SuperAdmin') {
       fetchEmployees();
@@ -73,6 +88,7 @@ export default function ActivitiesPage() {
 
     // Listen for punch events
     socket.on('punch-in', (data) => {
+      setPunches(prev => Array.isArray(prev) ? [data, ...prev] : [data]);
       const currentUserId = localStorage.getItem('userId');
       if (data.employee._id === currentUserId) {
         setIsPunchedIn(true);
@@ -80,6 +96,7 @@ export default function ActivitiesPage() {
     });
 
     socket.on('punch-out', (data) => {
+      setPunches(prev => Array.isArray(prev) ? [data, ...prev] : [data]);
       const currentUserId = localStorage.getItem('userId');
       if (data.employee._id === currentUserId) {
         setIsPunchedIn(false);
@@ -115,9 +132,25 @@ export default function ActivitiesPage() {
     }
   };
 
+  const fetchPunches = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filterEmployee) params.append('employeeId', filterEmployee);
+      if (fromDate) params.append('fromDate', fromDate);
+      if (toDate) params.append('toDate', toDate);
+
+      const response = await API.get(`/punches?${params.toString()}`);
+      setPunches(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('Error fetching punches:', error);
+      setPunches([]);
+    }
+  };
+
   const handleApplyFilters = () => {
     setFilterLoading(true);
     fetchBreaks();
+    fetchPunches();
   };
 
   const fetchPunchStatus = async () => {
@@ -196,6 +229,7 @@ export default function ActivitiesPage() {
     setShowAdminModal(true);
   };
 
+  const activities = [...(Array.isArray(breaks) ? breaks : []), ...(Array.isArray(punches) ? punches : [])].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
     <div className="p-6">
@@ -293,7 +327,7 @@ export default function ActivitiesPage() {
         handleApplyFilters={handleApplyFilters}
       />
 
-      <ActivitiesTimeline breaks={breaks} />
+      <ActivitiesTimeline activities={activities} />
 
     </div>
   );
