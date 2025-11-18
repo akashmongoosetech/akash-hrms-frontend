@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Textarea } from '../../ui/textarea';
@@ -28,10 +29,18 @@ interface FormData {
 
 const BlogAddEdit: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const isEdit = !!slug;
   const { control, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
     defaultValues: {
+      title: '',
+      excerpt: '',
+      content: '',
+      featuredImage: null,
       sections: [{ heading: '', content: '', image: null }],
+      status: 'Draft',
+      tags: '',
+      author: '',
     },
   });
   const { fields, append, remove } = useFieldArray({
@@ -125,11 +134,11 @@ const BlogAddEdit: React.FC = () => {
         },
       }));
 
-      console.log(`Blog ${isEdit ? 'updated' : 'created'}:`, response.data);
-      // TODO: Show success message and redirect
+      toast.success(`Blog ${isEdit ? 'updated' : 'created'} successfully!`);
+      navigate('/blog');
     } catch (error) {
       console.error('Error creating blog:', error);
-      // TODO: Show error message
+      toast.error(`Failed to ${isEdit ? 'update' : 'create'} blog. Please try again.`);
     } finally {
       setLoading(false);
     }

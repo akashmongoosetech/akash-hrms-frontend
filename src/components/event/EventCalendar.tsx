@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -307,7 +307,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
           const formattedDate = dateStr; // Keep as YYYY-MM-DD string
           return {
             _id: saturday._id,
-            name: saturday.isWeekend ? 'Weekend Saturday' : 'Working Saturday',
+            name: saturday.isWeekend ? '' : 'Working Saturday',
             date: formattedDate,
             type: 'saturday' as const,
             isWeekend: saturday.isWeekend,
@@ -502,14 +502,14 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     return events;
   }, [alternateSaturdayDates]);
 
-  const allEvents = [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...saturdays, ...alternateSaturdayEvents];
+  const allEvents = useMemo(() => [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...saturdays, ...alternateSaturdayEvents], [events, birthdayEvents, holidays, reportEvents, leaveEvents, saturdays, alternateSaturdayEvents]);
 
   // Helper function to get color based on working hours
   const getReportColor = (workingHours: string) => {
     const hours = parseFloat(workingHours.split(' ')[0]);
-    if (hours >= 8) return 'green';
-    if (hours >= 4) return 'blue';
-    return 'red';
+    if (hours >= 8) return '#10B981'; // green
+    if (hours >= 4) return '#3B82F6'; // blue
+    return '#EF4444'; // red
   };
 
 // In your calendarEvents mapping:
@@ -525,11 +525,12 @@ const calendarEvents: any[] = allEvents
       event.type === 'saturday' ||
       event.type === 'birthday'
     )) ? 'background' : 'auto',
-    color: 'type' in event && event.type === 'birthday' ? 'rgba(59, 130, 246, 0.3)' :
-           ('type' in event && event.type === 'holiday' ? 'rgba(239, 68, 68, 0.3)' :
+    backgroundColor: 'type' in event && event.type === 'birthday' ? '#3B82F6' :
+           ('type' in event && event.type === 'holiday' ? '#EF4444' :
             'type' in event && event.type === 'report' ? getReportColor(event.workingHours) :
-            'type' in event && event.type === 'leave' ? 'rgba(239, 68, 68, 0.3)' :
-            'type' in event && event.type === 'saturday' ? (event.isWeekend ? 'yellow' : 'rgba(16, 185, 129, 0.3)') : '#10B981'),
+            'type' in event && event.type === 'leave' ? '#F59E0B' :
+            'type' in event && event.type === 'saturday' ? (event.isWeekend ? '#78350f' : '#78350f') : (event as any).backgroundColor || '#10B981'),
+    textColor: 'type' in event ? '#FFFFFF' : (event as any).textColor || '#FFFFFF',
     extendedProps: {
       originalEvent: event
     }
@@ -555,6 +556,18 @@ const calendarEvents: any[] = allEvents
 
   // Sort events by date (most recent first)
   const sortedEvents = [...allEvents]
+    .filter(event => {
+      if (selectedFilter === 'All Events') {
+        // Show regular events, birthdays, and holidays
+        return !('type' in event) || event.type === 'birthday' || event.type === 'holiday';
+      } else if (selectedFilter === 'Reports') {
+        // Show only reports and leaves for current user
+        return 'type' in event && (event.type === 'report' || event.type === 'leave');
+      } else {
+        // Admin/SuperAdmin selecting specific employee - show reports and leaves for that employee
+        return 'type' in event && (event.type === 'report' || event.type === 'leave');
+      }
+    })
     .sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
@@ -683,7 +696,7 @@ const calendarEvents: any[] = allEvents
                       ('type' in event && event.type === 'holiday' ? 'bg-red-500' :
                        'type' in event && event.type === 'report' ? 'bg-purple-500' :
                        'type' in event && event.type === 'leave' ? 'bg-red-500' :
-                       'type' in event && event.type === 'saturday' ? 'bg-purple-500' : 'bg-green-500')
+                       'type' in event && event.type === 'saturday' ? 'bg-yellow-500' : 'bg-green-500')
                     }`}></span>
                   </div>
                 </div>
@@ -722,7 +735,7 @@ const calendarEvents: any[] = allEvents
                   <div className="flex items-center mt-1">
                     <Calendar className="h-3 w-3 text-purple-600 mr-1" />
                     <p className="text-xs text-purple-600">
-                      {event.isWeekend ? 'Weekend Saturday' : 'Working Saturday'}
+                      {event.isWeekend ? '' : 'Working Saturday'}
                     </p>
                   </div>
                 ) : (
@@ -752,8 +765,6 @@ const calendarEvents: any[] = allEvents
             right: 'dayGridMonth,dayGridWeek'
           }}
           eventDisplay="block"
-          eventColor="#3B82F6"
-          eventTextColor="#FFFFFF"
           dayMaxEvents={true}
           moreLinkClick="popover"
           dayCellDidMount={(info) => {

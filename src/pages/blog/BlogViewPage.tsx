@@ -42,6 +42,7 @@ export default function BlogViewPage() {
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedBlogs, setRelatedBlogs] = useState<Blog[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -55,9 +56,23 @@ export default function BlogViewPage() {
       }
     };
 
+    const fetchCurrentUser = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const userId = payload.id;
+        const response = await API.get(`/users/${userId}`);
+        setCurrentUser(response.data);
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+      }
+    };
+
     if (slug) {
       fetchBlog();
     }
+    fetchCurrentUser();
   }, [slug]);
 
   useEffect(() => {
@@ -65,7 +80,7 @@ export default function BlogViewPage() {
       const fetchRelatedBlogs = async () => {
         try {
           const response = await API.get('/blogs');
-          const allBlogs = response.data;
+          const allBlogs = response.data.blogs || [];
           const related = allBlogs
             .filter((b: Blog) => b._id !== blog._id && b.tags.some(tag => blog.tags.includes(tag)))
             .sort((a: Blog, b: Blog) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -408,8 +423,8 @@ export default function BlogViewPage() {
                     key={relatedBlog._id}
                     blog={relatedBlog}
                     onView={(slug) => navigate(`/blog/${slug}`)}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
+                    onEdit={() => { }}
+                    onDelete={() => { }}
                   />
                 ))}
               </div>
@@ -417,19 +432,45 @@ export default function BlogViewPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="bg-gray-50 p-4 rounded-lg border">
                   <h4 className="font-medium text-gray-800">
-                    Coming Soon – Related Blogs
+                    Thanks for reading "{blog.title}"
                   </h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Auto-recommendation section goes here.
+                  <p className="text-lg text-gray-800 mt-1">
+                      Written by:
+                      {/* {blog.author.firstName} {blog.author.lastName} */}
                   </p>
+                  <div className="flex justify-items-center">
+                    <div className="">
+                      <img
+                        src={
+                          blog.author.photo
+                            ? `${apiURL}/${blog.author.photo}`
+                            : "/default-avatar.png"
+                        }
+                        alt={blog.author.firstName}
+                        className="w-14 h-14 rounded-full object-cover mt-3 border-2 border-white shadow-md"
+                      />
+                    </div>
+                      <div className="">
+                        <p className="mt-4 ml-4 text-sm text-gray-600">{blog.author.firstName} {blog.author.lastName}</p>
+                        <p className="ml-4 text-sm text-gray-600">{blog.author.email}</p>
+                   </div>
+                  </div>
                 </div>
+
                 <div className="bg-gray-50 p-4 rounded-lg border">
                   <h4 className="font-medium text-gray-800">
-                    Improve SEO with More Blogs
+                    Welcome back, {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Reader'}!
                   </h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Add more blogs for dynamic related posts.
+                  <p className="text-sm text-gray-600 mt-1">
+                    Keep exploring our blog posts.
                   </p>
+                  {currentUser && currentUser.photo && (
+                    <img
+                      src={`${apiURL}/${currentUser.photo}`}
+                      alt={currentUser.firstName}
+                      className="w-14 h-14 rounded-full object-cover mt-3 border-2 border-white shadow-md"
+                    />
+                  )}
                 </div>
               </div>
             )}
