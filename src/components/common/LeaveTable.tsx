@@ -414,7 +414,7 @@ export default function LeaveTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {leaves.map((leave, index) => (
+            {leaves.filter(leave => leave.employee).map((leave, index) => (
               <tr key={leave._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {(currentPage - 1) * itemsPerPage + index + 1}
