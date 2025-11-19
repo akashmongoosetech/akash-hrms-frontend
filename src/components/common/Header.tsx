@@ -16,8 +16,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import socket from "../../utils/socket";
 import { formatDate } from "../../Common/Commonfunction";
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+import TextCKeditor from '../../components/common/TextCKeditor';
 import API from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -759,13 +758,9 @@ export default function Header() {
                   Report Description *
                 </label>
                 <div className="border border-gray-300 rounded-lg">
-                  <CKEditor
-                    editor={ClassicEditor}
+                  <TextCKeditor
                     data={reportFormData.description}
-                    onChange={(event, editor) => {
-                      const data = editor.getData();
-                      setReportFormData(prev => ({ ...prev, description: data }));
-                    }}
+                    onChange={(data) => setReportFormData(prev => ({ ...prev, description: data }))}
                     config={{
                       toolbar: [
                         'bold', 'italic', 'underline', 'strikethrough', '|',

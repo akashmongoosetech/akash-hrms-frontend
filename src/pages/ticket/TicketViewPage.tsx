@@ -18,9 +18,7 @@ import {
 import Icon from "../../components/common/Icon";
 import { formatDate, formatDateTime } from "../../Common/Commonfunction";
 import socket from "../../utils/socket";
-import { CKEditor } from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
-import MyCustomUploadAdapterPlugin from "../../utils/ckeditorUploadAdapter";
+import TextCKeditor from "../../components/common/TextCKeditor";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "../../components/ui/avatar";
@@ -82,6 +80,8 @@ interface Comment {
   }[];
 }
 
+type IconType = 'audio' | 'code' | 'document' | 'empty' | 'folder' | 'image' | 'img' | 'spreadsheets' | 'video' | 'video-01' | 'video-02' | 'aep' | 'ai' | 'avi' | 'css' | 'csv' | 'dmg' | 'doc' | 'docx' | 'exe' | 'fig' | 'gif' | 'html' | 'java' | 'mp4' | 'mpeg' | 'pdf' | 'pdf-simple' | 'png' | 'ppt' | 'pptx' | 'psd' | 'sql' | 'svg' | 'txt' | 'webp' | 'xls' | 'xlsx' | 'xml' | 'zip';
+
 export default function TicketViewPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -119,9 +119,9 @@ export default function TicketViewPage() {
   };
 
   // Get file icon type based on mimetype and filename
-  const getIconType = (mimetype: string, filename: string): string => {
+  const getIconType = (mimetype: string, filename: string): IconType => {
     const ext = filename.toLowerCase().split('.').pop() || '';
-    const extToIcon: Record<string, string> = {
+    const extToIcon: Record<string, IconType> = {
       'pdf': 'pdf',
       'doc': 'doc',
       'docx': 'docx',
@@ -524,6 +524,10 @@ export default function TicketViewPage() {
           .scrollbar-hide::-webkit-scrollbar {
             display: none;  /* Chrome, Safari and Opera */
           }
+          .comment-content img {
+            max-width: 200px;
+            height: auto;
+          }
         `}
       </style>
       <div className="flex items-center mb-6">
@@ -628,18 +632,18 @@ export default function TicketViewPage() {
                         ) : (
                           <div className=" items-center gap-3">
                             {/* Progress Bar */}
-                              <div className="flex items-center gap-3">
-                                <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
-                              <div
-                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${ticket.currentProgress ?? 0}%` }}
-                              />
-                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${ticket.currentProgress ?? 0}%` }}
+                                />
+                              </div>
 
-                            {/* Percentage */}
-                            <span className="text-sm font-medium text-gray-900 min-w-[2.5rem] text-right">
-                              {ticket.currentProgress ?? 0}%
-                            </span>
+                              {/* Percentage */}
+                              <span className="text-sm font-medium text-gray-900 min-w-[2.5rem] text-right">
+                                {ticket.currentProgress ?? 0}%
+                              </span>
                             </div>
 
                             <div className="dd">
@@ -681,7 +685,7 @@ export default function TicketViewPage() {
                 {/* Description */}
                 <div>
                   <div className="text-sm text-gray-500 mb-2">Description</div>
-                  <div className="bg-gray-50 rounded-lg p-4 text-gray-900 whitespace-pre-wrap scrollbar-hide" style={{maxHeight:'400px', overflow:'auto'}}>
+                  <div className="bg-gray-50 rounded-lg p-4 text-gray-900 whitespace-pre-wrap scrollbar-hide" style={{ maxHeight: '400px', overflow: 'auto' }}>
                     {ticket.description || "No description provided."}
                   </div>
                 </div>
@@ -742,246 +746,161 @@ export default function TicketViewPage() {
             </div>
 
             {/* <!-- Right section (8 columns) --> */}
-            <div className="col-span-12 md:col-span-8 bg-gray-100 p-4 rounded-lg">
-              <div className="w-100 p-4 shadow-lg" >
-                {/* Comments Section */}
-                <div className="border-t border-gray-200 pt-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <MessageCircle
-                      className="h-5 w-5 text-blue-600 transition-transform duration-300 ease-in-out hover:scale-125 hover:text-blue-500 animate-lightning hover:shadow-lg hover:shadow-blue-300"
-                    />
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Comments
-                    </h3>
-                  </div>
+            <div className="col-span-12 md:col-span-8 bg-white rounded-xl shadow-sm border p-4 flex flex-col h-full">
 
+              {/* Header */}
+              <div className="flex items-center space-x-2 border-b pb-3 mb-4">
+                <MessageCircle className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Comments</h3>
+              </div>
 
-                  {/* Add Comment Form */}
-                  <form onSubmit={handleAddComment} className="space-y-3">
-                    {/* @ts-ignore */}
-                    <CKEditor
-                      editor={ClassicEditor}
-                      data={newComment}
-                      onChange={(event, editor) => setNewComment(editor.getData())}
-                      config={{
-                        extraPlugins: [MyCustomUploadAdapterPlugin],
-                        toolbar: [
-                          "bold",
-                          "italic",
-                          "underline",
-                          "strikethrough",
-                          "|",
-                          "numberedList",
-                          "bulletedList",
-                          "|",
-                          "link",
-                          "blockQuote",
-                          "|",
-                          "insertTable",
-                          "|",
-                          "undo",
-                          "redo", "|",
-                          "imageUpload",
-                        ],
-                        table: {
-                          contentToolbar: [
-                            "tableColumn",
-                            "tableRow",
-                            "mergeTableCells",
-                          ],
-                        },
-                        image: {
-                          toolbar: [
-                            'imageTextAlternative',
-                            '|',
-                            'imageStyle:alignLeft',
-                            'imageStyle:full',
-                            'imageStyle:alignRight'
-                          ],
-                        },
-                      }}
-                    />
-                    <style>
-                      {`
-                        .ck-editor__editable {
-                          height: 300px !important;  /* Fix the height */
-                          overflow: auto; /* Enable scrolling if content exceeds the height */
-                        }
-                        .ck-content img {
-                          width: 100px;
-                          height: auto;
-                        }
-                      `}
-                    </style>
-                    <div className="w-full max-w-lg mx-auto">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Attach Files (PDF, Excel, CSV, HTML, CSS, .env, JS, PHP, SQL)
-                      </label>
+              {/* Chat Window */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-2">
 
-                      <div className="relative">
-                        <Input
-                          type="file"
-                          multiple
-                          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
-                          onChange={handleFileChange}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                {comments.length === 0 ? (
+                  <div className="text-center py-10 text-gray-500">No comments yet. Start the conversation!</div>
+                ) : (
+                  comments.map((comment) => (
+                    <div key={comment._id} className="flex items-start space-x-3">
+
+                      {/* Avatar */}
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={comment.user.photo} />
+                        <AvatarFallback className="bg-blue-500 text-white">
+                          {(comment.user.firstName?.[0] ?? "") + (comment.user.lastName?.[0] ?? "")}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      {/* Message Box */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 w-full shadow-sm">
+                        <div className="flex items-center space-x-2 flex-wrap">
+
+                          {/* Name */}
+                          <span className="text-sm font-semibold text-gray-900">
+                            {comment.user.firstName} {comment.user.lastName}
+                          </span>
+
+                          {/* Role Badge */}
+                          <span
+                            className={`px-2 py-0.5 text-xs rounded-full font-medium 
+                  ${comment.user.role === "Admin" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}
+                          >
+                            {comment.user.role}
+                          </span>
+
+                          {/* Time */}
+                          <span className="text-xs text-gray-500">
+                            {formatDateTime(comment.createdAt)}
+                          </span>
+
+                          {/* Delete Icon */}
+                          {currentUserId === comment.user._id && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteComment(comment._id)}
+                              className="ml-auto text-red-600 hover:text-red-800"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Message Content */}
+                        <div className="mt-2 text-sm comment-content"
+                          dangerouslySetInnerHTML={{ __html: comment.message }}
+                          onClick={(e) => {
+                            if ((e.target as HTMLElement).tagName === 'IMG') {
+                              setSelectedImageSrc((e.target as HTMLImageElement).src);
+                              setShowImageModal(true);
+                            }
+                          }}
                         />
 
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 transition-colors">
-                          <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                          <p className="text-gray-500">
-                            Drag & drop files here, or click to select
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            Supported formats: GIF, WebP, PDF, XLS, CSV, HTML, CSS, .env, JS, PHP, SQL
-                          </p>
-                        </div>
+                        {/* Attachments */}
+                        {comment.attachments?.length > 0 && (
+                          <div className="mt-3 space-y-1">
+                            {comment.attachments.map((file, index) => (
+                              <a
+                                key={index}
+                                href={file.filename}
+                                target="_blank"
+                                download={file.originalname}
+                                className="flex items-center text-blue-600 text-xs hover:text-blue-800"
+                              >
+                                <Icon type={getIconType(file.mimetype, file.originalname)} size={30} />
+                                {/* <span className="ml-1">Attachment</span> */}
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {selectedFiles.length > 0 && (
-                        <div className="mt-3 space-y-1">
-                          {selectedFiles.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md text-sm">
-                              <div className="flex items-center space-x-2">
-                                <Icon type={getIconType(file.type, file.name) as any} size={16} />
-                                <span className="truncate">{file.name}</span>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeFile(index)}
-                                className="text-red-600 hover:text-red-800 ml-2"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    </div>
+                  ))
+                )}
+
+              </div>
+
+              {/* Input Box */}
+              <div className="border-t pt-4 mt-4">
+                <form onSubmit={handleAddComment} className="space-y-3">
+
+                  {/* Message Editor */}
+                  <TextCKeditor data={newComment} onChange={setNewComment} />
+
+                  {/* File Upload */}
+                  <div className="w-full">
+                    <label className="block text-sm font-medium mb-1">Attach Files</label>
+
+                    <div className="relative">
+                      <Input
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
+                        onChange={handleFileChange}
+                        className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                      />
+
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition">
+                        <Upload className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+                        <p className="text-gray-500 text-sm">Drag & drop or click to upload</p>
+                      </div>
                     </div>
 
-                    <Button
-                      type="submit"
-                      className="flex items-center space-x-2"
-                    >
-                      <Send className="h-4 w-4" />
-                      <span>Send</span>
-                    </Button>
-                  </form>
-
-                  {/* Comments List */}
-                  <div className="space-y-4 mb-6 max-h-96 overflow-y-auto mt-4">
-                    {comments.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        No comments yet. Start the conversation!
-                      </div>
-                    ) : (
-                      comments.map((comment) => (
-                        <div
-                          key={comment._id}
-                          className="bg-gray-50 rounded-lg p-4"
-                        >
-                          <div className="flex items-start space-x-3">
-                            <div className="flex-shrink-0">
-                              <Avatar className="w-8 h-8">
-                                <AvatarImage
-                                  src={comment.user.photo}
-                                  alt={`${comment.user.firstName || ""} ${comment.user.lastName || ""
-                                    }`}
-                                  className="object-cover"
-                                />
-                                <AvatarFallback className="bg-blue-500 text-white text-sm font-medium">
-                                  {(comment.user.firstName?.[0] ?? "") +
-                                    (comment.user.lastName?.[0] ?? "")}
-                                </AvatarFallback>
-                              </Avatar>
+                    {/* Selected Files Preview */}
+                    {selectedFiles.length > 0 && (
+                      <div className="mt-3 space-y-1">
+                        {selectedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-100 p-2 rounded-md text-sm">
+                            <div className="flex items-center space-x-2">
+                              <Icon type={getIconType(file.type, file.name)} size={16} />
+                              <span className="truncate">{file.name}</span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {comment.user.firstName} {comment.user.lastName}
-                                </span>
-                                <span
-                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${comment.user.role === "Admin"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-blue-100 text-blue-800"
-                                    }`}
-                                >
-                                  {comment.user.role}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  {formatDateTime(comment.createdAt)}
-                                </span>
-                                {currentUserId === comment.user._id && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDeleteComment(comment._id)}
-                                    className="text-red-600 hover:text-red-800 ml-2"
-                                    title="Delete comment"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-                              <div className="mt-1 text-sm text-gray-900">
-                                <style>
-                                  {`
-                                .comment-content img {
-                                  max-width: 300px;
-                                  max-height: 200px;
-                                  width: auto;
-                                  height: auto;
-                                  border-radius: 8px;
-                                  margin: 8px 0;
-                                  object-fit: contain;
-                                }
-                                .comment-content img[style*="width"] {
-                                  max-width: 300px !important;
-                                  max-height: 200px !important;
-                                }
-                              `}
-                                </style>
-                                <div
-                                  dangerouslySetInnerHTML={{
-                                    __html: comment.message,
-                                  }}
-                                  className="comment-content"
-                                  onClick={(e) => {
-                                    if ((e.target as HTMLElement).tagName === 'IMG') {
-                                      setSelectedImageSrc((e.target as HTMLImageElement).src);
-                                      setShowImageModal(true);
-                                    }
-                                  }}
-                                />
-                              </div>
-                              {comment.attachments && comment.attachments.length > 0 && (
-                                <div className="mt-2 space-y-1">
-                                  {comment.attachments.map((attachment, index) => (
-                                    <a
-                                      key={index}
-                                      href={attachment.filename}
-                                      target="_blank"
-                                      download={attachment.originalname}
-                                      className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
-                                    >
-                                      <Icon type={getIconType(attachment.mimetype, attachment.originalname) as any} size={16} />
-                                      <span style={{ fontSize: "10px" }}>Attached File</span>
-                                      {/* {attachment.originalname} */}
-                                    </a>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFile(index)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     )}
                   </div>
-                </div>
+
+                  {/* Send Button */}
+                  <Button type="submit" className="w-full flex items-center justify-center gap-2 py-3 text-base">
+                    <Send className="h-4 w-4" />
+                    Send
+                  </Button>
+                </form>
               </div>
             </div>
+
           </div>
         </div>
 

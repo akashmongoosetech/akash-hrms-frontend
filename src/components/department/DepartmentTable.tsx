@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, UserPlus, Search, Loader } from 'lucide-react';
+import { Edit, Trash2, UserPlus, Search, Loader, Grid, Table as TableIcon } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate } from '../../Common/Commonfunction';
 import toast from 'react-hot-toast';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 
 interface Department {
   _id: string;
@@ -28,6 +29,7 @@ export default function DepartmentTable() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('table');
 
   useEffect(() => {
     fetchDepartments(currentPage);
@@ -223,7 +225,21 @@ export default function DepartmentTable() {
         </button>
       </div>
 
-      {/* Table */}
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="table" className="flex items-center space-x-2">
+            <TableIcon className="h-4 w-4" />
+            <span>Table</span>
+          </TabsTrigger>
+          <TabsTrigger value="grid" className="flex items-center space-x-2">
+            <Grid className="h-4 w-4" />
+            <span>Grid</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="table">
+          {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -326,6 +342,83 @@ export default function DepartmentTable() {
           </PaginationContent>
         </Pagination>
       )}
+        </TabsContent>
+
+        <TabsContent value="grid">
+          {/* Grid View */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredDepartments.map((department) => (
+              <div key={department._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">{department.name}</h3>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleEdit(department)}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(department._id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Head:</span> {department.head}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Employees:</span> {department.totalAssociateEmployee}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Created:</span> {formatDate(department.createdAt)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {filteredDepartments.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No departments found matching your search.</p>
+            </div>
+          )}
+
+          {/* Pagination for Grid */}
+          {totalPages > 1 && (
+            <Pagination className="mt-6">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Add/Edit Modal */}
       {showAddModal && (

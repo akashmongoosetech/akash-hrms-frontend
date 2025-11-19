@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+import TextCKeditor from '../../components/common/TextCKeditor';
 import API from '../../utils/api';
 import toast from 'react-hot-toast';
 import socket from '../../utils/socket';
@@ -158,14 +157,9 @@ const EditReportModal: React.FC<EditReportModalProps> = ({
               Report Description *
             </label>
             <div className="border border-gray-300 rounded-lg">
-              {/* @ts-ignore */}
-              <CKEditor<ClassicEditor>
-                editor={ClassicEditor}
+              <TextCKeditor
                 data={formData.description}
-                onChange={(event, editor) => {
-                  const data = editor.getData();
-                  setFormData(prev => ({ ...prev, description: data }));
-                }}
+                onChange={(data) => setFormData(prev => ({ ...prev, description: data }))}
                 config={{
                   toolbar: [
                     'bold', 'italic', 'underline', 'strikethrough', '|',
