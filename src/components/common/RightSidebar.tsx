@@ -239,18 +239,18 @@ export default function RightSidebar() {
         },
         {
           id: "learning",
-          name: "Learning Management",
-          icon: <LibraryBig className="h-5 w-5" />,
+          name: "Course Admin Panel",
+          icon: <Lightbulb className="h-5 w-5" />,
           path: "/learning",
           roles: ["Admin", "SuperAdmin"],
         },
-        {
-          id: "admin-course-panel",
-          name: "Admin Course",
-          icon: <Lightbulb className="h-5 w-5" />,
-          path: "/admin-course-panel",
-          roles: ["Admin", "SuperAdmin"],
-        },
+        // {
+        //   id: "admin-course-panel",
+        //   name: "Admin Course",
+        //   icon: <Lightbulb className="h-5 w-5" />,
+        //   path: "/admin-course-panel",
+        //   roles: ["Admin", "SuperAdmin"],
+        // },
       ],
     },
 

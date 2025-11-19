@@ -84,6 +84,7 @@ export default function CourseLearnPage() {
       fetchProgress();
       fetchUser();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchCourse = async () => {
@@ -234,186 +235,218 @@ export default function CourseLearnPage() {
     );
   }
 
-  return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <Button onClick={() => navigate('/learn')} className="mb-6">
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Courses
-      </Button>
+  // helper for circular progress UI
+  const circleRadius = 36;
+  const circleCircumference = 2 * Math.PI * circleRadius;
+  const progressOffset = circleCircumference - (Math.min(Math.max(progress.progress, 0), 100) / 100) * circleCircumference;
 
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
-        <p className="text-gray-600 text-lg">{course.description}</p>
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <Button variant="ghost" onClick={() => navigate('/learn')} className="px-3 py-2">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold leading-tight">{course.title}</h1>
+            <p className="text-sm md:text-base text-gray-500 mt-1">{course.categoryDetails?.name || course.category} • {course.duration}</p>
+          </div>
+        </div>
+
+        <div className="hidden md:flex items-center space-x-4">
+          <div className="text-right">
+            <p className="text-xs text-gray-400">Created</p>
+            <p className="text-sm font-medium">{course.createdAt ? formatDate(course.createdAt) : '-'}</p>
+          </div>
+        </div>
       </div>
 
-      {/* Video Player */}
-      <Card className="mb-6">
-        <CardContent className="p-0">
-          {course.courseVideo ? (
-            <video
-              ref={videoRef}
-              controls
-              className="w-full aspect-video rounded-lg"
-              poster={course.thumbnailImage ? getUrl(course.thumbnailImage) : undefined}
-              onTimeUpdate={handleVideoTimeUpdate}
-              onLoadedMetadata={handleVideoLoadedMetadata}
-              onEnded={() => {
-                if (videoRef.current) {
-                  const duration = videoRef.current.duration;
-                  updateProgress(duration, duration);
-                }
-              }}
-            >
-              <source src={getUrl(course.courseVideo)} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          ) : (
-            <div className="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
-              <span className="text-gray-500">No video available for this course.</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main video area */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="shadow-xl overflow-hidden">
+            <CardContent className="p-0 bg-gradient-to-b from-white to-slate-50">
+              {course.courseVideo ? (
+                <div className="relative">
+                  <video
+                    ref={videoRef}
+                    controls
+                    className="w-full rounded-t-lg bg-black max-h-[65vh]"
+                    poster={course.thumbnailImage ? getUrl(course.thumbnailImage) : undefined}
+                    onTimeUpdate={handleVideoTimeUpdate}
+                    onLoadedMetadata={handleVideoLoadedMetadata}
+                    onEnded={() => {
+                      if (videoRef.current) {
+                        const duration = videoRef.current.duration;
+                        updateProgress(duration, duration);
+                      }
+                    }}
+                  >
+                    <source src={getUrl(course.courseVideo)} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
 
-      {/* Course Details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Course Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center">
-              <Clock className="h-5 w-5 mr-2 text-gray-500" />
-              <span className="font-medium">Duration:</span>
-              <span className="ml-2">{course.duration}</span>
-            </div>
+                  {/* subtle overlay info */}
+                  <div className="absolute left-4 bottom-4 bg-white/80 backdrop-blur-sm rounded-full px-3 py-1 flex items-center text-xs shadow">
+                    <Clock className="h-4 w-4 mr-2 text-gray-600" />
+                    <span className="text-gray-700">{course.duration}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                  <span className="text-gray-500">No video available for this course.</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-            <div>
-              <span className="font-medium">Category:</span>
-              <span className="ml-2">{course.categoryDetails?.name || course.category}</span>
-            </div>
+          <Card className="p-4">
+            <CardHeader>
+              <CardTitle>About this course</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <p className="text-gray-700 leading-relaxed">{course.description}</p>
+            </CardContent>
+          </Card>
 
-            <div>
-              <span className="font-medium">Status:</span>
-              <span className={`ml-2 px-2 py-1 rounded text-sm ${
-                course.status === 'Published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {course.status}
-              </span>
-            </div>
+          {/* mobile creator & meta (visible on small screens) */}
+          <div className="lg:hidden grid grid-cols-1 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Info</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center text-sm"><Clock className="h-4 w-4 mr-2 text-gray-500" /> <span>{course.duration}</span></div>
+                <div className="text-sm">Category: <span className="font-medium">{course.categoryDetails?.name || course.category}</span></div>
+                <div className="text-sm">Status: <span className={`ml-2 px-2 py-1 rounded text-sm ${course.status === 'Published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{course.status}</span></div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-            {course.createdAt && (
-              <div>
-                <span className="font-medium">Created:</span>
-                <span className="ml-2">{formatDate(course.createdAt)}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Created By</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {course.createdByDetails ? (
-              <div className="flex items-center">
-                <Avatar className="h-12 w-12 mr-4">
-                  {course.createdByDetails.photo ? (
-                    <AvatarImage
-                      src={getUrl(course.createdByDetails.photo)}
-                      alt={`${course.createdByDetails.firstName} ${course.createdByDetails.lastName}`}
+        {/* Sidebar */}
+        <aside className="space-y-6">
+          <div className="sticky top-6">
+            <Card className="p-4 text-center">
+              <div className="flex items-center justify-center mb-4">
+                <div className="relative inline-block">
+                  <svg width="90" height="90" className="block">
+                    <circle cx="45" cy="45" r={circleRadius} strokeWidth="8" stroke="#e6e7ef" fill="none" />
+                    <circle
+                      cx="45"
+                      cy="45"
+                      r={circleRadius}
+                      strokeWidth="8"
+                      strokeDasharray={`${circleCircumference} ${circleCircumference}`}
+                      strokeDashoffset={progressOffset}
+                      strokeLinecap="round"
+                      transform="rotate(-90 45 45)"
+                      style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                      fill="none"
                     />
-                  ) : null}
-                  <AvatarFallback>
-                    <User className="h-6 w-6" />
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">
-                    {course.createdByDetails.firstName} {course.createdByDetails.lastName}
-                  </p>
-                  <p className="text-sm text-gray-600">{course.createdByDetails.email}</p>
+                    <text x="45" y="50" textAnchor="middle" fontSize="16" fontWeight={700} fill="#111827">{Math.round(progress.progress)}%</text>
+                  </svg>
                 </div>
               </div>
-            ) : (
-              <p className="text-gray-500">Unknown creator</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Learning Progress Section */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Learning Progress</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Progress</span>
-                <span>{Math.round(progress.progress)}%</span>
+              <div className="mb-3">
+                <div className="text-sm text-gray-500">Watched</div>
+                <div className="text-sm font-medium">{Math.floor(progress.watchedTime / 60)}:{Math.floor(progress.watchedTime % 60).toString().padStart(2, '0')}</div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${progress.progress}%` }}></div>
+
+              <div className="mb-4">
+                <div className="text-sm text-gray-500">Total</div>
+                <div className="text-sm font-medium">{Math.floor(progress.totalDuration / 60)}:{Math.floor(progress.totalDuration % 60).toString().padStart(2, '0')}</div>
               </div>
-            </div>
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Watched: {Math.floor(progress.watchedTime / 60)}:{Math.floor(progress.watchedTime % 60).toString().padStart(2, '0')}</span>
-              <span>Total: {Math.floor(progress.totalDuration / 60)}:{Math.floor(progress.totalDuration % 60).toString().padStart(2, '0')}</span>
-            </div>
-            {progress.completed && (
-              <div className="text-center py-2">
-                <span className="text-green-600 font-medium">✓ Course Completed!</span>
-              </div>
-            )}
-            <p className="text-sm text-gray-600">
-              Your progress is automatically saved as you watch the video.
-            </p>
-            {progress.completed && (
-              <div className="mt-4">
-                <Button
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(`${API_URL}/courses/${id}/certificate`, {
-                        headers: {
-                          'Authorization': `Bearer ${localStorage.getItem('token')}`
+
+              <div className="flex flex-col gap-3">
+                {progress.completed ? (
+                  <Button className="bg-green-600 hover:bg-green-700">Completed</Button>
+                ) : (
+                  <Button onClick={() => { if (videoRef.current) videoRef.current.play(); }} className="bg-blue-600 hover:bg-blue-700">Resume</Button>
+                )}
+
+                {progress.completed && (
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`${API_URL}/courses/${id}/certificate`, {
+                          headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                          }
+                        });
+
+                        if (response.ok) {
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `Certificate_${course?.title.replace(/\s+/g, '_') || 'Course'}.pdf`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          window.URL.revokeObjectURL(url);
+                        } else {
+                          console.error('Failed to download certificate');
                         }
-                      });
-
-                      if (response.ok) {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = `Certificate_${course?.title.replace(/\s+/g, '_') || 'Course'}.pdf`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        window.URL.revokeObjectURL(url);
-                      } else {
-                        console.error('Failed to download certificate');
+                      } catch (error) {
+                        console.error('Error downloading certificate:', error);
                       }
-                    } catch (error) {
-                      console.error('Error downloading certificate:', error);
-                    }
-                  }}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Download Certificate
-                </Button>
+                    }}
+                    className="bg-white border border-green-600 text-green-700 hover:bg-green-50"
+                  >
+                    Download Certificate
+                  </Button>
+                )}
               </div>
+            </Card>
+
+            <Card className="mt-4 p-4">
+              <CardHeader>
+                <CardTitle>Course Details</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2 space-y-3 text-sm text-gray-600">
+                <div className="flex justify-between"><span>Category</span><span className="font-medium">{course.categoryDetails?.name || course.category}</span></div>
+                <div className="flex justify-between"><span>Status</span><span className={`font-medium ${course.status === 'Published' ? 'text-green-600' : 'text-yellow-600'}`}>{course.status}</span></div>
+                {course.createdAt && <div className="flex justify-between"><span>Created</span><span className="font-medium">{formatDate(course.createdAt)}</span></div>}
+              </CardContent>
+            </Card>
+
+            {course.createdByDetails && (
+              <Card className="mt-4 p-4">
+                <CardHeader>
+                  <CardTitle>Instructor</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center">
+                    <Avatar className="h-12 w-12 mr-4">
+                      {course.createdByDetails.photo ? (
+                        <AvatarImage src={getUrl(course.createdByDetails.photo)} alt={`${course.createdByDetails.firstName} ${course.createdByDetails.lastName}`} />
+                      ) : null}
+                      <AvatarFallback>
+                        <User className="h-6 w-6" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{course.createdByDetails.firstName} {course.createdByDetails.lastName}</div>
+                      <div className="text-sm text-gray-500">{course.createdByDetails.email}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
+
+            {/* small note */}
+            <div className="mt-4 text-xs text-gray-400">Progress is saved automatically while you watch. Make sure to stay connected to save your progress.</div>
           </div>
-        </CardContent>
-      </Card>
+        </aside>
+      </div>
 
       {/* Celebration Animation */}
       {showCelebration && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 text-center max-w-md mx-4 animate-bounce">
-            <div className="text-6xl mb-4">🎉</div>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 md:p-8 text-center max-w-lg mx-4 shadow-2xl transform transition-all">
+            <div className="text-6xl mb-4 animate-bounce">🎉</div>
             {user && (
               <div className="flex items-center justify-center mb-4">
                 <Avatar className="h-16 w-16 mr-4">
@@ -425,19 +458,46 @@ export default function CourseLearnPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-lg font-medium">{user.firstName} {user.lastName}</p>
-                  <p className="text-sm text-gray-600">Employee</p>
+                  <p className="text-lg font-semibold">{user.firstName} {user.lastName}</p>
+                  <p className="text-sm text-gray-500">Employee</p>
                 </div>
               </div>
             )}
             <h2 className="text-2xl font-bold text-green-600 mb-2">Congratulations!</h2>
             <p className="text-gray-700 mb-4">You have completed this course!</p>
-            <div className="flex justify-center space-x-2">
+            <div className="flex justify-center space-x-2 mb-4">
               <div className="w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
               <div className="w-3 h-3 bg-blue-400 rounded-full animate-ping" style={{ animationDelay: '0.1s' }}></div>
               <div className="w-3 h-3 bg-red-400 rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
             </div>
-            <p className="text-sm text-gray-500 mt-4">Keep learning and growing!</p>
+            <div className="flex justify-center gap-3">
+              <Button onClick={() => setShowCelebration(false)} className="bg-slate-100 text-slate-700">Close</Button>
+              <Button onClick={async () => {
+                try {
+                  const response = await fetch(`${API_URL}/courses/${id}/certificate`, {
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                  });
+
+                  if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `Certificate_${course?.title.replace(/\s+/g, '_') || 'Course'}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                  } else {
+                    console.error('Failed to download certificate');
+                  }
+                } catch (error) {
+                  console.error('Error downloading certificate:', error);
+                }
+              }} className="bg-green-600 hover:bg-green-700">Download Certificate</Button>
+            </div>
           </div>
         </div>
       )}

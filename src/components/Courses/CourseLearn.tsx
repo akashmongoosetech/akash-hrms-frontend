@@ -104,43 +104,60 @@ export default function CourseLearn() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Learn Courses</h1>
+      {/* <h1 className="text-2xl font-bold mb-6">Learn Courses</h1> */}
 
       {courses.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No courses available at the moment.</p>
+        <div className="flex flex-col items-center justify-center py-16">
+          <p className="text-gray-500 text-lg">No courses available at the moment.</p>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="text-center">
+            <h2 className="text-3xl font-bold mb-2">Explore Courses</h2>
+            <p className="text-gray-600">Grow your skills with high-quality learning content.</p>
+          </div>
+
+          {/* Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.map((course) => (
-              <Card key={course._id} className="hover:shadow-lg transition-shadow duration-200">
+              <Card
+                key={course._id}
+                className="rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 bg-white flex flex-col"
+              >
+                {/* Thumbnail */}
                 <CardHeader className="p-0">
                   {course.thumbnailImage ? (
                     <img
                       src={course.thumbnailImage}
                       alt={course.title}
-                      className="w-full h-48 object-cover rounded-t-lg"
+                      className="w-full h-52 object-cover"
                     />
                   ) : (
-                    <div className="w-full h-48 bg-gray-200 rounded-t-lg flex items-center justify-center">
-                      <span className="text-gray-500">No Image</span>
+                    <div className="w-full h-52 bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400">No Image</span>
                     </div>
                   )}
                 </CardHeader>
 
-                <CardContent className="p-4">
-                  <CardTitle className="text-lg mb-2 line-clamp-2">{course.title}</CardTitle>
+                {/* Content */}
+                <CardContent className="p-5 flex flex-col flex-grow">
+                  <CardTitle className="text-xl font-semibold mb-3 line-clamp-2">
+                    {course.title}
+                  </CardTitle>
 
-                  <div className="flex items-center text-sm text-gray-600 mb-2">
+                  <div className="flex items-center text-gray-500 text-sm mb-3">
                     <Clock className="h-4 w-4 mr-1" />
                     <span>{course.duration}</span>
                   </div>
 
-                  <p className="text-sm text-gray-700 mb-4 line-clamp-3">{course.description}</p>
+                  <p className="text-gray-700 text-sm mb-4 line-clamp-3">
+                    {course.description}
+                  </p>
 
-                  <div className="flex items-center">
-                    <Avatar className="h-8 w-8 mr-2">
+                  {/* Instructor */}
+                  <div className="flex items-center mb-4">
+                    <Avatar className="h-9 w-9 mr-3">
                       {course.createdByDetails?.photo ? (
                         <AvatarImage
                           src={getImageUrl(course.createdByDetails.photo)}
@@ -151,20 +168,23 @@ export default function CourseLearn() {
                         <User className="h-4 w-4" />
                       </AvatarFallback>
                     </Avatar>
-                    <div className="text-sm">
-                      <p className="font-medium">
+
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
                         {course.createdByDetails
                           ? `${course.createdByDetails.firstName} ${course.createdByDetails.lastName}`
-                          : 'Unknown'
-                        }
+                          : "Unknown"}
                       </p>
-                      <p className='text-sm text-gray-500'>{course.createdByDetails.email}</p>
+                      <p className="text-xs text-gray-500">
+                        {course.createdByDetails?.email}
+                      </p>
                     </div>
                   </div>
 
+                  {/* Button */}
                   <Button
                     onClick={() => navigate(`/learn/${course._id}`)}
-                    className="w-full mt-4"
+                    className="w-full mt-auto bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-all"
                   >
                     Learn
                   </Button>
@@ -172,8 +192,9 @@ export default function CourseLearn() {
               </Card>
             ))}
           </div>
-        </>
+        </div>
       )}
+
     </div>
   );
 }
