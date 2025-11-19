@@ -46,6 +46,7 @@ import CoursesPage from './pages/courses/CoursesPage';
 import CategoriesPage from './pages/categories/CategoriesPage';
 import LearningPage from './pages/learning/LearningPage';
 import CourseLearn from './components/Courses/CourseLearn';
+import CourseLearnPage from './pages/courses/CourseLearnPage';
 import './index.css';
 
 function AppRoutes() {
@@ -212,6 +213,11 @@ function AppRoutes() {
           <Route path="/learn" element={
             <ProtectedRoute requiredRole="Employee">
               <CourseLearn />
+            </ProtectedRoute>
+          } />
+          <Route path="/learn/:id" element={
+            <ProtectedRoute requiredRole="Employee">
+              <CourseLearnPage />
             </ProtectedRoute>
           } />
           <Route path="/admin-course-panel" element={

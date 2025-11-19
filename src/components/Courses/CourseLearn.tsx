@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
+import { Button } from '../ui/button';
 import { Clock, User } from 'lucide-react';
 
 interface Employee {
@@ -27,6 +29,7 @@ interface Course {
 }
 
 export default function CourseLearn() {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -108,58 +111,68 @@ export default function CourseLearn() {
           <p className="text-gray-500">No courses available at the moment.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
-            <Card key={course._id} className="hover:shadow-lg transition-shadow duration-200">
-              <CardHeader className="p-0">
-                {course.thumbnailImage ? (
-                  <img
-                    src={course.thumbnailImage}
-                    alt={course.title}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                  />
-                ) : (
-                  <div className="w-full h-48 bg-gray-200 rounded-t-lg flex items-center justify-center">
-                    <span className="text-gray-500">No Image</span>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map((course) => (
+              <Card key={course._id} className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="p-0">
+                  {course.thumbnailImage ? (
+                    <img
+                      src={course.thumbnailImage}
+                      alt={course.title}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-gray-200 rounded-t-lg flex items-center justify-center">
+                      <span className="text-gray-500">No Image</span>
+                    </div>
+                  )}
+                </CardHeader>
+
+                <CardContent className="p-4">
+                  <CardTitle className="text-lg mb-2 line-clamp-2">{course.title}</CardTitle>
+
+                  <div className="flex items-center text-sm text-gray-600 mb-2">
+                    <Clock className="h-4 w-4 mr-1" />
+                    <span>{course.duration}</span>
                   </div>
-                )}
-              </CardHeader>
 
-              <CardContent className="p-4">
-                <CardTitle className="text-lg mb-2 line-clamp-2">{course.title}</CardTitle>
+                  <p className="text-sm text-gray-700 mb-4 line-clamp-3">{course.description}</p>
 
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <Clock className="h-4 w-4 mr-1" />
-                  <span>{course.duration}</span>
-                </div>
-
-                <p className="text-sm text-gray-700 mb-4 line-clamp-3">{course.description}</p>
-
-                <div className="flex items-center">
-                  <Avatar className="h-8 w-8 mr-2">
-                    {course.createdByDetails?.photo ? (
-                      <AvatarImage
-                        src={getImageUrl(course.createdByDetails.photo)}
-                        alt={`${course.createdByDetails.firstName} ${course.createdByDetails.lastName}`}
-                      />
-                    ) : null}
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="text-sm">
-                    <p className="font-medium">
-                      {course.createdByDetails
-                        ? `${course.createdByDetails.firstName} ${course.createdByDetails.lastName}`
-                        : 'Unknown'
-                      }
-                    </p>
+                  <div className="flex items-center">
+                    <Avatar className="h-8 w-8 mr-2">
+                      {course.createdByDetails?.photo ? (
+                        <AvatarImage
+                          src={getImageUrl(course.createdByDetails.photo)}
+                          alt={`${course.createdByDetails.firstName} ${course.createdByDetails.lastName}`}
+                        />
+                      ) : null}
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm">
+                      <p className="font-medium">
+                        {course.createdByDetails
+                          ? `${course.createdByDetails.firstName} ${course.createdByDetails.lastName}`
+                          : 'Unknown'
+                        }
+                      </p>
+                      <p className='text-sm text-gray-500'>{course.createdByDetails.email}</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+
+                  <Button
+                    onClick={() => navigate(`/learn/${course._id}`)}
+                    className="w-full mt-4"
+                  >
+                    Learn
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
