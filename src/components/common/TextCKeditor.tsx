@@ -63,7 +63,7 @@ const TextCKeditor: React.FC<TextCKeditorProps> = ({ data, onChange, config }) =
       <style>
         {`
           .ck-editor__editable {
-            height: 300px !important;
+            height: 100px !important;
             overflow: auto;
           }
           .ck-content img {

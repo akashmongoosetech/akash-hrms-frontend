@@ -27,7 +27,12 @@ import {
   BadgeIndianRupee,
   Group,
   MessageSquareMore,
-  Rss
+  Rss,
+  GraduationCap,
+  BookOpen,
+  Notebook,
+  LibraryBig,
+  School, BadgeCheck, Lightbulb
 } from "lucide-react";
 import SettingsSidebar from "./SettingsSidebar";
 
@@ -215,6 +220,35 @@ export default function RightSidebar() {
           name: "Link",
           icon: <Link className="h-5 w-5" />,
           path: "/link",
+          roles: ["Admin", "SuperAdmin"],
+        },
+      ],
+    },
+
+    // Learning Management
+    {
+      title: "Learning",
+      icon: <GraduationCap className="h-4 w-4 text-gray-500" />,
+      items: [
+      {
+          id: "learn",
+          name: "Learning",
+          icon: <BadgeCheck className="h-5 w-5" />,
+          path: "/learn",
+          roles: ["Admin", "SuperAdmin", "Employee"],
+        },
+        {
+          id: "learning",
+          name: "Learning Management",
+          icon: <LibraryBig className="h-5 w-5" />,
+          path: "/learning",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "admin-course-panel",
+          name: "Admin Course",
+          icon: <Lightbulb className="h-5 w-5" />,
+          path: "/admin-course-panel",
           roles: ["Admin", "SuperAdmin"],
         },
       ],

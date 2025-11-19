@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from 'react-hot-toast';
 import {
@@ -14,6 +14,7 @@ import {
   X,
   Trash2,
   Download,
+  Loader2,
 } from "lucide-react";
 import Icon from "../../components/common/Icon";
 import { formatDate, formatDateTime } from "../../Common/Commonfunction";
@@ -105,6 +106,8 @@ export default function TicketViewPage() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
   const [completionDate, setCompletionDate] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Decode JWT to get user ID
   const decodeJWT = (token: string) => {
@@ -308,6 +311,7 @@ export default function TicketViewPage() {
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !id) return;
+    setIsSubmitting(true);
     try {
       const formData = new FormData();
       formData.append('message', newComment.trim());
@@ -334,6 +338,8 @@ export default function TicketViewPage() {
       }
     } catch (err) {
       console.error("Error adding comment:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -755,7 +761,7 @@ export default function TicketViewPage() {
               </div>
 
               {/* Chat Window */}
-              <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              <div className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[500px]">
 
                 {comments.length === 0 ? (
                   <div className="text-center py-10 text-gray-500">No comments yet. Start the conversation!</div>
@@ -829,7 +835,7 @@ export default function TicketViewPage() {
                                 className="flex items-center text-blue-600 text-xs hover:text-blue-800"
                               >
                                 <Icon type={getIconType(file.mimetype, file.originalname)} size={30} />
-                                {/* <span className="ml-1">Attachment</span> */}
+                                <span className="ml-1">Attached File</span>
                               </a>
                             ))}
                           </div>
@@ -853,20 +859,24 @@ export default function TicketViewPage() {
                   <div className="w-full">
                     <label className="block text-sm font-medium mb-1">Attach Files</label>
 
-                    <div className="relative">
-                      <Input
-                        type="file"
-                        multiple
-                        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
-                        onChange={handleFileChange}
-                        className="absolute inset-0 opacity-0 cursor-pointer z-20"
-                      />
-
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition">
-                        <Upload className="mx-auto h-10 w-10 text-gray-400 mb-2" />
-                        <p className="text-gray-500 text-sm">Drag & drop or click to upload</p>
-                      </div>
-                    </div>
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xls,.xlsx,.csv,.html,.css,.env,.js,.php,.sql"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Add Files
+                    </Button>
 
                     {/* Selected Files Preview */}
                     {selectedFiles.length > 0 && (
@@ -893,8 +903,8 @@ export default function TicketViewPage() {
                   </div>
 
                   {/* Send Button */}
-                  <Button type="submit" className="w-full flex items-center justify-center gap-2 py-3 text-base">
-                    <Send className="h-4 w-4" />
+                  <Button type="submit" disabled={isSubmitting} className="w-full flex items-center justify-center gap-2 py-3 text-base">
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Send
                   </Button>
                 </form>

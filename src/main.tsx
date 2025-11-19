@@ -42,6 +42,10 @@ import BlogAddPage from './pages/blog/BlogAddPage';
 import Blog from './components/AdminPanel/elements/Blog';
 import AdminPanel from './components/AdminPanel/AdminPanel';
 import ChatMain from './components/Chat/ChatMain';
+import CoursesPage from './pages/courses/CoursesPage';
+import CategoriesPage from './pages/categories/CategoriesPage';
+import LearningPage from './pages/learning/LearningPage';
+import CourseLearn from './components/Courses/CourseLearn';
 import './index.css';
 
 function AppRoutes() {
@@ -198,6 +202,21 @@ function AppRoutes() {
           <Route path="/chat" element={
             <ProtectedRoute requiredRole="Employee">
               <ChatMain />
+            </ProtectedRoute>
+          } />
+          <Route path="/learning" element={
+            <ProtectedRoute requiredRole="Employee">
+              <LearningPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/learn" element={
+            <ProtectedRoute requiredRole="Employee">
+              <CourseLearn />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin-course-panel" element={
+            <ProtectedRoute requiredRole="Admin">
+              <CoursesPage />
             </ProtectedRoute>
           } />
         </Route>
