@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -27,12 +27,30 @@ interface Course {
   createdAt?: string;
 }
 
+interface CourseProgress {
+  progress: number;
+  watchedTime: number;
+  totalDuration: number;
+  completed: boolean;
+  lastWatchedAt: string | null;
+}
+
 export default function CourseLearnPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<CourseProgress>({
+    progress: 0,
+    watchedTime: 0,
+    totalDuration: 0,
+    completed: false,
+    lastWatchedAt: null
+  });
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState(0);
 
   const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
 
@@ -54,6 +72,7 @@ export default function CourseLearnPage() {
   useEffect(() => {
     if (id) {
       fetchCourse();
+      fetchProgress();
     }
   }, [id]);
 
@@ -77,6 +96,87 @@ export default function CourseLearnPage() {
       console.error('Error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProgress = async () => {
+    try {
+      const response = await fetch(`${API_URL}/courses/${id}/progress`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProgress(data);
+      }
+    } catch (err) {
+      console.error('Error fetching progress:', err);
+    }
+  };
+
+  const updateProgress = async (watchedTime: number, totalDuration: number) => {
+    try {
+      const response = await fetch(`${API_URL}/courses/${id}/progress`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ watchedTime, totalDuration })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newProgress = data.progress;
+        setProgress(newProgress);
+
+        // Check if just completed
+        if (newProgress.progress >= 100 && !progress.completed) {
+          setShowCelebration(true);
+          setTimeout(() => setShowCelebration(false), 5000); // Hide after 5 seconds
+        }
+      }
+    } catch (err) {
+      console.error('Error updating progress:', err);
+    }
+  };
+
+  const handleVideoTimeUpdate = () => {
+    if (videoRef.current) {
+      const currentTime = videoRef.current.currentTime;
+      const duration = videoRef.current.duration || 0;
+
+      // Save progress every 5 seconds or when significant change
+      if (Math.abs(currentTime - lastSavedTime) >= 5) {
+        updateProgress(currentTime, duration);
+        setLastSavedTime(currentTime);
+      }
+
+      // Update local progress state for real-time UI
+      const currentProgress = duration > 0 ? (currentTime / duration) * 100 : 0;
+      setProgress(prev => ({
+        ...prev,
+        progress: Math.max(prev.progress, currentProgress),
+        watchedTime: Math.max(prev.watchedTime, currentTime),
+        totalDuration: duration
+      }));
+    }
+  };
+
+  const handleVideoLoadedMetadata = () => {
+    if (videoRef.current) {
+      const duration = videoRef.current.duration;
+      setProgress(prev => ({
+        ...prev,
+        totalDuration: duration
+      }));
+
+      // Resume from last watched position if available
+      if (progress.watchedTime > 0 && progress.watchedTime < duration) {
+        videoRef.current.currentTime = progress.watchedTime;
+      }
     }
   };
 
@@ -124,9 +224,12 @@ export default function CourseLearnPage() {
         <CardContent className="p-0">
           {course.courseVideo ? (
             <video
+              ref={videoRef}
               controls
               className="w-full aspect-video rounded-lg"
               poster={course.thumbnailImage ? getUrl(course.thumbnailImage) : undefined}
+              onTimeUpdate={handleVideoTimeUpdate}
+              onLoadedMetadata={handleVideoLoadedMetadata}
             >
               <source src={getUrl(course.courseVideo)} type="video/mp4" />
               Your browser does not support the video tag.
@@ -217,18 +320,44 @@ export default function CourseLearnPage() {
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Progress</span>
-                <span>0%</span>
+                <span>{Math.round(progress.progress)}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '0%' }}></div>
+                <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${progress.progress}%` }}></div>
               </div>
             </div>
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Watched: {Math.floor(progress.watchedTime / 60)}:{Math.floor(progress.watchedTime % 60).toString().padStart(2, '0')}</span>
+              <span>Total: {Math.floor(progress.totalDuration / 60)}:{Math.floor(progress.totalDuration % 60).toString().padStart(2, '0')}</span>
+            </div>
+            {progress.completed && (
+              <div className="text-center py-2">
+                <span className="text-green-600 font-medium">✓ Course Completed!</span>
+              </div>
+            )}
             <p className="text-sm text-gray-600">
-              Track your learning progress here. Additional features like notes, quizzes, and completion tracking can be implemented.
+              Your progress is automatically saved as you watch the video.
             </p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Celebration Animation */}
+      {showCelebration && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 text-center max-w-md mx-4 animate-bounce">
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-2xl font-bold text-green-600 mb-2">Congratulations!</h2>
+            <p className="text-gray-700 mb-4">You have successfully completed this course!</p>
+            <div className="flex justify-center space-x-2">
+              <div className="w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+              <div className="w-3 h-3 bg-blue-400 rounded-full animate-ping" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-3 h-3 bg-red-400 rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+            <p className="text-sm text-gray-500 mt-4">Keep learning and growing!</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
