@@ -11,6 +11,7 @@ interface Department {
   name: string;
   head: string;
   createdAt: string;
+  totalAssociateEmployee: number;
 }
 
 export default function DepartmentTable() {
@@ -238,8 +239,11 @@ export default function DepartmentTable() {
                   Department Head
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created Date
+                  Total Employee
                 </th>
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created Date
+                </th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -258,8 +262,11 @@ export default function DepartmentTable() {
                     {department.head}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatDate(department.createdAt)}
+                    {department.totalAssociateEmployee}
                   </td>
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatDate(department.createdAt)}
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
                       <button
