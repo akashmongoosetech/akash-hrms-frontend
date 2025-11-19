@@ -35,10 +35,19 @@ interface CourseProgress {
   lastWatchedAt: string | null;
 }
 
+interface User {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  photo?: string;
+}
+
 export default function CourseLearnPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<CourseProgress>({
@@ -73,6 +82,7 @@ export default function CourseLearnPage() {
     if (id) {
       fetchCourse();
       fetchProgress();
+      fetchUser();
     }
   }, [id]);
 
@@ -96,6 +106,23 @@ export default function CourseLearnPage() {
       console.error('Error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch(`${API_URL}/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data);
+      }
+    } catch (err) {
+      console.error('Error fetching user:', err);
     }
   };
 
@@ -133,7 +160,7 @@ export default function CourseLearnPage() {
         setProgress(newProgress);
 
         // Check if just completed
-        if (newProgress.progress >= 100 && !progress.completed) {
+        if (newProgress.completed && !progress.completed) {
           setShowCelebration(true);
           setTimeout(() => setShowCelebration(false), 5000); // Hide after 5 seconds
         }
@@ -230,6 +257,12 @@ export default function CourseLearnPage() {
               poster={course.thumbnailImage ? getUrl(course.thumbnailImage) : undefined}
               onTimeUpdate={handleVideoTimeUpdate}
               onLoadedMetadata={handleVideoLoadedMetadata}
+              onEnded={() => {
+                if (videoRef.current) {
+                  const duration = videoRef.current.duration;
+                  updateProgress(duration, duration);
+                }
+              }}
             >
               <source src={getUrl(course.courseVideo)} type="video/mp4" />
               Your browser does not support the video tag.
@@ -347,8 +380,24 @@ export default function CourseLearnPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 text-center max-w-md mx-4 animate-bounce">
             <div className="text-6xl mb-4">🎉</div>
+            {user && (
+              <div className="flex items-center justify-center mb-4">
+                <Avatar className="h-16 w-16 mr-4">
+                  {user.photo ? (
+                    <AvatarImage src={getUrl(user.photo)} alt={`${user.firstName} ${user.lastName}`} />
+                  ) : null}
+                  <AvatarFallback>
+                    <User className="h-8 w-8" />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-lg font-medium">{user.firstName} {user.lastName}</p>
+                  <p className="text-sm text-gray-600">Employee</p>
+                </div>
+              </div>
+            )}
             <h2 className="text-2xl font-bold text-green-600 mb-2">Congratulations!</h2>
-            <p className="text-gray-700 mb-4">You have successfully completed this course!</p>
+            <p className="text-gray-700 mb-4">You have completed this course!</p>
             <div className="flex justify-center space-x-2">
               <div className="w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
               <div className="w-3 h-3 bg-blue-400 rounded-full animate-ping" style={{ animationDelay: '0.1s' }}></div>
