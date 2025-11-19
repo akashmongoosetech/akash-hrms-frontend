@@ -371,6 +371,40 @@ export default function CourseLearnPage() {
             <p className="text-sm text-gray-600">
               Your progress is automatically saved as you watch the video.
             </p>
+            {progress.completed && (
+              <div className="mt-4">
+                <Button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${API_URL}/courses/${id}/certificate`, {
+                        headers: {
+                          'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                      });
+
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `Certificate_${course?.title.replace(/\s+/g, '_') || 'Course'}.pdf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                      } else {
+                        console.error('Failed to download certificate');
+                      }
+                    } catch (error) {
+                      console.error('Error downloading certificate:', error);
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Download Certificate
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
