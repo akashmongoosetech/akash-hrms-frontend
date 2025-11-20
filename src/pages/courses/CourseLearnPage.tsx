@@ -18,6 +18,23 @@ import TextCKeditor from '../../components/common/TextCKeditor';
 import { Clock, User, ArrowLeft, Edit, Trash2, Save, X } from 'lucide-react';
 import { formatDate } from '../../Common/Commonfunction';
 
+interface Video {
+  _id: string;
+  title: string;
+  description: string;
+  videoFile: string;
+  duration?: number;
+  order: number;
+}
+
+interface Module {
+  _id: string;
+  title: string;
+  description: string;
+  order: number;
+  videos: Video[];
+}
+
 interface Course {
   _id: string;
   title: string;
@@ -34,8 +51,8 @@ interface Course {
     email: string;
     photo?: string;
   };
-  courseVideo?: string;
   thumbnailImage?: string;
+  modules: Module[];
   createdAt?: string;
 }
 
@@ -45,6 +62,7 @@ interface CourseProgress {
   totalDuration: number;
   completed: boolean;
   lastWatchedAt: string | null;
+  videoProgress?: any[];
 }
 
 interface User {
@@ -73,10 +91,12 @@ export default function CourseLearnPage() {
     watchedTime: 0,
     totalDuration: 0,
     completed: false,
-    lastWatchedAt: null
+    lastWatchedAt: null,
+    videoProgress: []
   });
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationShown, setCelebrationShown] = useState(false); // Track if celebration was already shown
   const [lastSavedTime, setLastSavedTime] = useState(0);
   const [notes, setNotes] = useState<CourseNote[]>([]);
   const [newNote, setNewNote] = useState('');
@@ -84,6 +104,11 @@ export default function CourseLearnPage() {
   const [editingContent, setEditingContent] = useState('');
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // New state for modules and videos
+  const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [videoProgressMap, setVideoProgressMap] = useState<Map<string, any>>(new Map());
 
   const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
 
@@ -111,6 +136,29 @@ export default function CourseLearnPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    if (course && course.modules.length > 0) {
+      // Initialize current module and video if not set
+      if (currentModuleIndex >= course.modules.length) {
+        setCurrentModuleIndex(0);
+        setCurrentVideoIndex(0);
+      } else if (currentVideoIndex >= course.modules[currentModuleIndex].videos.length) {
+        setCurrentVideoIndex(0);
+      }
+    }
+  }, [course, currentModuleIndex, currentVideoIndex]);
+
+  // Watch for course completion to show celebration (only once)
+  useEffect(() => {
+    if (progress.completed && !celebrationShown) {
+      setShowCelebration(true);
+      setCelebrationShown(true);
+    } else if (!progress.completed && celebrationShown) {
+      // Reset celebration flag if course becomes incomplete
+      setCelebrationShown(false);
+    }
+  }, [progress.completed, celebrationShown]);
 
   const fetchCourse = async () => {
     try {
@@ -245,9 +293,82 @@ export default function CourseLearnPage() {
       if (response.ok) {
         const data = await response.json();
         setProgress(data);
+
+        // Update video progress map
+        const progressMap = new Map();
+        if (data.videoProgress) {
+          data.videoProgress.forEach((vp: any) => {
+            const key = `${vp.moduleId}_${vp.videoId}`;
+            progressMap.set(key, vp);
+          });
+        }
+        setVideoProgressMap(progressMap);
       }
     } catch (err) {
       console.error('Error fetching progress:', err);
+    }
+  };
+
+  const getCurrentVideo = () => {
+    if (!course || !course.modules[currentModuleIndex]) return null;
+    return course.modules[currentModuleIndex].videos[currentVideoIndex] || null;
+  };
+
+  const getCurrentVideoProgress = () => {
+    const currentVideo = getCurrentVideo();
+    if (!currentVideo) return null;
+    const key = `${course?.modules[currentModuleIndex]._id}_${currentVideo._id}`;
+    return videoProgressMap.get(key) || null;
+  };
+
+  const updateVideoProgress = async (watchedTime: number, totalDuration: number) => {
+    const currentVideo = getCurrentVideo();
+    if (!currentVideo || !course) return;
+
+    try {
+      const response = await fetch(`${API_URL}/courses/${id}/modules/${course.modules[currentModuleIndex]._id}/videos/${currentVideo._id}/progress`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ watchedTime, totalDuration })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const key = `${course.modules[currentModuleIndex]._id}_${currentVideo._id}`;
+        setVideoProgressMap(prev => new Map(prev.set(key, data.progress)));
+
+        // Refresh overall progress
+        fetchProgress();
+      }
+    } catch (err) {
+      console.error('Error updating video progress:', err);
+    }
+  };
+
+  const goToNextVideo = () => {
+    if (!course) return;
+
+    const currentModule = course.modules[currentModuleIndex];
+    if (currentVideoIndex < currentModule.videos.length - 1) {
+      setCurrentVideoIndex(currentVideoIndex + 1);
+    } else if (currentModuleIndex < course.modules.length - 1) {
+      setCurrentModuleIndex(currentModuleIndex + 1);
+      setCurrentVideoIndex(0);
+    }
+  };
+
+  const goToPreviousVideo = () => {
+    if (currentVideoIndex > 0) {
+      setCurrentVideoIndex(currentVideoIndex - 1);
+    } else if (currentModuleIndex > 0) {
+      setCurrentModuleIndex(currentModuleIndex - 1);
+      const prevModule = course?.modules[currentModuleIndex - 1];
+      if (prevModule) {
+        setCurrentVideoIndex(prevModule.videos.length - 1);
+      }
     }
   };
 
@@ -285,33 +406,30 @@ export default function CourseLearnPage() {
 
       // Save progress every 5 seconds or when significant change
       if (Math.abs(currentTime - lastSavedTime) >= 5) {
-        updateProgress(currentTime, duration);
+        updateVideoProgress(currentTime, duration);
         setLastSavedTime(currentTime);
       }
-
-      // Update local progress state for real-time UI
-      const currentProgress = duration > 0 ? (currentTime / duration) * 100 : 0;
-      setProgress(prev => ({
-        ...prev,
-        progress: Math.max(prev.progress, currentProgress),
-        watchedTime: Math.max(prev.watchedTime, currentTime),
-        totalDuration: duration
-      }));
     }
   };
 
   const handleVideoLoadedMetadata = () => {
     if (videoRef.current) {
       const duration = videoRef.current.duration;
-      setProgress(prev => ({
-        ...prev,
-        totalDuration: duration
-      }));
+      const currentVideoProgress = getCurrentVideoProgress();
 
       // Resume from last watched position if available
-      if (progress.watchedTime > 0 && progress.watchedTime < duration) {
-        videoRef.current.currentTime = progress.watchedTime;
+      if (currentVideoProgress && currentVideoProgress.watchedTime > 0 && currentVideoProgress.watchedTime < duration) {
+        videoRef.current.currentTime = currentVideoProgress.watchedTime;
       }
+    }
+  };
+
+  const handleVideoEnded = () => {
+    const currentVideo = getCurrentVideo();
+    if (currentVideo && videoRef.current) {
+      const duration = videoRef.current.duration;
+      updateVideoProgress(duration, duration);
+      goToNextVideo();
     }
   };
 
@@ -373,37 +491,54 @@ export default function CourseLearnPage() {
         <div className="lg:col-span-2 space-y-6">
           <Card className="shadow-xl overflow-hidden">
             <CardContent className="p-0 bg-gradient-to-b from-white to-slate-50">
-              {course.courseVideo ? (
-                <div className="relative">
-                  <video
-                    ref={videoRef}
-                    controls
-                    className="w-full rounded-t-lg bg-black max-h-[65vh]"
-                    poster={course.thumbnailImage ? getUrl(course.thumbnailImage) : undefined}
-                    onTimeUpdate={handleVideoTimeUpdate}
-                    onLoadedMetadata={handleVideoLoadedMetadata}
-                    onEnded={() => {
-                      if (videoRef.current) {
-                        const duration = videoRef.current.duration;
-                        updateProgress(duration, duration);
-                      }
-                    }}
-                  >
-                    <source src={getUrl(course.courseVideo)} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
+              {(() => {
+                const currentVideo = getCurrentVideo();
+                return currentVideo ? (
+                  <div className="relative">
+                    <video
+                      ref={videoRef}
+                      controls
+                      className="w-full rounded-t-lg bg-black max-h-[65vh]"
+                      poster={course.thumbnailImage ? getUrl(course.thumbnailImage) : undefined}
+                      onTimeUpdate={handleVideoTimeUpdate}
+                      onLoadedMetadata={handleVideoLoadedMetadata}
+                      onEnded={handleVideoEnded}
+                      key={`${currentModuleIndex}-${currentVideoIndex}`} // Force re-render when video changes
+                    >
+                      <source src={getUrl(currentVideo.videoFile)} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
 
-                  {/* subtle overlay info */}
-                  <div className="absolute left-4 bottom-4 bg-white/80 backdrop-blur-sm rounded-full px-3 py-1 flex items-center text-xs shadow">
-                    <Clock className="h-4 w-4 mr-2 text-gray-600" />
-                    <span className="text-gray-700">{course.duration}</span>
+                    {/* Video navigation */}
+                    <div className="absolute left-4 bottom-4 bg-white/80 backdrop-blur-sm rounded-full px-3 py-1 flex items-center text-xs shadow">
+                      <button
+                        onClick={goToPreviousVideo}
+                        className="mr-2 text-gray-600 hover:text-gray-800"
+                        disabled={currentModuleIndex === 0 && currentVideoIndex === 0}
+                      >
+                        ‹
+                      </button>
+                      <span className="text-gray-700">
+                        {course.modules[currentModuleIndex].title} - {currentVideo.title}
+                      </span>
+                      <button
+                        onClick={goToNextVideo}
+                        className="ml-2 text-gray-600 hover:text-gray-800"
+                        disabled={
+                          currentModuleIndex === course.modules.length - 1 &&
+                          currentVideoIndex === course.modules[currentModuleIndex].videos.length - 1
+                        }
+                      >
+                        ›
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-500">No video available for this course.</span>
-                </div>
-              )}
+                ) : (
+                  <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                    <span className="text-gray-500">No videos available in this course.</span>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 
@@ -697,7 +832,8 @@ export default function CourseLearnPage() {
         {/* Sidebar */}
         <aside className="space-y-6">
           <div className="sticky top-6">
-            <Card className="p-4 text-center">
+            {/* Course Progress */}
+            <Card className="p-4 text-center mb-4">
               <div className="flex items-center justify-center mb-4">
                 <div className="relative inline-block">
                   <svg width="90" height="90" className="block">
@@ -719,21 +855,16 @@ export default function CourseLearnPage() {
                 </div>
               </div>
 
-              <div className="mb-3">
-                <div className="text-sm text-gray-500">Watched</div>
-                <div className="text-sm font-medium">{Math.floor(progress.watchedTime / 60)}:{Math.floor(progress.watchedTime % 60).toString().padStart(2, '0')}</div>
-              </div>
-
               <div className="mb-4">
-                <div className="text-sm text-gray-500">Total</div>
-                <div className="text-sm font-medium">{Math.floor(progress.totalDuration / 60)}:{Math.floor(progress.totalDuration % 60).toString().padStart(2, '0')}</div>
+                <div className="text-sm text-gray-500">Course Progress</div>
+                <div className="text-sm font-medium">{Math.round(progress.progress)}% Complete</div>
               </div>
 
               <div className="flex flex-col gap-3">
                 {progress.completed ? (
-                  <Button className="bg-green-600 hover:bg-green-700">Completed</Button>
+                  <Button className="bg-green-600 hover:bg-green-700">Course Completed</Button>
                 ) : (
-                  <Button onClick={() => { if (videoRef.current) videoRef.current.play(); }} className="bg-blue-600 hover:bg-blue-700">Resume</Button>
+                  <Button onClick={() => { if (videoRef.current) videoRef.current.play(); }} className="bg-blue-600 hover:bg-blue-700">Resume Watching</Button>
                 )}
 
                 {progress.completed && (
@@ -769,6 +900,59 @@ export default function CourseLearnPage() {
                   </Button>
                 )}
               </div>
+            </Card>
+
+            {/* Course Content */}
+            <Card className="p-4">
+              <CardHeader>
+                <CardTitle className="text-lg">Course Content</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {course?.modules.map((module, moduleIdx) => (
+                    <div key={module._id} className="border border-gray-200 rounded-lg">
+                      <div
+                        className={`px-3 py-2 cursor-pointer text-sm font-medium ${
+                          moduleIdx === currentModuleIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                        }`}
+                        onClick={() => {
+                          setCurrentModuleIndex(moduleIdx);
+                          setCurrentVideoIndex(0);
+                        }}
+                      >
+                        Module {moduleIdx + 1}: {module.title}
+                      </div>
+                      <div className="px-3 pb-2">
+                        {module.videos.map((video, videoIdx) => {
+                          const videoProgress = videoProgressMap.get(`${module._id}_${video._id}`);
+                          const isCompleted = videoProgress?.completed || false;
+                          const isCurrent = moduleIdx === currentModuleIndex && videoIdx === currentVideoIndex;
+
+                          return (
+                            <div
+                              key={video._id}
+                              className={`flex items-center justify-between py-1 px-2 rounded text-xs cursor-pointer ${
+                                isCurrent ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-50'
+                              }`}
+                              onClick={() => {
+                                setCurrentModuleIndex(moduleIdx);
+                                setCurrentVideoIndex(videoIdx);
+                              }}
+                            >
+                              <span className="flex-1 truncate">
+                                {videoIdx + 1}. {video.title}
+                              </span>
+                              {isCompleted && (
+                                <span className="ml-2 text-green-600">✓</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
             </Card>
 
             <Card className="mt-4 p-4">

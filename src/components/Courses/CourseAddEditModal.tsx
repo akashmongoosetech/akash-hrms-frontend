@@ -21,6 +21,23 @@ interface Employee {
   email: string;
 }
 
+interface Video {
+  _id?: string;
+  title: string;
+  description: string;
+  videoFile: string | File;
+  duration?: number;
+  order: number;
+}
+
+interface Module {
+  _id?: string;
+  title: string;
+  description: string;
+  order: number;
+  videos: Video[];
+}
+
 interface Course {
   _id?: string;
   title: string;
@@ -31,8 +48,8 @@ interface Course {
   categoryDetails?: Category;
   createdBy: string;
   createdByDetails?: Employee;
-  courseVideo?: string;
   thumbnailImage?: string;
+  modules: Module[];
   createdAt?: string;
 }
 
@@ -65,8 +82,8 @@ export default function CourseAddEditModal({
     status: 'Draft' as 'Published' | 'Draft',
     category: '',
     createdBy: '',
-    courseVideo: null as File | null,
     thumbnailImage: null as File | null,
+    modules: [] as Module[],
   });
 
   useEffect(() => {
@@ -81,8 +98,8 @@ export default function CourseAddEditModal({
           status: editingCourse.status,
           category: editingCourse.category,
           createdBy: editingCourse.createdBy,
-          courseVideo: null,
           thumbnailImage: null,
+          modules: editingCourse.modules || [],
         });
       } else {
         resetForm();
@@ -186,8 +203,8 @@ export default function CourseAddEditModal({
       status: 'Draft',
       category: '',
       createdBy: '',
-      courseVideo: null,
       thumbnailImage: null,
+      modules: [],
     });
   };
 
@@ -209,9 +226,6 @@ export default function CourseAddEditModal({
       formDataToSend.append('category', formData.category);
       formDataToSend.append('createdBy', formData.createdBy);
 
-      if (formData.courseVideo) {
-        formDataToSend.append('courseVideo', formData.courseVideo);
-      }
       if (formData.thumbnailImage) {
         formDataToSend.append('thumbnailImage', formData.thumbnailImage);
       }
@@ -232,6 +246,13 @@ export default function CourseAddEditModal({
 
       if (response.ok) {
         const data = await response.json();
+        const courseId = data.course._id;
+
+        // Handle modules and videos for new courses
+        if (!editingCourse) {
+          await handleModulesAndVideos(courseId);
+        }
+
         toast.success(editingCourse ? 'Course updated successfully' : 'Course created successfully');
         onSuccess();
         onClose();
@@ -247,14 +268,110 @@ export default function CourseAddEditModal({
     }
   };
 
+  const handleModulesAndVideos = async (courseId: string) => {
+    const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
+
+    for (const [moduleIndex, module] of formData.modules.entries()) {
+      try {
+        // Add module
+        const moduleResponse = await fetch(`${API_URL}/courses/${courseId}/modules`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            title: module.title,
+            description: module.description,
+            order: moduleIndex
+          })
+        });
+
+        if (moduleResponse.ok) {
+          const moduleData = await moduleResponse.json();
+          const moduleId = moduleData.module._id;
+
+          // Add videos to this module
+          for (const [videoIndex, video] of module.videos.entries()) {
+            if (video.videoFile instanceof File) {
+              const videoFormData = new FormData();
+              videoFormData.append('title', video.title);
+              videoFormData.append('description', video.description);
+              videoFormData.append('order', videoIndex.toString());
+              videoFormData.append('video', video.videoFile);
+
+              await fetch(`${API_URL}/courses/${courseId}/modules/${moduleId}/videos`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: videoFormData
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error adding module/video:', error);
+      }
+    }
+  };
+
   const handleClose = () => {
     resetForm();
     onClose();
   };
 
-  const handleFileChange = (field: 'courseVideo' | 'thumbnailImage') => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (field: 'thumbnailImage') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setFormData({ ...formData, [field]: file });
+  };
+
+  const addModule = () => {
+    const newModule: Module = {
+      title: '',
+      description: '',
+      order: formData.modules.length,
+      videos: []
+    };
+    setFormData({ ...formData, modules: [...formData.modules, newModule] });
+  };
+
+  const updateModule = (index: number, field: keyof Module, value: any) => {
+    const updatedModules = [...formData.modules];
+    updatedModules[index] = { ...updatedModules[index], [field]: value };
+    setFormData({ ...formData, modules: updatedModules });
+  };
+
+  const removeModule = (index: number) => {
+    const updatedModules = formData.modules.filter((_, i) => i !== index);
+    setFormData({ ...formData, modules: updatedModules });
+  };
+
+  const addVideoToModule = (moduleIndex: number) => {
+    const updatedModules = [...formData.modules];
+    const newVideo: Video = {
+      title: '',
+      description: '',
+      videoFile: '',
+      order: updatedModules[moduleIndex].videos.length
+    };
+    updatedModules[moduleIndex].videos.push(newVideo);
+    setFormData({ ...formData, modules: updatedModules });
+  };
+
+  const updateVideoInModule = (moduleIndex: number, videoIndex: number, field: keyof Video, value: any) => {
+    const updatedModules = [...formData.modules];
+    updatedModules[moduleIndex].videos[videoIndex] = {
+      ...updatedModules[moduleIndex].videos[videoIndex],
+      [field]: value
+    };
+    setFormData({ ...formData, modules: updatedModules });
+  };
+
+  const removeVideoFromModule = (moduleIndex: number, videoIndex: number) => {
+    const updatedModules = [...formData.modules];
+    updatedModules[moduleIndex].videos = updatedModules[moduleIndex].videos.filter((_, i) => i !== videoIndex);
+    setFormData({ ...formData, modules: updatedModules });
   };
 
   if (!isOpen) return null;
@@ -375,21 +492,6 @@ export default function CourseAddEditModal({
             </Select>
           </div>
 
-          {/* Course Video */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Course Video
-            </label>
-            <input
-              type="file"
-              accept="video/*"
-              onChange={handleFileChange('courseVideo')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            {editingCourse?.courseVideo && (
-              <p className="text-sm text-gray-500 mt-1">Current video: {editingCourse.courseVideo}</p>
-            )}
-          </div>
 
           {/* Thumbnail Image */}
           <div>
@@ -405,6 +507,152 @@ export default function CourseAddEditModal({
             {editingCourse?.thumbnailImage && (
               <p className="text-sm text-gray-500 mt-1">Current image: {editingCourse.thumbnailImage}</p>
             )}
+          </div>
+
+          {/* Modules and Videos */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Course Modules & Videos
+              </label>
+              <Button
+                type="button"
+                onClick={addModule}
+                variant="outline"
+                size="sm"
+              >
+                + Add Module
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {formData.modules.map((module, moduleIndex) => (
+                <div key={moduleIndex} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="text-sm font-medium text-gray-900">Module {moduleIndex + 1}</h4>
+                    <Button
+                      type="button"
+                      onClick={() => removeModule(moduleIndex)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      Remove Module
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Module Title *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter module title"
+                        value={module.title}
+                        onChange={(e) => updateModule(moduleIndex, 'title', e.target.value)}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Description
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter module description"
+                        value={module.description}
+                        onChange={(e) => updateModule(moduleIndex, 'description', e.target.value)}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Videos in this module */}
+                  <div className="border-t pt-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-medium text-gray-700">
+                        Videos in this Module
+                      </label>
+                      <Button
+                        type="button"
+                        onClick={() => addVideoToModule(moduleIndex)}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        + Add Video
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {module.videos.map((video, videoIndex) => (
+                        <div key={videoIndex} className="border border-gray-100 rounded p-2 bg-gray-50">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-xs font-medium text-gray-700">Video {videoIndex + 1}</span>
+                            <Button
+                              type="button"
+                              onClick={() => removeVideoFromModule(moduleIndex, videoIndex)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+                            >
+                              ×
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1">
+                                Title *
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="Video title"
+                                value={video.title}
+                                onChange={(e) => updateVideoInModule(moduleIndex, videoIndex, 'title', e.target.value)}
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1">
+                                Description
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Video description"
+                                value={video.description}
+                                onChange={(e) => updateVideoInModule(moduleIndex, videoIndex, 'description', e.target.value)}
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1">
+                                Video File *
+                              </label>
+                              <input
+                                type="file"
+                                accept="video/*"
+                                required
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    updateVideoInModule(moduleIndex, videoIndex, 'videoFile', file);
+                                  }
+                                }}
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Buttons */}
