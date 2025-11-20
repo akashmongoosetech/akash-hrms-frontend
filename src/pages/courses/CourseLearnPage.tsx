@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '../../components/ui/avatar';
+import TextCKeditor from '../../components/common/TextCKeditor';
 import { Clock, User, ArrowLeft } from 'lucide-react';
 import { formatDate } from '../../Common/Commonfunction';
 
@@ -43,6 +44,12 @@ interface User {
   photo?: string;
 }
 
+interface CourseNote {
+  _id: string;
+  content: string;
+  createdAt: string;
+}
+
 export default function CourseLearnPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -60,6 +67,8 @@ export default function CourseLearnPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState(0);
+  const [notes, setNotes] = useState<CourseNote[]>([]);
+  const [newNote, setNewNote] = useState('');
 
   const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
 
@@ -83,6 +92,7 @@ export default function CourseLearnPage() {
       fetchCourse();
       fetchProgress();
       fetchUser();
+      fetchNotes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -124,6 +134,23 @@ export default function CourseLearnPage() {
       }
     } catch (err) {
       console.error('Error fetching user:', err);
+    }
+  };
+
+  const fetchNotes = async () => {
+    try {
+      const response = await fetch(`${API_URL}/courses/${id}/notes`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNotes(data.notes || []);
+      }
+    } catch (err) {
+      console.error('Error fetching notes:', err);
     }
   };
 
@@ -306,6 +333,143 @@ export default function CourseLearnPage() {
             </CardHeader>
             <CardContent className="pt-2">
               <p className="text-gray-700 leading-relaxed">{course.description}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="p-4">
+            <CardHeader>
+              <CardTitle>Note</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2 space-y-4">
+              {/* Add new note */}
+              <div className="space-y-2">
+                <TextCKeditor
+                  data={newNote}
+                  onChange={setNewNote}
+                  config={{
+                    extraPlugins: [function(editor) {
+                      editor.plugins.get('FileRepository').createUploadAdapter = (loader) => {
+                        return {
+                          upload: () => {
+                            return loader.file.then(file => new Promise((resolve, reject) => {
+                              const formData = new FormData();
+                              formData.append('upload', file);
+
+                              const token = localStorage.getItem('token');
+                              const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+                              fetch(`${apiUrl}/uploads/image`, {
+                                method: 'POST',
+                                headers: {
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: formData
+                              })
+                              .then(response => {
+                                if (!response.ok) {
+                                  throw new Error(`HTTP error! status: ${response.status}`);
+                                }
+                                return response.json();
+                              })
+                              .then(result => {
+                                if (result.url) {
+                                  resolve({ default: result.url });
+                                } else {
+                                  reject(result.error || 'Upload failed');
+                                }
+                              })
+                              .catch(error => {
+                                reject(error.message || error);
+                              });
+                            }));
+                          },
+                          abort: () => {}
+                        };
+                      };
+                    }],
+                    toolbar: [
+                      "bold",
+                      "italic",
+                      "underline",
+                      "strikethrough",
+                      "|",
+                      "numberedList",
+                      "bulletedList",
+                      "|",
+                      "link",
+                      "blockQuote",
+                      "|",
+                      "insertTable",
+                      "|",
+                      "undo",
+                      "redo",
+                      "|",
+                      "imageUpload",
+                    ],
+                    table: {
+                      contentToolbar: [
+                        "tableColumn",
+                        "tableRow",
+                        "mergeTableCells",
+                      ],
+                    },
+                    image: {
+                      toolbar: [
+                        'imageTextAlternative',
+                        '|',
+                        'imageStyle:alignLeft',
+                        'imageStyle:full',
+                        'imageStyle:alignRight'
+                      ],
+                    },
+                  }}
+                />
+                <Button
+                  onClick={async () => {
+                    if (!newNote.trim()) return;
+                    try {
+                      const response = await fetch(`${API_URL}/courses/${id}/notes`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({ content: newNote.trim() })
+                      });
+
+                      if (response.ok) {
+                        const data = await response.json();
+                        setNotes(data.notes.notes);
+                        setNewNote('');
+                      }
+                    } catch (err) {
+                      console.error('Error adding note:', err);
+                    }
+                  }}
+                  disabled={!newNote.trim()}
+                  className="w-full"
+                >
+                  Add Note
+                </Button>
+              </div>
+
+              {/* Display existing notes */}
+              {notes.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm text-gray-700">Your Notes ({notes.length})</h4>
+                  {notes.map((note) => (
+                    <div key={note._id} className="border rounded-lg p-3 bg-gray-50">
+                      <div
+                        className="text-sm text-gray-800 prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: note.content }}
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        {formatDate(note.createdAt)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
