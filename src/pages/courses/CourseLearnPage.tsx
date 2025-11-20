@@ -3,8 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '../../components/ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../components/ui/alert-dialog';
 import TextCKeditor from '../../components/common/TextCKeditor';
-import { Clock, User, ArrowLeft } from 'lucide-react';
+import { Clock, User, ArrowLeft, Edit, Trash2, Save, X } from 'lucide-react';
 import { formatDate } from '../../Common/Commonfunction';
 
 interface Course {
@@ -69,6 +80,10 @@ export default function CourseLearnPage() {
   const [lastSavedTime, setLastSavedTime] = useState(0);
   const [notes, setNotes] = useState<CourseNote[]>([]);
   const [newNote, setNewNote] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+  const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
 
@@ -151,6 +166,71 @@ export default function CourseLearnPage() {
       }
     } catch (err) {
       console.error('Error fetching notes:', err);
+    }
+  };
+
+  const handleEditNote = (noteId: string, content: string) => {
+    setEditingNoteId(noteId);
+    setEditingContent(content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingNoteId || !editingContent.trim()) return;
+
+    try {
+      const response = await fetch(`${API_URL}/courses/${id}/notes/${editingNoteId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ content: editingContent.trim() })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNotes(data.notes.notes);
+        setEditingNoteId(null);
+        setEditingContent('');
+      }
+    } catch (err) {
+      console.error('Error updating note:', err);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditingContent('');
+  };
+
+  const openDeleteModal = (noteId: string) => {
+    setDeleteNoteId(noteId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteNoteId(null);
+    setIsDeleteModalOpen(false);
+  };
+
+  const confirmDeleteNote = async () => {
+    if (!deleteNoteId) return;
+
+    try {
+      const response = await fetch(`${API_URL}/courses/${id}/notes/${deleteNoteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNotes(data.notes.notes);
+        closeDeleteModal();
+      }
+    } catch (err) {
+      console.error('Error deleting note:', err);
     }
   };
 
@@ -455,17 +535,143 @@ export default function CourseLearnPage() {
 
               {/* Display existing notes */}
               {notes.length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-3" style={{maxHeight:'500px', overflow:'auto'}}>
                   <h4 className="font-medium text-sm text-gray-700">Your Notes ({notes.length})</h4>
                   {notes.map((note) => (
                     <div key={note._id} className="border rounded-lg p-3 bg-gray-50">
-                      <div
-                        className="text-sm text-gray-800 prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: note.content }}
-                      />
-                      <p className="text-xs text-gray-500 mt-2">
-                        {formatDate(note.createdAt)}
-                      </p>
+                      {editingNoteId === note._id ? (
+                        <div className="space-y-2">
+                          <TextCKeditor
+                            data={editingContent}
+                            onChange={setEditingContent}
+                            config={{
+                              extraPlugins: [function(editor) {
+                                editor.plugins.get('FileRepository').createUploadAdapter = (loader) => {
+                                  return {
+                                    upload: () => {
+                                      return loader.file.then(file => new Promise((resolve, reject) => {
+                                        const formData = new FormData();
+                                        formData.append('upload', file);
+
+                                        const token = localStorage.getItem('token');
+                                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+                                        fetch(`${apiUrl}/api/uploads/image`, {
+                                          method: 'POST',
+                                          headers: {
+                                            'Authorization': `Bearer ${token}`
+                                          },
+                                          body: formData
+                                        })
+                                        .then(response => {
+                                          if (!response.ok) {
+                                            throw new Error(`HTTP error! status: ${response.status}`);
+                                          }
+                                          return response.json();
+                                        })
+                                        .then(result => {
+                                          if (result.url) {
+                                            resolve({ default: result.url });
+                                          } else {
+                                            reject(result.error || 'Upload failed');
+                                          }
+                                        })
+                                        .catch(error => {
+                                          reject(error.message || error);
+                                        });
+                                      }));
+                                    },
+                                    abort: () => {}
+                                  };
+                                };
+                              }],
+                              toolbar: [
+                                "bold",
+                                "italic",
+                                "underline",
+                                "strikethrough",
+                                "|",
+                                "numberedList",
+                                "bulletedList",
+                                "|",
+                                "link",
+                                "blockQuote",
+                                "|",
+                                "insertTable",
+                                "|",
+                                "undo",
+                                "redo",
+                                "|",
+                                "imageUpload",
+                              ],
+                              table: {
+                                contentToolbar: [
+                                  "tableColumn",
+                                  "tableRow",
+                                  "mergeTableCells",
+                                ],
+                              },
+                              image: {
+                                toolbar: [
+                                  'imageTextAlternative',
+                                  '|',
+                                  'imageStyle:alignLeft',
+                                  'imageStyle:full',
+                                  'imageStyle:alignRight'
+                                ],
+                              },
+                            }}
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={handleSaveEdit}
+                              disabled={!editingContent.trim()}
+                              size="sm"
+                            >
+                              <Save className="h-4 w-4 mr-1" />
+                              Save
+                            </Button>
+                            <Button
+                              onClick={handleCancelEdit}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div
+                            className="text-sm text-gray-800 prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: note.content }}
+                          />
+                          <div className="flex justify-between items-center mt-2">
+                            <p className="text-xs text-gray-500">
+                              {formatDate(note.createdAt)}
+                            </p>
+                            <div className="flex gap-1">
+                              <Button
+                                onClick={() => handleEditNote(note._id, note.content)}
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={() => openDeleteModal(note._id)}
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -665,6 +871,27 @@ export default function CourseLearnPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Note</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this note? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDeleteModal}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteNote}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
