@@ -458,7 +458,7 @@ const Statistics: React.FC = () => {
                             splitValue = parts.join(':');
                           }
 
-                          if (isAlternateSaturday) {
+                          if (isAlternateSaturday && !isOnLeave) {
                             cellStyle = '!bg-orange-200';
                           }
 
