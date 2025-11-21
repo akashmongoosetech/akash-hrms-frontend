@@ -461,12 +461,12 @@ const Statistics: React.FC = () => {
                           }
 
                           if (holiday && isMissingReport) {
-                            displayValue = "";
+                            displayValue = holiday.name;
                             cellStyle = '!bg-red-500 !text-white';
                           }
 
-                          if (isAlternateSaturday && !isOnLeave) {
-                            cellStyle = '!bg-orange-200';
+                          if ((isAlternateSaturday || isSunday) && !isOnLeave) {
+                            cellStyle = '!bg-yellow-200';
                           }
 
                           return (
