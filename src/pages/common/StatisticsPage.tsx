@@ -56,7 +56,7 @@ const Statistics: React.FC = () => {
   const [reportsData, setReportsData] = useState<Report[]>([]);
   const [leavesData, setLeavesData] = useState<any[]>([]);
   const [alternateSaturdayData, setAlternateSaturdayData] = useState<string[]>([]);
-  const [holidaysData, setHolidaysData] = useState<string[]>([]);
+  const [holidaysData, setHolidaysData] = useState<Holiday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
@@ -216,8 +216,8 @@ const Statistics: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const holidayDates = data.holidays.map((item: Holiday) => item.date.split('T')[0]); // Using date field directly
-        setHolidaysData(holidayDates);
+        console.log(data, 'Holidays')
+        setHolidaysData(data.holidays);
       } else {
         setErrorMessage('Failed to fetch holidays data');
         setShowError(true);
@@ -237,6 +237,7 @@ const Statistics: React.FC = () => {
     fetchAlternateSaturdays(year, selectedMonth);
     fetchReports(year, selectedMonth);
     fetchEmployees();
+    fetchHolidays();
   };
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -370,14 +371,15 @@ const Statistics: React.FC = () => {
                     const isAlternateSaturday = alternateSaturdayData.includes(day.key);
                     const dateObj = new Date(day.key);
                     const isSunday = dateObj.getDay() === 0;
-                    const isHoliday = holidaysData.includes(day.key);
+                    const holiday = holidaysData.find(h => h.date.split('T')[0] === day.key);
+                    const isHoliday = !!holiday;
 
                     // Highlight entire row if Sunday or alternate Saturday
                     const highlightRow = isAlternateSaturday || isSunday || isHoliday;
 
                     return (
-                      <tr key={rowIndex} className={highlightRow ? (isHoliday ? '!bg-orange-200' : '!bg-orange-200') : ''}>
-                        <td className="bg-green-200 px-4 py-2 min-w-48">{day.display}</td>
+                      <tr key={rowIndex} className={isHoliday ? '!bg-red-200' : (isAlternateSaturday || isSunday) ? '!bg-yellow-200' : ''}>
+                        <td className={highlightRow ? "px-4 py-2 min-w-48" : "bg-green-200 px-4 py-2 min-w-48"}>{day.display}</td>
                         {employeesData.map((employee, colIndex) => {
                           const value = dayAttendance[employee._id] || '';
                           const isMissingReport = value === '';
@@ -446,16 +448,21 @@ const Statistics: React.FC = () => {
                             }
                           }
 
-                          let splitValue = dayAttendance[employee._id] || '';
-                          if (splitValue && splitValue.split(':').length === 3) {
-                            splitValue = splitValue.split(':').slice(0, 2).join(':');
+                          let displayValue = dayAttendance[employee._id] || '';
+                          if (displayValue && displayValue.split(':').length === 3) {
+                            displayValue = displayValue.split(':').slice(0, 2).join(':');
 
                             // Remove the leading 0 from the hour part (if it exists)
-                            let parts = splitValue.split(':');
+                            let parts = displayValue.split(':');
                             if (parts[0].startsWith('0')) {
                               parts[0] = parts[0].slice(1);
                             }
-                            splitValue = parts.join(':');
+                            displayValue = parts.join(':');
+                          }
+
+                          if (holiday && isMissingReport) {
+                            displayValue = "";
+                            cellStyle = '!bg-red-500 !text-white';
                           }
 
                           if (isAlternateSaturday && !isOnLeave) {
@@ -464,7 +471,7 @@ const Statistics: React.FC = () => {
 
                           return (
                             <td key={colIndex} className={`px-2 py-1 ${cellStyle}`}>
-                              {splitValue}
+                              {displayValue}
                             </td>
                           );
                         })}

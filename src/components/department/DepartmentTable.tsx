@@ -293,7 +293,8 @@ export default function DepartmentTable() {
                       </button>
                       <button
                         onClick={() => handleDelete(department._id)}
-                        className="text-red-600 hover:text-red-900"
+                        disabled={department.totalAssociateEmployee > 0}
+                        className={`text-red-600 hover:text-red-900 ${department.totalAssociateEmployee > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <Trash2 className="h-5 w-5" />
                       </button>
@@ -360,7 +361,8 @@ export default function DepartmentTable() {
                     </button>
                     <button
                       onClick={() => handleDelete(department._id)}
-                      className="text-red-600 hover:text-red-900"
+                      disabled={department.totalAssociateEmployee > 0}
+                      className={`text-red-600 hover:text-red-900 ${department.totalAssociateEmployee > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>
