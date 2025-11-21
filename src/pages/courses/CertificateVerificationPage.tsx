@@ -6,6 +6,7 @@ import { Label } from '../../components/ui/label';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import Loader from '../../components/common/Loader';
 import API from '../../utils/api';
+import { formatDate } from '../../Common/Commonfunction';
 
 interface VerificationResult {
   valid: boolean;
@@ -146,7 +147,7 @@ export default function CertificateVerificationPage() {
                       </div>
                       <div>
                         <Label className="text-sm font-medium text-gray-600">Completion Date</Label>
-                        <p className="text-sm">{new Date(result.completedAt).toLocaleDateString()}</p>
+                        <p className="text-sm">{formatDate(result.completedAt)}</p>
                       </div>
                       <div>
                         <Label className="text-sm font-medium text-gray-600">Course Completed</Label>
