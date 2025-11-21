@@ -10,7 +10,9 @@ import {
 import DashboardTable from "./DashboardTable";
 import EmployeeTodos from "./EmployeeTodos";
 import DashboardTickets from "./DashboardTickets";
+import DashboardLeaves from "./DashboardLeaves";
 import TeamDashboard from "./TeamDashboard";
+import DashboardActivities from "./Dashboard Activities";
 import { useLayout } from "../common/Layout";
 import { UniversalSkeleton, BaseSkeleton } from "../ui/skeleton";
 
@@ -251,6 +253,16 @@ export default function Dashboard() {
     return colors[index % colors.length];
   };
 
+  const getBorderColor = (index) => {
+    const colors = [
+      "border-blue-500",
+      "border-green-500",
+      "border-purple-500",
+      "border-orange-500",
+    ];
+    return colors[index % colors.length];
+  };
+
   const getActivityIcon = (type) => {
     const icons = {
       leave: <Clock className="h-4 w-4 text-blue-500" />,
@@ -327,7 +339,7 @@ export default function Dashboard() {
                 {statCards.map((card, index) => (
                   <div
                     key={card.title}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
+                    className={`bg-white rounded shadow-sm border-t-4  ${getBorderColor(index)} p-4 sm:p-6 hover:shadow-md transition-shadow`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
@@ -434,6 +446,21 @@ export default function Dashboard() {
           </div>
         )}
 
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="dashboard-leaves">
+            {dashboardPreferences.leaves && (
+              <div className="mt-[50px]">
+                <DashboardLeaves />
+              </div>
+            )}
+          </div>
+          <div className="dashboard-activities">
+            <div className="mt-[50px]">
+              <DashboardActivities />
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );

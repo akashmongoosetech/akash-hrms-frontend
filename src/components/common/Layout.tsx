@@ -11,6 +11,7 @@ interface DashboardPreferences {
   teams: boolean;
   todos: boolean;
   tickets: boolean;
+  leaves: boolean;
 }
 
 interface LayoutContextType {
@@ -37,6 +38,7 @@ export default function Layout() {
     teams: true,
     todos: true,
     tickets: true,
+    leaves: true,
   });
 
   // Load preferences from localStorage on mount
