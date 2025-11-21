@@ -196,7 +196,6 @@ export default function PayrollTable() {
                     </button>
                     <button
                       className="text-blue-600 hover:text-blue-900"
-                      onClick={() => window.print()}
                     >
                       <Printer className="h-5 w-5" />
                     </button>

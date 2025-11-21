@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 
 interface Employee {
   _id: string;
+  employeeCode?: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -58,6 +59,7 @@ export default function EmployeeAddPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
 
   const [formData, setFormData] = useState({
+    employeeCode: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -227,6 +229,16 @@ export default function EmployeeAddPage() {
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Employee Code</label>
+                <input
+                  type="text"
+                  value={formData.employeeCode}
+                  readOnly
+                  placeholder="Auto-generated"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
                 <input

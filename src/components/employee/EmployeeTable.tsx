@@ -8,6 +8,7 @@ import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Employee {
   _id: string;
+  employeeCode?: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -251,6 +252,9 @@ export default function EmployeeTable() {
                   <BaseSkeleton className="h-4 w-4" />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <BaseSkeleton className="h-4 w-16" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-12" />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -281,6 +285,9 @@ export default function EmployeeTable() {
                 <tr key={rowIndex} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     <BaseSkeleton className="h-5 w-8" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <BaseSkeleton className="h-5 w-16" />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-3">
@@ -352,9 +359,10 @@ export default function EmployeeTable() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee Code</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th> */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joining Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DOB</th>
@@ -367,6 +375,9 @@ export default function EmployeeTable() {
               <tr key={employee._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {(currentPage - 1) * itemsPerPage + index + 1}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {employee.employeeCode || '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-3">
@@ -389,7 +400,13 @@ export default function EmployeeTable() {
                     {/* Name and Email */}
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-900">
-                        {employee.firstName} {employee.lastName}
+                        {employee.firstName} {employee.lastName} &nbsp;
+                        {/* Status */}
+                        <span className={`px-1 py-1 rounded-full text-xs font-medium mb-2 ${employee.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                          {employee.status || 'Active'}
+                        </span>
+                        {/* Status End */}
                       </span>
                       <span className="text-xs text-gray-500">{employee.email}</span>
                     </div>
@@ -398,12 +415,12 @@ export default function EmployeeTable() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {employee.department?.name || '-'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${employee.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
                     {employee.status || 'Active'}
                   </span>
-                </td>
+                </td> */}
                 {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.role}</td> */}
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {employee.joiningDate && !isNaN(new Date(employee.joiningDate).getTime()) ? formatDate(employee.joiningDate) : '-'}
