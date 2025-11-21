@@ -117,6 +117,7 @@ export default function DashboardLeaves() {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+      <style dangerouslySetInnerHTML={{__html: `.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; } .scrollbar-hide::-webkit-scrollbar { display: none; }`}} />
       <h1 className="text-lg font-semibold mb-4">Employee Leaves Overview</h1>
 
       {leaves.length === 0 ? (
@@ -124,7 +125,7 @@ export default function DashboardLeaves() {
           No leaves found
         </div>
       ) : (
-        <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+        <div className="overflow-x-auto max-h-[400px] overflow-y-auto scrollbar-hide">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>

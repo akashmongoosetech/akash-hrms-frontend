@@ -456,9 +456,11 @@ export default function Dashboard() {
             )}
           </div>
           <div className="dashboard-activities">
-            <div className="mt-[50px]">
-              <DashboardActivities />
-            </div>
+            {dashboardPreferences.activities && role !== 'Employee' && (
+              <div className="mt-[50px]">
+                <DashboardActivities />
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { Clock, Coffee, LogIn, LogOut } from 'lucide-react';
 import { BaseSkeleton } from '../ui/skeleton';
-import { formatDate } from '../../Common/Commonfunction';
+import { formatDateTime } from '../../Common/Commonfunction';
 
 interface Activity {
   type: 'punch-in' | 'punch-out' | 'break-in' | 'break-out';
@@ -202,12 +202,13 @@ export default function DashboardActivities() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 max-h-[500px] overflow-auto">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 max-h-[500px] overflow-auto scrollbar-hide">
+      <style dangerouslySetInnerHTML={{__html: `.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; } .scrollbar-hide::-webkit-scrollbar { display: none; }`}} />
       <h3 className="text-lg font-semibold mb-4">Today's Activities</h3>
       {activities.length === 0 ? (
         <p className="text-gray-500 text-center py-4">No activities today</p>
       ) : (
-        <div className="space-y-3 max-h-96 overflow-y-auto">
+        <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
           {activities.map((activity, index) => (
             <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50">
               <div className="flex-shrink-0">
@@ -222,7 +223,7 @@ export default function DashboardActivities() {
                     {getActivityText(activity.type)}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500">{formatDate(activity.timestamp)}</p>
+                <p className="text-xs text-gray-500">{formatDateTime(activity.timestamp)}</p>
                 {activity.reason && (
                   <p className="text-xs text-gray-600 mt-1">Reason: {activity.reason}</p>
                 )}
