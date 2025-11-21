@@ -88,6 +88,41 @@ export default function CertificateVerificationPage() {
     }
   };
 
+  const handleDownloadCertificate = async () => {
+    try {
+      const response = await API.get(`/courses/download-certificate/${result!.certificateId}`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `certificate-${result!.certificateId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err: any) {
+      setError('Failed to download certificate');
+    }
+  };
+
+  const handleShare = (platform: string) => {
+    const certificateUrl = `${API_URL}/courses/download-certificate/${result!.certificateId}`;
+    const text = `Check out my certificate: ${result!.course.title} completed by ${result!.learner.firstName} ${result!.learner.lastName}`;
+    let shareUrl = '';
+    switch (platform) {
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(certificateUrl)}&text=${encodeURIComponent(text)}`;
+        break;
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(certificateUrl)}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(certificateUrl)}`;
+        break;
+    }
+    window.open(shareUrl, '_blank');
+  };
+
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <Card>
@@ -234,12 +269,27 @@ export default function CertificateVerificationPage() {
                       {result.learner.joiningDate && (
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Joining Date</Label>
-                          <p className="text-sm">{new Date(result.learner.joiningDate).toLocaleDateString()}</p>
+                          <p className="text-sm">{formatDate(result.learner.joiningDate)}</p>
                         </div>
                       )}
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+
+              <div className="flex justify-center space-x-4 mt-6">
+                <Button variant="outline" onClick={handleDownloadCertificate}>
+                  Download Certificate
+                </Button>
+                <Button variant="outline" onClick={() => handleShare('twitter')}>
+                  Twitter
+                </Button>
+                <Button variant="outline" onClick={() => handleShare('facebook')}>
+                  Facebook
+                </Button>
+                <Button variant="outline" onClick={() => handleShare('linkedin')}>
+                  LinkedIn
+                </Button>
               </div>
             </div>
           )}
