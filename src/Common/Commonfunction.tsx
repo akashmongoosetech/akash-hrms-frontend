@@ -93,3 +93,16 @@ export const formatDueDate = (date: string): string => {
 
   return `${formattedDay} ${formattedMonth}, ${formattedYear}`;
 };
+
+/**
+ * Sorts employees alphabetically by full name (firstName + lastName).
+ * @param employees - Array of objects with firstName and lastName properties.
+ * @returns The sorted array of employees.
+ */
+export const sortEmployeesAlphabetically = <T extends { firstName: string; lastName: string }>(employees: T[]) => {
+  return employees.sort((a, b) => {
+    const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+    const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+};

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Eye, Edit, Trash2, NotebookPen } from 'lucide-react';
-import { formatDate } from '../../Common/Commonfunction';
+import { formatDate, sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
 interface Report {
@@ -115,7 +115,7 @@ const ReportTable: React.FC<ReportTableProps> = ({
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Employees</option>
-                {employees.map((employee) => (
+                {sortEmployeesAlphabetically(employees).map((employee) => (
                   <option key={employee._id} value={employee._id}>
                     {employee.firstName} {employee.lastName}
                   </option>

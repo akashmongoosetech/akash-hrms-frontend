@@ -236,7 +236,7 @@ export default function GalleryPage() {
                   <p className="text-sm">No pictures uploaded</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 max-h-[310px] overflow-auto">
                   {item.pictures.map((picture, index) => (
                     <div key={index} className="relative group">
                       <img

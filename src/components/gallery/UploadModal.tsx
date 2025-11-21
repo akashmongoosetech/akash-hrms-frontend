@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 
 interface User {
   _id: string;
@@ -56,8 +57,8 @@ const UploadModal: React.FC<UploadModalProps> = ({
               onChange={(e) => setSelectedUserId(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">Select an employee...</option>
-              {users.map((user) => (
+              <option value="">Select an employee</option>
+              {sortEmployeesAlphabetically(users).map((user) => (
                 <option key={user._id} value={user._id}>
                   {user.firstName} {user.lastName}
                 </option>

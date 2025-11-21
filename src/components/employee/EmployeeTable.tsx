@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, Eye, Plus } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
-import { formatDate } from '../../Common/Commonfunction';
+import { formatDate, sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
@@ -121,7 +121,7 @@ export default function EmployeeTable() {
 
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data.users || []);
+        setEmployees(sortEmployeesAlphabetically(data.users || []));
         setTotalPages(data.totalPages || 1);
         setTotalItems(data.totalItems || 0);
       } else {

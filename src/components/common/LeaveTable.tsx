@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, Plus, Check, X, Eye } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
-import { formatDate } from '../../Common/Commonfunction';
+import { formatDate, sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import RequestLeaveModal from './modals/RequestLeaveModal/RequestLeaveModal';
 import UpdateStatusModal from './modals/UpdateStatusModal/UpdateStatusModal';
 import ViewLeaveModal from './modals/ViewLeaveModal/ViewLeaveModal';
@@ -71,6 +71,12 @@ export default function LeaveTable() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
   const role = localStorage.getItem('role');
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [filters, setFilters] = useState({
+    employee: '',
+    fromDate: '',
+    toDate: ''
+  });
 
   useEffect(() => {
     fetchLeaves(currentPage);
@@ -98,6 +104,12 @@ export default function LeaveTable() {
     };
   }, []);
 
+  useEffect(() => {
+    if (currentUser && (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin')) {
+      fetchEmployees();
+    }
+  }, [currentUser]);
+
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -118,9 +130,32 @@ export default function LeaveTable() {
     }
   };
 
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data.users);
+      }
+    } catch (err) {
+      console.error('Error fetching employees');
+    }
+  };
+
   const fetchLeaves = async (page: number = 1) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/leaves?page=${page}&limit=${itemsPerPage}`, {
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', itemsPerPage.toString());
+      if (filters.employee) queryParams.append('employee', filters.employee);
+      if (filters.fromDate) queryParams.append('fromDate', filters.fromDate);
+      if (filters.toDate) queryParams.append('toDate', filters.toDate);
+
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/leaves?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -139,6 +174,25 @@ export default function LeaveTable() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyFilters = () => {
+    setCurrentPage(1);
+    fetchLeaves(1);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      employee: '',
+      fromDate: '',
+      toDate: ''
+    });
+    setCurrentPage(1);
+    fetchLeaves(1);
   };
 
   const handleRequestLeave = async (e: React.FormEvent) => {
@@ -396,6 +450,57 @@ export default function LeaveTable() {
             <span>Request Leave</span>
           </button>
         )}
+      </div>
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        {(currentUser?.role === 'Admin' || currentUser?.role === 'SuperAdmin') && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Employee</label>
+            <select
+              value={filters.employee}
+              onChange={(e) => handleFilterChange('employee', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Employees</option>
+              {sortEmployeesAlphabetically(employees).map((emp) => (
+                <option key={emp._id} value={emp._id}>
+                  {emp.firstName} {emp.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+          <input
+            type="date"
+            value={filters.fromDate}
+            onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+          <input
+            type="date"
+            value={filters.toDate}
+            onChange={(e) => handleFilterChange('toDate', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex items-end gap-2">
+          <button
+            onClick={applyFilters}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          >
+            Apply
+          </button>
+          <button
+            onClick={clearFilters}
+            className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+          >
+            Clear
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">

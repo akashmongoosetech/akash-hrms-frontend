@@ -4,6 +4,7 @@ import YearSelector from '../../components/common/YearSelector';
 import MonthSelector from '../../components/common/MonthSelector';
 import AttendanceTableSkeleton from '../../components/common/AttendanceTableSkeleton';
 import moment from 'moment';
+import {sortEmployeesAlphabetically} from '../../Common/Commonfunction';
 
 interface Employee {
   _id: string;
@@ -85,7 +86,7 @@ const Statistics: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setEmployeesData(data.users || []);
+        setEmployeesData(sortEmployeesAlphabetically(data.users || []) as Employee[]);
       } else {
         setErrorMessage('Failed to fetch employees data');
         setShowError(true);
@@ -379,7 +380,7 @@ const Statistics: React.FC = () => {
 
                     return (
                       <tr key={rowIndex} className={isHoliday ? '!bg-red-200' : (isAlternateSaturday || isSunday) ? '!bg-yellow-200' : ''}>
-                        <td className={highlightRow ? "px-4 py-2 min-w-48" : "bg-green-200 px-4 py-2 min-w-48"}>{day.display}</td>
+                        <td className="!bg-green-200 px-4 py-2 min-w-48">{day.display}</td>
                         {employeesData.map((employee, colIndex) => {
                           const value = dayAttendance[employee._id] || '';
                           const isMissingReport = value === '';
@@ -439,7 +440,9 @@ const Statistics: React.FC = () => {
                             cellStyle = '!bg-red-500 !text-white'; // Red for full-day
                             leaveCounts[employee._id] = leaveCounts[employee._id] + 1;
                           } else if (!isMissingReport) {
-                            if (calculateDay === 0.5 && !workedOnSpecialDay) {
+                            if (calculateDay === 1 && !workedOnSpecialDay) {
+                              cellStyle = '!bg-green-500 !text-white'; // Green for full working day
+                            } else if (calculateDay === 0.5 && !workedOnSpecialDay) {
                               cellStyle = '!bg-cyan-400 !text-black'; // Cyan for half-day
                               leaveCounts[employee._id] = leaveCounts[employee._id] + calculateDay;
                             } else if (calculateDay === 0 && !workedOnSpecialDay) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatDate, formatDateTime } from '../../Common/Commonfunction';
+import { formatDate, formatDateTime, sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import socket from '../../utils/socket';
 import { Button } from '../ui/button';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
@@ -258,7 +258,7 @@ export default function PunchTimeTable() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Employees</option>
-              {employees.map((emp) => (
+              {sortEmployeesAlphabetically(employees).map((emp) => (
                 <option key={emp._id} value={emp._id}>
                   {emp.firstName} {emp.lastName}
                 </option>

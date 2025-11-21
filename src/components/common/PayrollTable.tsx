@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatDate } from '../../Common/Commonfunction';
+import { formatDate, sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import { Eye, Printer } from "lucide-react";
 import PayrollViewModal from './modals/PayrollViewModal/PayrollViewModal';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
@@ -50,7 +50,7 @@ export default function PayrollTable() {
 
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data.users || []);
+        setEmployees(sortEmployeesAlphabetically(data.users || []));
         setTotalPages(data.totalPages || 1);
         setTotalItems(data.totalItems || 0);
       } else {
