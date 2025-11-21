@@ -10,8 +10,8 @@ interface Leave {
     firstName: string;
     lastName: string;
     email: string;
-    photo: string;
-  };
+    photo?: string;
+  } | null;
   startDate: string;
   endDate: string;
   leaveType: string;
@@ -155,7 +155,7 @@ export default function DashboardLeaves() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                        {leave.employee.photo ? (
+                        {leave.employee?.photo ? (
                           <img
                             src={leave.employee.photo}
                             alt={`${leave.employee.firstName} ${leave.employee.lastName}`}
@@ -163,17 +163,16 @@ export default function DashboardLeaves() {
                           />
                         ) : (
                           <span className="text-gray-600 text-sm font-semibold">
-                            {leave.employee.firstName.charAt(0)}
-                            {leave.employee.lastName.charAt(0)}
+                            {leave.employee ? `${leave.employee.firstName.charAt(0)}${leave.employee.lastName.charAt(0)}` : 'U'}
                           </span>
                         )}
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {leave.employee.firstName} {leave.employee.lastName}
+                          {leave.employee ? `${leave.employee.firstName} ${leave.employee.lastName}` : 'Unknown Employee'}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {leave.employee.email}
+                          {leave.employee?.email || 'N/A'}
                         </div>
                       </div>
                     </div>

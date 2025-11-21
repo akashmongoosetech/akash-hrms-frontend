@@ -116,8 +116,8 @@ export default function DashboardActivities() {
       console.log('Received punch-in event:', data);
       const activity: Activity = {
         type: 'punch-in',
-        employeeName: `${data.employee.firstName} ${data.employee.lastName}`,
-        employeePhoto: data.employee.photo,
+        employeeName: data.employee ? `${data.employee.firstName} ${data.employee.lastName}` : 'Unknown Employee',
+        employeePhoto: data.employee?.photo,
         timestamp: data.punchTime.punchInTime
       };
       setActivities(prev => [activity, ...prev]);
@@ -127,8 +127,8 @@ export default function DashboardActivities() {
       console.log('Received punch-out event:', data);
       const activity: Activity = {
         type: 'punch-out',
-        employeeName: `${data.employee.firstName} ${data.employee.lastName}`,
-        employeePhoto: data.employee.photo,
+        employeeName: data.employee ? `${data.employee.firstName} ${data.employee.lastName}` : 'Unknown Employee',
+        employeePhoto: data.employee?.photo,
         timestamp: data.punchTime.punchOutTime
       };
       setActivities(prev => [activity, ...prev]);
@@ -138,8 +138,8 @@ export default function DashboardActivities() {
       console.log('Received newBreak event:', breakRecord);
       const activity: Activity = {
         type: breakRecord.action === 'Break In' ? 'break-in' : 'break-out',
-        employeeName: `${breakRecord.employee.firstName} ${breakRecord.employee.lastName}`,
-        employeePhoto: breakRecord.employee.photo,
+        employeeName: breakRecord.employee ? `${breakRecord.employee.firstName} ${breakRecord.employee.lastName}` : 'Unknown Employee',
+        employeePhoto: breakRecord.employee?.photo,
         timestamp: breakRecord.timestamp,
         reason: breakRecord.reason
       };

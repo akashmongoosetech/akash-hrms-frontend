@@ -216,7 +216,7 @@ export default function Dashboard() {
           });
           if (role === 'Employee') {
             const userId = localStorage.getItem('userId');
-            filteredLeaves = filteredLeaves.filter((leave: any) => leave.employee._id === userId);
+            filteredLeaves = filteredLeaves.filter((leave: any) => leave.employee && leave.employee._id === userId);
           }
           setLeavesCount(filteredLeaves.length);
         }
