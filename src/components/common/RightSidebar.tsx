@@ -244,6 +244,13 @@ export default function RightSidebar() {
           path: "/learning",
           roles: ["Admin", "SuperAdmin"],
         },
+        {
+          id: "certificate-verification",
+          name: "Certificate Verification",
+          icon: <BadgeCheck className="h-5 w-5" />,
+          path: "/certificate-verification",
+          roles: ["Admin", "SuperAdmin"],
+        },
         // {
         //   id: "admin-course-panel",
         //   name: "Admin Course",

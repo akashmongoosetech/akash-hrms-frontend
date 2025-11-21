@@ -43,6 +43,7 @@ import Blog from './components/AdminPanel/elements/Blog';
 import AdminPanel from './components/AdminPanel/AdminPanel';
 import ChatMain from './components/Chat/ChatMain';
 import CoursesPage from './pages/courses/CoursesPage';
+import CertificateVerificationPage from './pages/courses/CertificateVerificationPage';
 import CategoriesPage from './pages/categories/CategoriesPage';
 import LearningPage from './pages/learning/LearningPage';
 import CourseLearn from './components/Courses/CourseLearn';
@@ -223,6 +224,11 @@ function AppRoutes() {
           <Route path="/admin-course-panel" element={
             <ProtectedRoute requiredRole="Admin">
               <CoursesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/certificate-verification" element={
+            <ProtectedRoute requiredRole="Admin">
+              <CertificateVerificationPage />
             </ProtectedRoute>
           } />
         </Route>
