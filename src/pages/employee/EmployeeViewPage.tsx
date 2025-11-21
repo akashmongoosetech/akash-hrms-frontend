@@ -11,6 +11,7 @@ interface Employee {
   email: string;
   gender?: string;
   photo?: string;
+  employeeCode?: string;
   dob?: string;
   joiningDate?: string;
   mobile1?: string;
@@ -145,32 +146,40 @@ export default function EmployeeViewPage() {
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-8 border-b border-gray-200">
             <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
               <div className="flex-shrink-0">
-                {employee.photo ? (
-                  <img
-                    src={employee.photo}
-                    alt="Profile"
-                    className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `<div class="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center shadow-lg border-4 border-white">
-                          <span class="text-3xl font-bold text-blue-600">
-                            ${employee.firstName.charAt(0)}${employee.lastName.charAt(0)}
-                          </span>
-                        </div>`;
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center shadow-lg border-4 border-white">
-                    <span className="text-3xl font-bold text-blue-600">
-                      {(employee.firstName?.charAt(0) || '')}{(employee.lastName?.charAt(0) || '')}
-                    </span>
-                  </div>
-                )}
+                <div>
+                  {employee.photo ? (
+                    <img
+                      src={employee.photo}
+                      alt="Profile"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg mx-auto"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `<div class="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center shadow-lg border-4 border-white mx-auto">
+                        <span class="text-3xl font-bold text-blue-600">
+                          ${employee.firstName.charAt(0)}${employee.lastName.charAt(0)}
+                        </span>
+                      </div>`;
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center shadow-lg border-4 border-white mx-auto">
+                      <span className="text-3xl font-bold text-blue-600">
+                        {(employee.firstName?.charAt(0) || '')}{(employee.lastName?.charAt(0) || '')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Centered employee code */}
+                <div className="text-center mt-2 font-medium text-gray-600">
+                  {employee.employeeCode}
+                </div>
               </div>
+
               <div className="flex-1 text-center md:text-left">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">{employee.firstName} {employee.lastName}</h2>
                 <p className="text-xl text-gray-700 mb-1">{employee.role}</p>

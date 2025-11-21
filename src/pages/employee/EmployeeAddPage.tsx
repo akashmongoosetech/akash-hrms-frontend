@@ -234,9 +234,9 @@ export default function EmployeeAddPage() {
                 <input
                   type="text"
                   value={formData.employeeCode}
-                  readOnly
-                  placeholder="Auto-generated"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500"
+                  onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value })}
+                  placeholder="Auto-generated or enter manually"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
               <div>
