@@ -18,6 +18,8 @@ const buttonVariants = cva(
         // hero: "bg-primary text-white hover:bg-primary/90 shadow-large hover:shadow-large hover:scale-105 transition-all duration-300",
         hero: "bg-primary text-white hover:bg-primary/90 shadow-large",
         delete: "bg-red-500 text-white hover:bg-red/90 shadow-large",
+        sucess: "bg-green-500 text-white hover:bg-green/90 shadow-large",
+        twitter: "bg-black text-white hover:bg-black hover:text-white shadow-lg",
       },
       size: {
         default: "h-10 px-4 py-2",

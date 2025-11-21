@@ -226,11 +226,7 @@ function AppRoutes() {
               <CoursesPage />
             </ProtectedRoute>
           } />
-          <Route path="/certificate-verification" element={
-            <ProtectedRoute requiredRole="Admin">
-              <CertificateVerificationPage />
-            </ProtectedRoute>
-          } />
+          <Route path="/certificate-verification/:certificateId?" element={<CertificateVerificationPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

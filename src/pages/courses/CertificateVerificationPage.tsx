@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -7,6 +8,7 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import Loader from '../../components/common/Loader';
 import API from '../../utils/api';
 import { formatDate } from '../../Common/Commonfunction';
+import { Twitter, Facebook, Linkedin } from 'lucide-react';
 
 interface VerificationResult {
   valid: boolean;
@@ -30,12 +32,20 @@ interface VerificationResult {
 }
 
 export default function CertificateVerificationPage() {
+  const { certificateId: paramCertificateId } = useParams<{ certificateId: string }>();
   const [certificateId, setCertificateId] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [error, setError] = useState('');
 
   const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
+
+  useEffect(() => {
+    if (paramCertificateId) {
+      setCertificateId(paramCertificateId);
+      handleVerify(paramCertificateId);
+    }
+  }, [paramCertificateId]);
 
   // Utility to get image URL
   const getImageUrl = (path?: string) => {
@@ -59,8 +69,9 @@ export default function CertificateVerificationPage() {
     return `${API_URL}/${cleanPath}`;
   };
 
-  const handleVerify = async () => {
-    if (!certificateId.trim()) {
+  const handleVerify = async (id?: string) => {
+    const certId = id || certificateId;
+    if (!certId.trim()) {
       setError('Please enter a certificate ID');
       return;
     }
@@ -71,7 +82,7 @@ export default function CertificateVerificationPage() {
 
     try {
       const response = await API.post('/courses/verify-certificate', {
-        certificateId: certificateId.trim()
+        certificateId: certId.trim()
       });
 
       setResult(response.data);
@@ -106,7 +117,7 @@ export default function CertificateVerificationPage() {
   };
 
   const handleShare = (platform: string) => {
-    const certificateUrl = `${API_URL}/courses/download-certificate/${result!.certificateId}`;
+    const certificateUrl = `${window.location.origin}/certificate-verification/${result!.certificateId}`;
     const text = `Check out my certificate: ${result!.course.title} completed by ${result!.learner.firstName} ${result!.learner.lastName}`;
     let shareUrl = '';
     switch (platform) {
@@ -146,7 +157,7 @@ export default function CertificateVerificationPage() {
           </div>
 
           <Button
-            onClick={handleVerify}
+            onClick={() => handleVerify()}
             disabled={loading}
             className="w-full"
             size="lg"
@@ -237,12 +248,12 @@ export default function CertificateVerificationPage() {
                         </div>
                       )}
 
-                      {result.learner.department && (
+                      {/* {result.learner.department && (
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Department</Label>
                           <p className="text-sm">{result.learner.department}</p>
                         </div>
-                      )}
+                      )} */}
 
                       <div className="grid grid-cols-2 gap-4">
                         {result.learner.role && (
@@ -278,17 +289,21 @@ export default function CertificateVerificationPage() {
               </div>
 
               <div className="flex justify-center space-x-4 mt-6">
-                <Button variant="outline" onClick={handleDownloadCertificate}>
+                <Button variant="sucess" onClick={handleDownloadCertificate}>
                   Download Certificate
                 </Button>
-                <Button variant="outline" onClick={() => handleShare('twitter')}>
-                  Twitter
+
+
+
+
+                <Button variant="twitter" onClick={() => handleShare('twitter')}>
+                  <Twitter className='text-[20px]'/>
                 </Button>
                 <Button variant="outline" onClick={() => handleShare('facebook')}>
-                  Facebook
+                  <Facebook/>
                 </Button>
                 <Button variant="outline" onClick={() => handleShare('linkedin')}>
-                  LinkedIn
+                  <Linkedin/>
                 </Button>
               </div>
             </div>
