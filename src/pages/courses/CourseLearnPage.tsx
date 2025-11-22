@@ -3,17 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '../../components/ui/avatar';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../../components/ui/alert-dialog';
+import DeleteModal from '../../Common/DeleteModal';
 import TextCKeditor from '../../components/common/TextCKeditor';
 import { Clock, User, ArrowLeft, Edit, Trash2, Save, X } from 'lucide-react';
 import { formatDate } from '../../Common/Commonfunction';
@@ -264,21 +254,18 @@ export default function CourseLearnPage() {
   const confirmDeleteNote = async () => {
     if (!deleteNoteId) return;
 
-    try {
-      const response = await fetch(`${API_URL}/courses/${id}/notes/${deleteNoteId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setNotes(data.notes.notes);
-        closeDeleteModal();
+    const response = await fetch(`${API_URL}/courses/${id}/notes/${deleteNoteId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
-    } catch (err) {
-      console.error('Error deleting note:', err);
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setNotes(data.notes.notes);
+    } else {
+      throw new Error('Failed to delete note');
     }
   };
 
@@ -550,6 +537,23 @@ export default function CourseLearnPage() {
               <p className="text-gray-700 leading-relaxed">{course.description}</p>
             </CardContent>
           </Card>
+
+          {(() => {
+            const currentModule = course.modules[currentModuleIndex];
+            const currentVideo = currentModule.videos[currentVideoIndex];
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Module {currentModuleIndex + 1}: {currentModule.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 leading-relaxed mb-4">{currentModule.description}</p>
+                  <h4 className="font-semibold text-lg mb-2">Video {currentVideoIndex + 1}: {currentVideo.title}</h4>
+                  <p className="text-gray-700 leading-relaxed">{currentVideo.description}</p>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           <Card className="p-4">
             <CardHeader>
@@ -1056,26 +1060,13 @@ export default function CourseLearnPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Note</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this note? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={closeDeleteModal}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteNote}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteNote}
+        title="Delete Note"
+        message="Are you sure you want to delete this note? This action cannot be undone."
+      />
     </div>
   );
 }
