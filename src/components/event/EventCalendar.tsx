@@ -433,6 +433,15 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
   }, [leaves, selectedFilter, userRole, currentUserId]);
 
 
+  const filteredEvents = useMemo(() => {
+    if (selectedFilter === 'All Events') {
+      return [...events, ...birthdayEvents, ...holidays, ...saturdays];
+    } else {
+      // For "Reports" or specific employee selection
+      return [...reportEvents, ...leaveEvents, ...saturdays];
+    }
+  }, [events, birthdayEvents, holidays, reportEvents, leaveEvents, saturdays, selectedFilter]);
+
   const allEvents = useMemo(() => [...events, ...birthdayEvents, ...holidays, ...reportEvents, ...leaveEvents, ...saturdays], [events, birthdayEvents, holidays, reportEvents, leaveEvents, saturdays]);
 
   // Helper function to get color based on working hours
@@ -444,28 +453,49 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
   };
 
 // In your calendarEvents mapping:
-const calendarEvents: any[] = allEvents
-  .map(event => ({
-    id: event._id,
-    title: 'type' in event && event.type === 'report' ? event.workingHours : event.name,
-    date: event.date,
-    display: ('type' in event && (
-      event.type === 'holiday' ||
+const calendarEvents: any[] = filteredEvents.map(event => ({
+  id: event._id,
+  title:
+    'type' in event && event.type === 'report'
+      ? event.workingHours
+      : event.name.replace(/\d{1,2}:\d{2}/g, '').trim(),
+
+  start: event.date,
+  allDay: true,
+
+  display:
+    ('type' in event &&
+    (event.type === 'holiday' ||
       event.type === 'leave' ||
       event.type === 'saturday' ||
       event.type === 'birthday' ||
-      event.type === 'report'
-    )) ? 'background' : 'auto',
-    backgroundColor: 'type' in event && event.type === 'birthday' ? 'rgba(59, 130, 246, 1)' :
-           ('type' in event && event.type === 'holiday' ? '#EF4444' :
-            'type' in event && event.type === 'report' ? getReportColor(event.workingHours) :
-            'type' in event && event.type === 'leave' ? '#EF4444' :
-            'type' in event && event.type === 'saturday' ? '#FAE4B7' : (event as any).backgroundColor || 'rgba(16, 185, 129, 1)'),
-    textColor: 'type' in event && (event.type === 'leave' || event.type === 'saturday') ? '#000000' : '#FFFFFF',
-    extendedProps: {
-      originalEvent: event
-    }
-  }));
+      event.type === 'event' ||
+      event.type === 'report')) ||
+    !('type' in event)
+      ? 'background'
+      : 'auto',
+
+  backgroundColor:
+    'type' in event && event.type === 'birthday'
+      ? 'rgba(59, 130, 246, 1)'
+      : 'type' in event && event.type === 'holiday'
+      ? '#EF4444'
+      : 'type' in event && event.type === 'report'
+      ? getReportColor(event.workingHours)
+      : 'type' in event && event.type === 'leave'
+      ? '#EF4444'
+      : 'type' in event && event.type === 'saturday'
+      ? '#FAE4B7'
+      : (event as any).backgroundColor || 'rgba(16, 185, 129, 1)',
+
+  textColor:
+    'type' in event && (event.type === 'leave' || event.type === 'saturday')
+      ? '#000000'
+      : '#FFFFFF',
+
+  extendedProps: { originalEvent: event },
+}));
+
 
 
   const handleEventClick = (info: any) => {
