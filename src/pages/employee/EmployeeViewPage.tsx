@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit } from 'lucide-react';
+import { ArrowLeft, Edit, Eye, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDate } from '../../Common/Commonfunction';
+import EventCalendar from '../../components/event/EventCalendar';
 
 interface Employee {
   _id: string;
@@ -11,7 +12,7 @@ interface Employee {
   email: string;
   gender?: string;
   photo?: string;
-  employeeCode?: string;
+  employeeCode?: string;0
   dob?: string;
   joiningDate?: string;
   mobile1?: string;
@@ -59,6 +60,8 @@ export default function EmployeeViewPage() {
   const { id } = useParams<{ id: string }>();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('View');
+  const [activities, setActivities] = useState<any[]>([]);
   const currentUserId = localStorage.getItem("userId");
   const currentRole = localStorage.getItem("role");
 
@@ -70,6 +73,7 @@ export default function EmployeeViewPage() {
         return;
       }
       fetchEmployee();
+      fetchActivities();
     }
   }, [id, currentRole, currentUserId, navigate]);
 
@@ -93,6 +97,80 @@ export default function EmployeeViewPage() {
       toast.error('Error fetching employee');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchActivities = async () => {
+    if (!id) return;
+
+    try {
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split('T')[0];
+
+      // Fetch punches with employee and date filter
+      const punchesResponse = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/punches?employee=${id}&fromDate=${today}&toDate=${today}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Fetch breaks with employeeId and date filter
+      const breaksResponse = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/breaks?employeeId=${id}&fromDate=${today}&toDate=${today}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const activities: any[] = [];
+
+      if (punchesResponse.ok) {
+        const punchesData = await punchesResponse.json();
+        const employeePunches = punchesData.punchTimes || [];
+        employeePunches.forEach((punch: any) => {
+          if (punch.punchInTime) {
+            activities.push({
+              id: `punch-in-${punch._id}`,
+              type: 'punch-in',
+              time: punch.punchInTime,
+              date: punch.createdAt ? punch.createdAt.split('T')[0] : new Date(punch.punchInTime).toISOString().split('T')[0],
+              description: 'Punched In'
+            });
+          }
+          if (punch.punchOutTime) {
+            activities.push({
+              id: `punch-out-${punch._id}`,
+              type: 'punch-out',
+              time: punch.punchOutTime,
+              date: punch.createdAt ? punch.createdAt.split('T')[0] : new Date(punch.punchOutTime).toISOString().split('T')[0],
+              description: 'Punched Out'
+            });
+          }
+        });
+      }
+
+      if (breaksResponse.ok) {
+        const breaksData = await breaksResponse.json();
+        const employeeBreaks = Array.isArray(breaksData) ? breaksData : [];
+        employeeBreaks.forEach((breakItem: any) => {
+          activities.push({
+            id: `break-${breakItem._id}`,
+            type: breakItem.action === 'Break In' ? 'break-start' : 'break-end',
+            time: breakItem.timestamp,
+            date: breakItem.date,
+            description: breakItem.action === 'Break In' ? 'Break Started' : 'Break Ended'
+          });
+        });
+      }
+
+      // Sort activities by time (most recent first) - since all are from today
+      activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
+      setActivities(activities);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      setActivities([]);
     }
   };
 
@@ -140,8 +218,48 @@ export default function EmployeeViewPage() {
           </button>
         </div>
 
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('View')}
+              className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${
+                activeTab === 'View'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              <Eye className="h-4 w-4" />
+              <span>View</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('Timeline')}
+              className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${
+                activeTab === 'Timeline'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              <span>Timeline</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('Calendar')}
+              className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${
+                activeTab === 'Calendar'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              <span>Calendar</span>
+            </button>
+          </div>
+        </div>
+
         {/* Main Content */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {activeTab === 'View' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Employee Profile Header */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-8 border-b border-gray-200">
             <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
@@ -546,6 +664,68 @@ export default function EmployeeViewPage() {
             </section>
           </div>
         </div>
+        )}
+
+        {activeTab === 'Timeline' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Today's Activities</h2>
+            {activities.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                No activities found for today.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {activities.map((activity) => (
+                  <div key={activity.id} className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        activity.type === 'punch-in' ? 'bg-green-100' :
+                        activity.type === 'punch-out' ? 'bg-red-100' :
+                        activity.type === 'break-start' ? 'bg-yellow-100' :
+                        'bg-blue-100'
+                      }`}>
+                        {activity.type === 'punch-in' ? (
+                          <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+                        ) : activity.type === 'punch-out' ? (
+                          <div className="w-3 h-3 bg-red-600 rounded-full"></div>
+                        ) : activity.type === 'break-start' ? (
+                          <div className="w-3 h-3 bg-yellow-600 rounded-full"></div>
+                        ) : (
+                          <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h3 className={`text-sm font-medium ${
+                          activity.type === 'punch-in' ? 'text-green-900' :
+                          activity.type === 'punch-out' ? 'text-red-900' :
+                          activity.type === 'break-start' ? 'text-yellow-900' :
+                          'text-blue-900'
+                        }`}>
+                          {activity.description}
+                        </h3>
+                        <span className="text-xs text-gray-500">{formatDate(activity.date)}</span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {new Date(activity.time).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'Calendar' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <EventCalendar
+              events={[]}
+              userRole={currentRole || undefined}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
