@@ -293,19 +293,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClose, onNa
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-gray-600">Support</h3>
-                <button
-                  onClick={() => onNavigate("/settings/help")}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
-                >
-                  Help & Support
-                </button>
-                <button
-                  onClick={() => onNavigate("/settings/about")}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
-                >
-                  About
-                </button>
+                <h1 className="text-sm font-medium text-gray-800">Other Routing</h1>
+
+                
               </div>
             </div>
           </div>
