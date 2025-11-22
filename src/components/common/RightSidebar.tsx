@@ -182,6 +182,13 @@ export default function RightSidebar() {
           icon: <CalendarRange className="h-5 w-5" />,
           path: "/leave",
         },
+        {
+          id: "performance",
+          name: "Performance",
+          icon: <BarChart3 className="h-5 w-5" />,
+          path: "/performance",
+          roles: ["Admin", "SuperAdmin"],
+        },
       ],
     },
     {

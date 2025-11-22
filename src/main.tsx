@@ -48,6 +48,7 @@ import CategoriesPage from './pages/categories/CategoriesPage';
 import LearningPage from './pages/learning/LearningPage';
 import CourseLearn from './components/Courses/CourseLearn';
 import CourseLearnPage from './pages/courses/CourseLearnPage';
+import PerformancePage from './pages/performance/PerformancePage';
 import './index.css';
 
 function AppRoutes() {
@@ -227,6 +228,11 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/certificate-verification/:certificateId?" element={<CertificateVerificationPage />} />
+          <Route path="/performance" element={
+            <ProtectedRoute requiredRole="Admin">
+              <PerformancePage />
+            </ProtectedRoute>
+          } />
         </Route>
       </Routes>
     </BrowserRouter>
