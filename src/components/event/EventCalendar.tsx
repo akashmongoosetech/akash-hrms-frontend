@@ -4,6 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Edit, Trash2, Cake, Calendar, Clock } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
+import ViewReportModal from '../Reports/ViewReportModal';
 import { formatDate, sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import toast from 'react-hot-toast';
 import { Button } from '../ui/button';
@@ -45,6 +46,7 @@ interface Report {
     firstName: string;
     lastName: string;
     email: string;
+    photo?: string;
   };
   description: string;
   startTime: string;
@@ -53,6 +55,7 @@ interface Report {
   workingHours: string;
   totalHours: string;
   date: string;
+  note: string;
   createdAt: string;
 }
 
@@ -141,6 +144,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
    const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
    const [selectedFilter, setSelectedFilter] = useState<string>('All Events');
    const [currentUserId, setCurrentUserId] = useState<string>('');
+   const [showReportModal, setShowReportModal] = useState(false);
+   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   useEffect(() => {
       fetchUsers();
@@ -304,21 +309,6 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
       console.error('Error fetching saturdays:', error);
       setSaturdays([]);
     }
-  };
-
-
-  const getSaturdaysInMonth = (month: number, year: number): Date[] => {
-    const saturdays: Date[] = [];
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-
-    for (let date = new Date(firstDay); date <= lastDay; date.setDate(date.getDate() + 1)) {
-      if (date.getDay() === 6) { // Saturday
-        saturdays.push(new Date(date));
-      }
-    }
-
-    return saturdays;
   };
 
   // Helper to format YYYY-MM-DD without timezone issues
@@ -489,7 +479,7 @@ const calendarEvents: any[] = filteredEvents.map(event => ({
       : (event as any).backgroundColor || 'rgba(16, 185, 129, 1)',
 
   textColor:
-    'type' in event && (event.type === 'leave' || event.type === 'saturday')
+    'type' in event && event.type === 'saturday'
       ? '#000000'
       : '#FFFFFF',
 
@@ -500,10 +490,20 @@ const calendarEvents: any[] = filteredEvents.map(event => ({
 
   const handleEventClick = (info: any) => {
     const originalEvent = info.event.extendedProps.originalEvent;
-    setSelectedEvent(originalEvent);
-    // Only call onEventClick for regular events, not birthdays, holidays, reports, leaves, or saturdays
-    if (onEventClick && !('type' in originalEvent)) {
-      onEventClick(originalEvent);
+    if ('type' in originalEvent && originalEvent.type === 'report') {
+      // Handle report click - open report modal
+      const reportId = originalEvent._id.replace('report-', '');
+      const report = reports.find(r => r._id === reportId);
+      if (report) {
+        setSelectedReport(report);
+        setShowReportModal(true);
+      }
+    } else {
+      setSelectedEvent(originalEvent);
+      // Only call onEventClick for regular events, not birthdays, holidays, reports, leaves, or saturdays
+      if (onEventClick && !('type' in originalEvent)) {
+        onEventClick(originalEvent);
+      }
     }
   };
 
@@ -632,7 +632,7 @@ const calendarEvents: any[] = filteredEvents.map(event => ({
                             e.stopPropagation();
                             if (onEditEvent) onEditEvent(event as Event);
                           }}
-                          variant="ghost"
+                          className='bg-blue-200 text-blue-800'
                           size="icon"
                           title="Edit event"
                         >
@@ -644,7 +644,7 @@ const calendarEvents: any[] = filteredEvents.map(event => ({
                             setDeleteEventId(event._id);
                             setShowDeleteModal(true);
                           }}
-                          variant="ghost"
+                          className='bg-red-200 text-red-800'
                           size="icon"
                           title="Delete event"
                         >
@@ -769,6 +769,13 @@ const calendarEvents: any[] = filteredEvents.map(event => ({
         }}
         title="Delete Event"
         message="Are you sure you want to delete this event? This action cannot be undone."
+      />
+
+      <ViewReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        report={selectedReport}
+        role={userRole}
       />
     </div>
   );

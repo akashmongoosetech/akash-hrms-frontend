@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Edit,
   Trash2,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { formatDate } from "../../Common/Commonfunction";
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
+import { Input } from '../ui/input';
 
 interface Todo {
   _id: string;
@@ -33,6 +34,14 @@ interface Todo {
   createdAt: string;
 }
 
+interface Employee {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
 interface TodoTableProps {
   filteredTodos: Todo[];
   role: string;
@@ -42,6 +51,9 @@ interface TodoTableProps {
   setStatusFilter: (value: string) => void;
   priorityFilter: string;
   setPriorityFilter: (value: string) => void;
+  employeeFilter: string;
+  setEmployeeFilter: (value: string) => void;
+  employees: Employee[];
   handleEdit: (todo: Todo) => void;
   handleDelete: (id: string) => void;
   handleStatusChange: (id: string, newStatus: "Pending" | "In Progress" | "Completed") => void;
@@ -57,11 +69,18 @@ export default function TodoTable({
   setStatusFilter,
   priorityFilter,
   setPriorityFilter,
+  employeeFilter,
+  setEmployeeFilter,
+  employees,
   handleEdit,
   handleDelete,
   handleStatusChange,
   loading = false,
 }: TodoTableProps) {
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
+  const [localPriorityFilter, setLocalPriorityFilter] = useState(priorityFilter);
+  const [localEmployeeFilter, setLocalEmployeeFilter] = useState(employeeFilter);
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "High":
@@ -104,22 +123,12 @@ export default function TodoTable({
   return (
     <>
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search todos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
-            />
-          </div>
-
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4 items-center">
+          {/* Status Filter */}
           <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            value={localStatusFilter}
+            onChange={(e) => setLocalStatusFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">All Status</option>
@@ -128,9 +137,10 @@ export default function TodoTable({
             <option value="Completed">Completed</option>
           </select>
 
+          {/* Priority Filter */}
           <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
+            value={localPriorityFilter}
+            onChange={(e) => setLocalPriorityFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">All Priority</option>
@@ -139,16 +149,46 @@ export default function TodoTable({
             <option value="High">High</option>
           </select>
 
+          {/* Employee Filter */}
+          <select
+            value={localEmployeeFilter}
+            onChange={(e) => setLocalEmployeeFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="all">All Employees</option>
+            {employees.map((employee) => (
+              <option key={employee._id} value={employee._id}>
+                {employee.firstName} {employee.lastName}
+              </option>
+            ))}
+          </select>
+
+          {/* Clear Button */}
           <button
             onClick={() => {
-              setSearchTerm("");
-              setStatusFilter("all");
-              setPriorityFilter("all");
+              setLocalSearchTerm("");
+              setLocalStatusFilter("all");
+              setLocalPriorityFilter("all");
+              setLocalEmployeeFilter("all");
             }}
             className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            aria-label="Clear filters"
           >
-            <Filter className="h-4 w-4" />
-            <span>Clear Filters</span>
+            <span>Clear</span>
+          </button>
+
+          {/* Apply Filters Button */}
+          <button
+            onClick={() => {
+              setSearchTerm(localSearchTerm);
+              setStatusFilter(localStatusFilter);
+              setPriorityFilter(localPriorityFilter);
+              setEmployeeFilter(localEmployeeFilter);
+            }}
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            aria-label="Apply filters"
+          >
+            <span>Apply</span>
           </button>
         </div>
       </div>
@@ -235,79 +275,79 @@ export default function TodoTable({
                 ))
               ) : (
                 filteredTodos.map((todo, index) => (
-                <tr key={todo._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {index + 1}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {todo.title}
-                    </div>
-                    {todo.description && (
-                      <div className="text-sm text-gray-500 truncate max-w-xs">
-                        {todo.description}
-                      </div>
-                    )}
-                  </td>
-                  {role !== 'Employee' && (
+                  <tr key={todo._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {index + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 text-gray-400 mr-2" />
-                        <div className="text-sm text-gray-900">
-                          {todo.employee ? `${todo.employee.firstName} ${todo.employee.lastName}` : 'Unknown Employee'}
+                      <div className="text-sm font-medium text-gray-900">
+                        {todo.title}
+                      </div>
+                      {todo.description && (
+                        <div className="text-sm text-gray-500 truncate max-w-xs">
+                          {todo.description}
                         </div>
+                      )}
+                    </td>
+                    {role !== 'Employee' && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 text-gray-400 mr-2" />
+                          <div className="text-sm text-gray-900">
+                            {todo.employee ? `${todo.employee.firstName} ${todo.employee.lastName}` : 'Unknown Employee'}
+                          </div>
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-900">
+                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                        {formatDate(todo.dueDate)}
                       </div>
                     </td>
-                  )}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-900">
-                      <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                      {formatDate(todo.dueDate)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
-                        todo.priority
-                      )}`}
-                    >
-                      {todo.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={todo.status}
-                      onChange={(e) => handleStatusChange(todo._id, e.target.value as "Pending" | "In Progress" | "Completed")}
-                      className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border-0 cursor-pointer ${getStatusColor(
-                        todo.status
-                      )}`}
-                      style={{ backgroundColor: 'transparent' }}
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                  </td>
-                  {role !== 'Employee' && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleEdit(todo)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(todo._id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                          todo.priority
+                        )}`}
+                      >
+                        {todo.priority}
+                      </span>
                     </td>
-                  )}
-                </tr>
-              ))
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={todo.status}
+                        onChange={(e) => handleStatusChange(todo._id, e.target.value as "Pending" | "In Progress" | "Completed")}
+                        className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border-0 cursor-pointer ${getStatusColor(
+                          todo.status
+                        )}`}
+                        style={{ backgroundColor: 'transparent' }}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                      </select>
+                    </td>
+                    {role !== 'Employee' && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleEdit(todo)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(todo._id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

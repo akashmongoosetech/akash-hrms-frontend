@@ -50,6 +50,7 @@ export default function TodoPage() {
   const [searchTerm, setSearchTerm] = useState(employeeNameFilter || "");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -68,10 +69,19 @@ export default function TodoPage() {
   });
 
   useEffect(() => {
-    fetchTodos(currentPage);
     fetchEmployees();
     fetchCurrentUser();
+  }, []);
 
+  useEffect(() => {
+    fetchTodos(currentPage, searchTerm, statusFilter, priorityFilter, employeeFilter);
+  }, [currentPage, searchTerm, statusFilter, priorityFilter, employeeFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, priorityFilter, employeeFilter]);
+
+  useEffect(() => {
     // Socket listeners for real-time updates
     socket.on('todo-created', (data) => {
       setTodos(prevTodos => [data.todo, ...prevTodos]);
@@ -118,16 +128,19 @@ export default function TodoPage() {
     }
   }, [currentUser]);
 
-  const fetchTodos = async (page: number = 1) => {
+  const fetchTodos = async (page: number = 1, search: string = "", status: string = "all", priority: string = "all", employee: string = "all") => {
     try {
-      const response = await fetch(
-        `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/todos?page=${page}&limit=${itemsPerPage}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      let url = `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/todos?page=${page}&limit=${itemsPerPage}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (status !== "all") url += `&status=${status}`;
+      if (priority !== "all") url += `&priority=${priority}`;
+      if (employee !== "all") url += `&employee=${employee}`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setTodos(data.todos || []);
@@ -266,6 +279,17 @@ export default function TodoPage() {
   };
 
   const handleStatusChange = async (id: string, newStatus: "Pending" | "In Progress" | "Completed") => {
+    // Find the current todo to store original status for potential revert
+    const currentTodo = todos.find(todo => todo._id === id);
+    const originalStatus = currentTodo?.status;
+
+    // Optimistically update the local state
+    setTodos(prevTodos =>
+      prevTodos.map(todo =>
+        todo._id === id ? { ...todo, status: newStatus } : todo
+      )
+    );
+
     try {
       const response = await fetch(
         `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/todos/${id}`,
@@ -285,10 +309,22 @@ export default function TodoPage() {
       } else {
         const error = await response.json();
         toast.error(error.message || "Error updating status");
+        // Revert the optimistic update on error
+        setTodos(prevTodos =>
+          prevTodos.map(todo =>
+            todo._id === id ? { ...todo, status: originalStatus! } : todo
+          )
+        );
       }
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("Error updating status");
+      // Revert the optimistic update on error
+      setTodos(prevTodos =>
+        prevTodos.map(todo =>
+          todo._id === id ? { ...todo, status: originalStatus! } : todo
+        )
+      );
     }
   };
 
@@ -303,17 +339,6 @@ export default function TodoPage() {
     });
   };
 
-  const filteredTodos = todos.filter((todo) => {
-    const matchesSearch =
-      todo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (todo.employee && (todo.employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      todo.employee.lastName.toLowerCase().includes(searchTerm.toLowerCase())));
-
-    const matchesStatus = statusFilter === "all" || todo.status === statusFilter;
-    const matchesPriority = priorityFilter === "all" || todo.priority === priorityFilter;
-
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
 
 
 
@@ -337,7 +362,7 @@ export default function TodoPage() {
       </div>
 
       <TodoTable
-        filteredTodos={filteredTodos}
+        filteredTodos={todos}
         role={role}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -345,6 +370,9 @@ export default function TodoPage() {
         setStatusFilter={setStatusFilter}
         priorityFilter={priorityFilter}
         setPriorityFilter={setPriorityFilter}
+        employeeFilter={employeeFilter}
+        setEmployeeFilter={setEmployeeFilter}
+        employees={employees}
         handleEdit={handleEdit}
         handleDelete={handleDelete}
         handleStatusChange={handleStatusChange}
