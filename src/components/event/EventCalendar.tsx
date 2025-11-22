@@ -456,11 +456,11 @@ const calendarEvents: any[] = allEvents
       event.type === 'birthday'
     )) ? 'background' : 'auto',
     backgroundColor: 'type' in event && event.type === 'birthday' ? '#3B82F6' :
-           ('type' in event && event.type === 'holiday' ? '#EF4444' :
+           ('type' in event && event.type === 'holiday' ? '#D13B3B' :
             'type' in event && event.type === 'report' ? getReportColor(event.workingHours) :
             'type' in event && event.type === 'leave' ? '#F59E0B' :
-            'type' in event && event.type === 'saturday' ? (event.isWeekend ? '#78350f' : '#78350f') : (event as any).backgroundColor || '#10B981'),
-    textColor: 'type' in event ? '#FFFFFF' : (event as any).textColor || '#FFFFFF',
+            'type' in event && event.type === 'saturday' ? '#EAB308' : (event as any).backgroundColor || '#10B981'),
+    textColor: 'type' in event && (event.type === 'leave' || event.type === 'saturday') ? '#000000' : '#FFFFFF',
     extendedProps: {
       originalEvent: event
     }
@@ -698,7 +698,11 @@ const calendarEvents: any[] = allEvents
           dayMaxEvents={true}
           moreLinkClick="popover"
           dayCellDidMount={(info) => {
-            // Removed alternate Saturday highlighting
+            // Highlight Sundays with yellow background and black text
+            if (info.date.getDay() === 0) {
+              info.el.style.backgroundColor = '#FAE4B7';
+              info.el.style.color = '#000000';
+            }
           }}
         />
       </div>
