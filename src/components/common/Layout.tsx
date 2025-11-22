@@ -47,7 +47,20 @@ export default function Layout() {
   useEffect(() => {
     const savedPreferences = localStorage.getItem('dashboardPreferences');
     if (savedPreferences) {
-      setDashboardPreferences(JSON.parse(savedPreferences));
+      try {
+        const parsed = JSON.parse(savedPreferences);
+        const validatedPreferences: DashboardPreferences = {
+          projects: typeof parsed.projects === 'boolean' ? parsed.projects : true,
+          teams: typeof parsed.teams === 'boolean' ? parsed.teams : true,
+          todos: typeof parsed.todos === 'boolean' ? parsed.todos : true,
+          tickets: typeof parsed.tickets === 'boolean' ? parsed.tickets : true,
+          leaves: typeof parsed.leaves === 'boolean' ? parsed.leaves : true,
+          activities: typeof parsed.activities === 'boolean' ? parsed.activities : true,
+        };
+        setDashboardPreferences(validatedPreferences);
+      } catch (error) {
+        // If parsing fails, keep defaults
+      }
     }
   }, []);
 

@@ -62,6 +62,7 @@ export default function EmployeeViewPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('View');
   const [activities, setActivities] = useState<any[]>([]);
+  const [showResume, setShowResume] = useState(false);
   const currentUserId = localStorage.getItem("userId");
   const currentRole = localStorage.getItem("role");
 
@@ -600,13 +601,13 @@ export default function EmployeeViewPage() {
                   <label className="block text-sm font-medium text-gray-600">Aadhar Card File</label>
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.aadharCardFile ? (
-                      <embed
+                      <iframe
                         src={employee.aadharCardFile}
-                        className="w-full h-32 rounded-md"
-                        type="application/pdf"
+                        className="w-full h-64 rounded-md border-0"
+                        title="Aadhar Card"
                       />
                     ) : (
-                      <div className="w-full h-32 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
+                      <div className="w-full h-64 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
                         No File
                       </div>
                     )}
@@ -616,13 +617,13 @@ export default function EmployeeViewPage() {
                   <label className="block text-sm font-medium text-gray-600">PAN Card File</label>
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.panCardFile ? (
-                      <embed
+                      <iframe
                         src={employee.panCardFile}
-                        className="w-full h-32 rounded-md"
-                        type="application/pdf"
+                        className="w-full h-64 rounded-md border-0"
+                        title="PAN Card"
                       />
                     ) : (
-                      <div className="w-full h-32 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
+                      <div className="w-full h-64 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
                         No File
                       </div>
                     )}
@@ -632,13 +633,13 @@ export default function EmployeeViewPage() {
                   <label className="block text-sm font-medium text-gray-600">Driving License File</label>
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.drivingLicenseFile ? (
-                      <embed
+                      <iframe
                         src={employee.drivingLicenseFile}
-                        className="w-full h-32 rounded-md"
-                        type="application/pdf"
+                        className="w-full h-64 rounded-md border-0"
+                        title="Driving License"
                       />
                     ) : (
-                      <div className="w-full h-32 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
+                      <div className="w-full h-64 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
                         No File
                       </div>
                     )}
@@ -648,15 +649,25 @@ export default function EmployeeViewPage() {
                   <label className="block text-sm font-medium text-gray-600">Resume</label>
                   <div className="bg-white rounded-lg border border-gray-200 p-3">
                     {employee.resume ? (
-                      <embed
-                        src={employee.resume}
-                        className="w-full h-32 rounded-md"
-                        type="application/pdf"
-                      />
+                      showResume ? (
+                        <embed
+                          src={employee.resume}
+                          type="application/pdf"
+                          width="100%"
+                          height="600"
+                          className="rounded-md"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => setShowResume(true)}
+                          className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          <span>📄</span>
+                          <span>View Resume</span>
+                        </button>
+                      )
                     ) : (
-                      <div className="w-full h-32 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
-                        No File
-                      </div>
+                      <div className="text-gray-500">No File</div>
                     )}
                   </div>
                 </div>
