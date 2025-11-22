@@ -438,9 +438,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
   // Helper function to get color based on working hours
   const getReportColor = (workingHours: string) => {
     const hours = parseFloat(workingHours.split(' ')[0]);
-    if (hours >= 8) return '#10B981'; // green
-    if (hours >= 4) return '#3B82F6'; // blue
-    return '#EF4444'; // red
+    if (hours >= 8) return 'rgba(16, 185, 129, 1)'; // green
+    if (hours >= 4) return 'rgba(59, 130, 246, 1)'; // blue
+    return 'rgba(239, 68, 68, 1)'; // red
   };
 
 // In your calendarEvents mapping:
@@ -455,11 +455,11 @@ const calendarEvents: any[] = allEvents
       event.type === 'saturday' ||
       event.type === 'birthday'
     )) ? 'background' : 'auto',
-    backgroundColor: 'type' in event && event.type === 'birthday' ? '#3B82F6' :
-           ('type' in event && event.type === 'holiday' ? '#D13B3B' :
+    backgroundColor: 'type' in event && event.type === 'birthday' ? 'rgba(59, 130, 246, 1)' :
+           ('type' in event && event.type === 'holiday' ? '#EF4444' :
             'type' in event && event.type === 'report' ? getReportColor(event.workingHours) :
-            'type' in event && event.type === 'leave' ? '#F59E0B' :
-            'type' in event && event.type === 'saturday' ? '#EAB308' : (event as any).backgroundColor || '#10B981'),
+            'type' in event && event.type === 'leave' ? '#EF4444' :
+            'type' in event && event.type === 'saturday' ? '#FAE4B7' : (event as any).backgroundColor || 'rgba(16, 185, 129, 1)'),
     textColor: 'type' in event && (event.type === 'leave' || event.type === 'saturday') ? '#000000' : '#FFFFFF',
     extendedProps: {
       originalEvent: event

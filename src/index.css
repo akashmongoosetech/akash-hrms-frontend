@@ -16,3 +16,12 @@ body { @apply bg-gray-50; }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
 }
+
+/* FIX FullCalendar background event light color issue */
+.fc .fc-bg-event {
+  opacity: 1 !important;
+}
+
+.fc .fc-bg-event .fc-event-title {
+  opacity: 1 !important;
+}
