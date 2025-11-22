@@ -161,10 +161,10 @@ export default function SaturdaySetting() {
         const newDatabaseCheckedDates: { [key: string]: { [key: string]: boolean } } = {};
 
         data.forEach((saturday: any) => {
-          const dateStr = saturday.date.split('T')[0]; // Get YYYY-MM-DD part
-          // Use UTC to avoid timezone issues
-          const date = new Date(dateStr + 'T00:00:00Z'); // Use UTC time
-          const month = date.getUTCMonth(); // Use UTC month
+          // Normalize date to UTC to avoid timezone issues
+          const date = new Date(saturday.date);
+          const dateStr = date.toISOString().split('T')[0]; // Get YYYY-MM-DD in UTC
+          const month = date.getUTCMonth();
           const monthKey = `${state.selectedYear}-${month}`;
 
           if (!newDatabaseCheckedDates[monthKey]) {

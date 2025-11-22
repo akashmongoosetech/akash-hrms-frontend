@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
+import { sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 
 interface Client {
   _id: string;
@@ -175,7 +176,7 @@ export default function AddEditProjectModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Team Members</label>
             <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-3">
-              {employees.map(employee => (
+              {sortEmployeesAlphabetically(employees).map(employee => (
                 <label key={employee._id} className="flex items-center space-x-2 mb-2">
                   <input
                     type="checkbox"

@@ -187,7 +187,11 @@ const Statistics: React.FC = () => {
         const data = await response.json();
         console.log(data, 'altSaturday')
         if (Array.isArray(data)) {
-          const alternateSaturdays = data.filter((s: Saturday) => s.isWeekend).map((s: Saturday) => s.date.split('T')[0]);
+          const alternateSaturdays = data.filter((s: Saturday) => s.isWeekend).map((s: Saturday) => {
+            // Normalize date to UTC to avoid timezone issues
+            const date = new Date(s.date);
+            return date.toISOString().split('T')[0];
+          });
           setAlternateSaturdayData(alternateSaturdays);
         } else {
           setAlternateSaturdayData([]);

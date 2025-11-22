@@ -4,7 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Edit, Trash2, Cake, Calendar, Clock } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
-import { formatDate } from '../../Common/Commonfunction';
+import { formatDate, sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import toast from 'react-hot-toast';
 import { Button } from '../ui/button';
 
@@ -160,8 +160,6 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
     try {
       const token = localStorage.getItem('token');
       const role = localStorage.getItem('role');
-      console.log('Current token:', token ? 'present' : 'missing');
-      console.log('Current role:', role);
 
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users`, {
         headers: {
@@ -169,9 +167,6 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
           'Content-Type': 'application/json'
         }
       });
-
-      console.log('Response status:', response.status);
-      // console.log('Response headers:', response.headers);
 
       if (response.ok) {
         const data = await response.json();
@@ -289,10 +284,9 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
       if (response.ok) {
         const data = await response.json();
         const saturdayEvents: SaturdayEvent[] = data.map((saturday: any) => {
-          // Parse date without timezone conversion - keep it as local date
-          const dateStr = saturday.date.split('T')[0]; // Get YYYY-MM-DD part
-          const date = new Date(dateStr + 'T00:00:00'); // Create date at midnight local time
-          const formattedDate = dateStr; // Keep as YYYY-MM-DD string
+          // Normalize date to UTC to avoid timezone issues
+          const date = new Date(saturday.date);
+          const formattedDate = date.toISOString().split('T')[0]; // Get YYYY-MM-DD in UTC
           return {
             _id: saturday._id,
             name: saturday.isWeekend ? '' : 'Working Saturday',
@@ -530,7 +524,7 @@ const calendarEvents: any[] = allEvents
               <option value="All Events">All Events</option>
               {userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin') ? (
                 <>
-                  {users.map(user => (
+                  {sortEmployeesAlphabetically(users).map(user => (
                     <option key={user._id} value={`${user.firstName} ${user.lastName} - ${user._id}`}>
                       {user.firstName} {user.lastName}
                     </option>

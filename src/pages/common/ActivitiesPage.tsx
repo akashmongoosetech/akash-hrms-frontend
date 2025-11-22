@@ -88,7 +88,14 @@ export default function ActivitiesPage() {
 
     // Listen for punch events
     socket.on('punch-in', (data) => {
-      setPunches(prev => Array.isArray(prev) ? [data, ...prev] : [data]);
+      const punchRecord: PunchRecord = {
+        _id: data.punchTime._id + '-in',
+        employee: data.employee,
+        action: 'Punch In',
+        timestamp: data.punchTime.punchInTime,
+        date: new Date(data.punchTime.punchInTime).toISOString().split('T')[0]
+      };
+      setPunches(prev => Array.isArray(prev) ? [punchRecord, ...prev] : [punchRecord]);
       const currentUserId = localStorage.getItem('userId');
       if (data.employee._id === currentUserId) {
         setIsPunchedIn(true);
@@ -96,7 +103,14 @@ export default function ActivitiesPage() {
     });
 
     socket.on('punch-out', (data) => {
-      setPunches(prev => Array.isArray(prev) ? [data, ...prev] : [data]);
+      const punchRecord: PunchRecord = {
+        _id: data.punchTime._id + '-out',
+        employee: data.employee,
+        action: 'Punch Out',
+        timestamp: data.punchTime.punchOutTime,
+        date: new Date(data.punchTime.punchOutTime).toISOString().split('T')[0]
+      };
+      setPunches(prev => Array.isArray(prev) ? [punchRecord, ...prev] : [punchRecord]);
       const currentUserId = localStorage.getItem('userId');
       if (data.employee._id === currentUserId) {
         setIsPunchedIn(false);
@@ -138,9 +152,30 @@ export default function ActivitiesPage() {
       if (filterEmployee) params.append('employeeId', filterEmployee);
       if (fromDate) params.append('fromDate', fromDate);
       if (toDate) params.append('toDate', toDate);
+      params.append('limit', '1000'); // Fetch more to get all punches
 
       const response = await API.get(`/punches?${params.toString()}`);
-      setPunches(Array.isArray(response.data) ? response.data : []);
+      const punchTimes = response.data.punchTimes || [];
+      const transformedPunches: PunchRecord[] = [];
+      punchTimes.forEach((punch: any) => {
+        transformedPunches.push({
+          _id: punch._id + '-in',
+          employee: punch.employee,
+          action: 'Punch In',
+          timestamp: punch.punchInTime,
+          date: new Date(punch.punchInTime).toISOString().split('T')[0]
+        });
+        if (punch.punchOutTime) {
+          transformedPunches.push({
+            _id: punch._id + '-out',
+            employee: punch.employee,
+            action: 'Punch Out',
+            timestamp: punch.punchOutTime,
+            date: new Date(punch.punchOutTime).toISOString().split('T')[0]
+          });
+        }
+      });
+      setPunches(transformedPunches);
     } catch (error) {
       console.error('Error fetching punches:', error);
       setPunches([]);

@@ -1,4 +1,5 @@
 import React from 'react';
+import { sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 
 interface Employee {
   _id: string;
@@ -44,7 +45,7 @@ const ActivitiesFilters: React.FC<ActivitiesFiltersProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Employees</option>
-              {employees.map((emp) => (
+              {sortEmployeesAlphabetically(employees).map((emp) => (
                 <option key={emp._id} value={emp._id}>
                   {emp.firstName} {emp.lastName}
                 </option>
