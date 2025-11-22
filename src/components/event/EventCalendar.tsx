@@ -453,7 +453,8 @@ const calendarEvents: any[] = allEvents
       event.type === 'holiday' ||
       event.type === 'leave' ||
       event.type === 'saturday' ||
-      event.type === 'birthday'
+      event.type === 'birthday' ||
+      event.type === 'report'
     )) ? 'background' : 'auto',
     backgroundColor: 'type' in event && event.type === 'birthday' ? 'rgba(59, 130, 246, 1)' :
            ('type' in event && event.type === 'holiday' ? '#EF4444' :
@@ -742,3 +743,4 @@ const calendarEvents: any[] = allEvents
     </div>
   );
 }
+
