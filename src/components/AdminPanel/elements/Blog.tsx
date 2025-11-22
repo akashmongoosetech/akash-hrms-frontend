@@ -32,7 +32,6 @@ export default function Blog() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteBlogSlug, setDeleteBlogSlug] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -52,7 +51,8 @@ export default function Blog() {
 
       if (response.ok) {
         const data = await response.json();
-        setBlogs(data.blogs || []);
+        const filteredBlogs = (data.blogs || []).filter(blog => blog.status !== 'Draft');
+        setBlogs(filteredBlogs);
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalItems(data.pagination?.totalItems || 0);
       } else {
@@ -73,7 +73,6 @@ export default function Blog() {
   const confirmDelete = async () => {
     if (!deleteBlogSlug) return;
 
-    setDeleteLoading(true);
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/blogs/${deleteBlogSlug}`, {
         method: 'DELETE',
@@ -94,8 +93,6 @@ export default function Blog() {
     } catch (err) {
       setError('Error deleting blog');
       toast.error('Error deleting blog');
-    } finally {
-      setDeleteLoading(false);
     }
   };
 
@@ -222,7 +219,6 @@ export default function Blog() {
         onConfirm={confirmDelete}
         title="Delete Blog"
         message="Are you sure you want to delete this blog? This action cannot be undone."
-        loading={deleteLoading}
       />
     </div>
   );

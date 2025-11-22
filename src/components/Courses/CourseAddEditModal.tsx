@@ -116,7 +116,11 @@ export default function CourseAddEditModal({
       });
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.categories || []);
+        let fetchedCategories = data.categories || [];
+        if (editingCourse?.categoryDetails && !fetchedCategories.find((c: Category) => c._id === editingCourse.categoryDetails._id)) {
+          fetchedCategories = [editingCourse.categoryDetails, ...fetchedCategories];
+        }
+        setCategories(fetchedCategories);
       } else {
         console.error('Failed to fetch categories:', response.status, response.statusText);
         setCategories([]);
@@ -147,7 +151,11 @@ export default function CourseAddEditModal({
         const data = await response.json();
         console.log('Employees data:', data);
         console.log('Users array:', data.users);
-        setEmployees(data.users || []);
+        let fetchedEmployees = data.users || [];
+        if (editingCourse?.createdByDetails && !fetchedEmployees.find((e: Employee) => e._id === editingCourse.createdByDetails._id)) {
+          fetchedEmployees = [editingCourse.createdByDetails, ...fetchedEmployees];
+        }
+        setEmployees(fetchedEmployees);
       } else {
         const errorText = await response.text();
         console.error('Failed to fetch employees:', response.status, errorText);
@@ -635,7 +643,7 @@ export default function CourseAddEditModal({
                               <input
                                 type="file"
                                 accept="video/*"
-                                required
+                                required={!editingCourse || typeof video.videoFile !== 'string'}
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
@@ -644,6 +652,9 @@ export default function CourseAddEditModal({
                                 }}
                                 className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                               />
+                              {typeof video.videoFile === 'string' && video.videoFile && (
+                                <p className="text-xs text-gray-500 mt-1">Current video: {video.videoFile.split('/').pop()}</p>
+                              )}
                             </div>
                           </div>
                         </div>
