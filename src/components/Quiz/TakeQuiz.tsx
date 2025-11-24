@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import toast from 'react-hot-toast';
 
 interface Question {
@@ -27,6 +28,8 @@ const TakeQuiz: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showResultDialog, setShowResultDialog] = useState(false);
+  const [quizResult, setQuizResult] = useState<{ score: number; total: number } | null>(null);
 
   useEffect(() => {
     fetchQuizQuestion();
@@ -88,8 +91,8 @@ const TakeQuiz: React.FC = () => {
 
       if (response.ok) {
         const result = await response.json();
-        toast.success(`Quiz submitted! Score: ${result.score}/${result.total}`);
-        navigate('/quiz');
+        setQuizResult({ score: result.score, total: result.total });
+        setShowResultDialog(true);
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || 'Failed to submit quiz');
@@ -100,6 +103,11 @@ const TakeQuiz: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCloseResult = () => {
+    setShowResultDialog(false);
+    navigate('/quiz');
   };
 
   if (loading) {
@@ -190,6 +198,33 @@ const TakeQuiz: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+        <DialogContent className='bg-white'>
+          <DialogHeader >
+            <DialogTitle>Quiz Result</DialogTitle>
+            <DialogDescription>
+              Here is your quiz result based on the questions answered.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-blue-600 mb-2">
+                {quizResult?.score}/{quizResult?.total}
+              </div>
+              <div className="text-lg text-gray-600">
+                {quizResult?.score === quizResult?.total ? 'Perfect Score!' :
+                 quizResult?.score && quizResult.score > 0 ? 'Good job!' : 'Keep trying!'}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleCloseResult} className="w-full">
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

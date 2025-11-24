@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import DeleteModal from '../../../Common/DeleteModal';
 import { formatDate } from '../../../Common/Commonfunction';
 import { UniversalSkeleton, BaseSkeleton } from '../../ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import toast from 'react-hot-toast';
 
 interface Question {
@@ -20,6 +21,25 @@ interface Question {
   updatedAt: string;
 }
 
+interface Assignment {
+  _id: string;
+  employee_id: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  question_id: {
+    _id: string;
+    question_text: string;
+    difficulty: string;
+    category: string;
+  };
+  assigned_on: string;
+  due_date: string | null;
+  completed: boolean;
+}
+
 export default function QuizAdminTable() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -27,9 +47,13 @@ export default function QuizAdminTable() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteQuestionId, setDeleteQuestionId] = useState<string | null>(null);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(true);
+  const [errorAssignments, setErrorAssignments] = useState<string | null>(null);
 
   useEffect(() => {
     fetchQuestions();
+    fetchAssignments();
   }, []);
 
   const fetchQuestions = async () => {
@@ -50,6 +74,27 @@ export default function QuizAdminTable() {
       setError('Error fetching questions');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAssignments = async () => {
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/admin/assignments`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAssignments(data);
+      } else {
+        setErrorAssignments('Failed to fetch assignments');
+      }
+    } catch (err) {
+      setErrorAssignments('Error fetching assignments');
+    } finally {
+      setLoadingAssignments(false);
     }
   };
 
@@ -88,172 +133,313 @@ export default function QuizAdminTable() {
     navigate(`/quiz-admin/edit/${id}`);
   };
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex justify-between items-center mb-6">
-          <BaseSkeleton className="h-6 w-32" />
-          <BaseSkeleton className="h-10 w-32" />
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <BaseSkeleton className="h-4 w-4" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <BaseSkeleton className="h-4 w-16" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <BaseSkeleton className="h-4 w-20" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <BaseSkeleton className="h-4 w-16" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <BaseSkeleton className="h-4 w-12" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <BaseSkeleton className="h-4 w-20" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <BaseSkeleton className="h-4 w-14" />
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {Array.from({ length: 10 }, (_, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    <BaseSkeleton className="h-5 w-8" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    <BaseSkeleton className="h-5 w-32" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <BaseSkeleton className="h-5 w-24" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <BaseSkeleton className="h-5 w-16" />
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    <BaseSkeleton className="h-4 w-20" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <BaseSkeleton className="h-5 w-20" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
-                    <div className="flex space-x-2">
-                      <BaseSkeleton className="h-8 w-8 rounded" />
-                      <BaseSkeleton className="h-8 w-8 rounded" />
-                      <BaseSkeleton className="h-8 w-8 rounded" />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="text-center py-8 text-red-600">{error}</div>;
-  }
-
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Quiz Question Management</h3>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => navigate('/quiz-admin/assign')}
-            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <UserPlus className="h-4 w-4" />
-            <span>Assign Quiz</span>
-          </button>
-          <button
-            onClick={() => navigate('/quiz-admin/add')}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Question</span>
-          </button>
-        </div>
-      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-6">Quiz Management</h3>
+      <Tabs defaultValue="questions" className="w-full">
+        <TabsList>
+          <TabsTrigger value="questions">Questions</TabsTrigger>
+          <TabsTrigger value="assignments">Assigned Quizzes</TabsTrigger>
+        </TabsList>
+        <TabsContent value="questions">
+          {loading ? (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <BaseSkeleton className="h-6 w-32" />
+                <BaseSkeleton className="h-10 w-32" />
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-4" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-16" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-20" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-16" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-12" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-20" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-14" />
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {Array.from({ length: 10 }, (_, rowIndex) => (
+                      <tr key={rowIndex} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <BaseSkeleton className="h-5 w-8" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <BaseSkeleton className="h-5 w-32" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <BaseSkeleton className="h-5 w-24" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <BaseSkeleton className="h-5 w-16" />
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          <BaseSkeleton className="h-4 w-20" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <BaseSkeleton className="h-5 w-20" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
+                          <div className="flex space-x-2">
+                            <BaseSkeleton className="h-8 w-8 rounded" />
+                            <BaseSkeleton className="h-8 w-8 rounded" />
+                            <BaseSkeleton className="h-8 w-8 rounded" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">{error}</div>
+          ) : (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => navigate('/quiz-admin/assign')}
+                    className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>Assign Quiz</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/quiz-admin/add')}
+                    className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Question</span>
+                  </button>
+                </div>
+              </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correct Answer</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Difficulty</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {questions.map((question, index) => (
-              <tr key={question._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {index + 1}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-900">
-                  <div className="max-w-xs truncate" title={question.question_text}>
-                    {question.question_text}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {question.correct_option}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    question.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
-                    question.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {question.difficulty}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {question.category || 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(question.createdAt)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEdit(question._id)}
-                      className="p-2 rounded hover:bg-gray-100 text-purple-600"
-                      title="Edit"
-                    >
-                      <Edit className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(question._id)}
-                      className="p-2 rounded hover:bg-gray-100 text-red-600"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correct Answer</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Difficulty</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {questions.map((question, index) => (
+                      <tr key={question._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {index + 1}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div className="max-w-xs truncate" title={question.question_text}>
+                            {question.question_text}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {question.correct_option}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            question.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
+                            question.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {question.difficulty}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {question.category || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(question.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEdit(question._id)}
+                              className="p-2 rounded hover:bg-gray-100 text-purple-600"
+                              title="Edit"
+                            >
+                              <Edit className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(question._id)}
+                              className="p-2 rounded hover:bg-gray-100 text-red-600"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-      {questions.length === 0 && (
-        <div className="text-center py-8 text-gray-500">No questions found</div>
-      )}
+              {questions.length === 0 && (
+                <div className="text-center py-8 text-gray-500">No questions found</div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+        <TabsContent value="assignments">
+          {loadingAssignments ? (
+            <div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-4" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-20" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-16" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-16" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-12" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-20" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-16" />
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <BaseSkeleton className="h-4 w-14" />
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {Array.from({ length: 10 }, (_, rowIndex) => (
+                      <tr key={rowIndex} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <BaseSkeleton className="h-5 w-8" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <BaseSkeleton className="h-5 w-32" />
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <BaseSkeleton className="h-5 w-24" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <BaseSkeleton className="h-5 w-16" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <BaseSkeleton className="h-4 w-20" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <BaseSkeleton className="h-5 w-20" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <BaseSkeleton className="h-5 w-16" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <BaseSkeleton className="h-5 w-14" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : errorAssignments ? (
+            <div className="text-center py-8 text-red-600">{errorAssignments}</div>
+          ) : (
+            <div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Difficulty</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {assignments.map((assignment, index) => (
+                      <tr key={assignment._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {index + 1}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {assignment.employee_id.firstName} {assignment.employee_id.lastName}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div className="max-w-xs truncate" title={assignment.question_id.question_text}>
+                            {assignment.question_id.question_text}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            assignment.question_id.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
+                            assignment.question_id.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {assignment.question_id.difficulty}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {assignment.question_id.category || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(assignment.assigned_on)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {assignment.due_date ? formatDate(assignment.due_date) : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            assignment.completed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {assignment.completed ? 'Completed' : 'Pending'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {assignments.length === 0 && (
+                <div className="text-center py-8 text-gray-500">No assignments found</div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <DeleteModal
         isOpen={showDeleteModal}
