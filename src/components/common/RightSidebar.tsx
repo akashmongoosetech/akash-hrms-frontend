@@ -32,7 +32,7 @@ import {
   BookOpen,
   Notebook,
   LibraryBig,
-  School, BadgeCheck, Lightbulb, UserCheck
+  School, BadgeCheck, Lightbulb, UserCheck, HelpCircle
 } from "lucide-react";
 import SettingsSidebar from "./SettingsSidebar";
 
@@ -263,6 +263,20 @@ export default function RightSidebar() {
           name: "Verification",
           icon: <BadgeCheck className="h-5 w-5" />,
           path: "/certificate-verification",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "quiz",
+          name: "My Quiz",
+          icon: <HelpCircle className="h-5 w-5" />,
+          path: "/quiz",
+          roles: ["Employee"],
+        },
+        {
+          id: "quiz-admin",
+          name: "Quiz Admin",
+          icon: <HelpCircle className="h-5 w-5" />,
+          path: "/quiz-admin",
           roles: ["Admin", "SuperAdmin"],
         },
         // {

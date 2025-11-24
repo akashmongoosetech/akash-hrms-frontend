@@ -44,12 +44,16 @@ import AdminPanel from './components/AdminPanel/AdminPanel';
 import ChatMain from './components/Chat/ChatMain';
 import CoursesPage from './pages/courses/CoursesPage';
 import CertificateVerificationPage from './pages/courses/CertificateVerificationPage';
-import CategoriesPage from './pages/categories/CategoriesPage';
 import LearningPage from './pages/learning/LearningPage';
 import CourseLearn from './components/Courses/CourseLearn';
 import CourseLearnPage from './pages/courses/CourseLearnPage';
 import PerformancePage from './pages/performance/PerformancePage';
 import OnboardingPage from './pages/onboarding/OnboardingPage';
+import QuizAdminPage from './pages/quiz/QuizAdminPage';
+import EmployeeQuizPage from './pages/quiz/EmployeeQuizPage';
+import QuizAddEdit from './components/AdminPanel/elements/QuizAddEdit';
+import QuizAssign from './components/AdminPanel/elements/QuizAssign';
+import TakeQuiz from './components/Quiz/TakeQuiz';
 import './index.css';
 
 function AppRoutes() {
@@ -237,6 +241,36 @@ function AppRoutes() {
           <Route path="/onboarding" element={
             <ProtectedRoute requiredRole="Admin">
               <OnboardingPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz-admin" element={
+            <ProtectedRoute requiredRole="Admin">
+              <QuizAdminPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz-admin/add" element={
+            <ProtectedRoute requiredRole="Admin">
+              <QuizAddEdit />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz-admin/edit/:id" element={
+            <ProtectedRoute requiredRole="Admin">
+              <QuizAddEdit />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz-admin/assign" element={
+            <ProtectedRoute requiredRole="Admin">
+              <QuizAssign />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz" element={
+            <ProtectedRoute requiredRole="Employee">
+              <EmployeeQuizPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz/take/:quizId" element={
+            <ProtectedRoute requiredRole="Employee">
+              <TakeQuiz />
             </ProtectedRoute>
           } />
         </Route>
