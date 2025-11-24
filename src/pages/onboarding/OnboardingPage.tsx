@@ -1,5 +1,5 @@
 import React from "react";
-import OnboardingTable from "@/components/onboarding/OnboardingTable";
+import OnboardingTable from "../../components/onboarding/OnboardingTable";
 
 export default function OnboardingPage() {
   return (

@@ -32,7 +32,7 @@ import {
   BookOpen,
   Notebook,
   LibraryBig,
-  School, BadgeCheck, Lightbulb
+  School, BadgeCheck, Lightbulb, UserCheck
 } from "lucide-react";
 import SettingsSidebar from "./SettingsSidebar";
 
@@ -189,6 +189,13 @@ export default function RightSidebar() {
           path: "/performance",
           roles: ["Admin", "SuperAdmin"],
         },
+        // {
+        //   id: "onboarding",
+        //   name: "Onboarding",
+        //   icon: <UserCheck className="h-5 w-5" />,
+        //   path: "/onboarding",
+        //   roles: ["Admin", "SuperAdmin"],
+        // },
       ],
     },
     {

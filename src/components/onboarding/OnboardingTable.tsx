@@ -64,7 +64,7 @@ export default function OnboardingTable() {
 
   const fetchOnboardings = async (page: number) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/onboardings?page=${page}&limit=10`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'}/onboarding?page=${page}&limit=10`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -93,7 +93,7 @@ export default function OnboardingTable() {
     if (!deleteOnboardingId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/onboardings/${deleteOnboardingId}`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'}/onboarding/${deleteOnboardingId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

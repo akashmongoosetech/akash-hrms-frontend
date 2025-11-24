@@ -49,6 +49,7 @@ import LearningPage from './pages/learning/LearningPage';
 import CourseLearn from './components/Courses/CourseLearn';
 import CourseLearnPage from './pages/courses/CourseLearnPage';
 import PerformancePage from './pages/performance/PerformancePage';
+import OnboardingPage from './pages/onboarding/OnboardingPage';
 import './index.css';
 
 function AppRoutes() {
@@ -231,6 +232,11 @@ function AppRoutes() {
           <Route path="/performance" element={
             <ProtectedRoute requiredRole="Admin">
               <PerformancePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/onboarding" element={
+            <ProtectedRoute requiredRole="Admin">
+              <OnboardingPage />
             </ProtectedRoute>
           } />
         </Route>
