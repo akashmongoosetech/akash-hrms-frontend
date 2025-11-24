@@ -3,15 +3,14 @@ import { useNavigate } from "react-router-dom";
 import {
   Users,
   Bell,
-  Settings,
   Sun,
   LogOut,
   ChevronDown,
-  Search,
   Mail,
   Clock,
   X,
-  Plus,
+  CalendarDays,
+  History
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import socket from "../../utils/socket";
@@ -714,6 +713,24 @@ export default function Header() {
                       <Users className="h-4 w-4" />
                       <span>Profile</span>
                     </button>
+                     {role !== "Admin" && role !== "SuperAdmin" && (
+                    <button
+                      onClick={() => navigate(`/employees/view/${userId}?tab=calendar`)}
+                      className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                      <span>Calendar</span>
+                    </button>
+                    )}
+                     {role !== "Admin" && role !== "SuperAdmin" && (
+                    <button
+                      onClick={() => navigate(`/employees/view/${userId}?tab=timeline`)}
+                      className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <History className="h-4 w-4" />
+                      <span>Timeline</span>
+                    </button>
+                    )}
                     {role !== "Employee" && (
                     <button
                       onClick={() => navigate('/saturday-setting')}

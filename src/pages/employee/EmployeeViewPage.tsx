@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Edit, Eye, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDate } from '../../Common/Commonfunction';
-import EventCalendar from '../../components/event/EventCalendar';
+import ProfileCalendar from '../../components/event/ProfileCalendar';
 
 interface Employee {
   _id: string;
@@ -58,9 +58,13 @@ interface Employee {
 export default function EmployeeViewPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const validTabs = ['View', 'Timeline', 'Calendar'];
+  const normalizedTab = tabParam ? tabParam.charAt(0).toUpperCase() + tabParam.slice(1).toLowerCase() : null;
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('View');
+  const [activeTab, setActiveTab] = useState(validTabs.includes(normalizedTab || '') ? normalizedTab : 'View');
   const [activities, setActivities] = useState<any[]>([]);
   const [showResume, setShowResume] = useState(false);
   const currentUserId = localStorage.getItem("userId");
@@ -77,6 +81,17 @@ export default function EmployeeViewPage() {
       fetchActivities();
     }
   }, [id, currentRole, currentUserId, navigate]);
+
+  // Update URL when activeTab changes
+  useEffect(() => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (activeTab !== 'View') {
+      newSearchParams.set('tab', activeTab.toLowerCase());
+    } else {
+      newSearchParams.delete('tab');
+    }
+    setSearchParams(newSearchParams, { replace: true });
+  }, [activeTab, searchParams, setSearchParams]);
 
   const fetchEmployee = async () => {
     if (!id) return;
@@ -225,8 +240,8 @@ export default function EmployeeViewPage() {
             <button
               onClick={() => setActiveTab('View')}
               className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'View'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                 }`}
             >
               <Eye className="h-4 w-4" />
@@ -235,8 +250,8 @@ export default function EmployeeViewPage() {
             <button
               onClick={() => setActiveTab('Timeline')}
               className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'Timeline'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                 }`}
             >
               <Clock className="h-4 w-4" />
@@ -245,8 +260,8 @@ export default function EmployeeViewPage() {
             <button
               onClick={() => setActiveTab('Calendar')}
               className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'Calendar'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                 }`}
             >
               <Calendar className="h-4 w-4" />
@@ -676,36 +691,36 @@ export default function EmployeeViewPage() {
 
         {/* Activities Tab */}
         {activeTab === 'Timeline' && (
-  <div className="bg-white rounded-2xl lg:rounded-3xl shadow-lg lg:shadow-2xl border border-gray-100 overflow-hidden mx-2 lg:mx-0">
-    {/* Animated Header with Gradient */}
-    <div className="relative bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-4 lg:p-6">
-      <div className="absolute inset-0 bg-black/10"></div>
-      <div className="relative z-10">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-xl lg:text-2xl font-bold text-white mb-1 lg:mb-2 truncate">Activity Timeline</h2>
-            <p className="text-blue-100 text-xs lg:text-sm truncate">
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </p>
-          </div>
-          <div className="flex items-center space-x-4">
-            {/* Mobile stats */}
-            <div className="sm:hidden flex items-center space-x-3">
-              <div className="text-right">
-                <div className="text-white text-lg font-bold">{activities.length}</div>
-                <div className="text-blue-100 text-xs">Events</div>
-              </div>
-            </div>
-          </div>
-        </div>
+          <div className="bg-white rounded-2xl lg:rounded-3xl shadow-lg lg:shadow-2xl border border-gray-100 overflow-hidden mx-2 lg:mx-0">
+            {/* Animated Header with Gradient */}
+            <div className="relative bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-4 lg:p-6">
+              <div className="absolute inset-0 bg-black/10"></div>
+              <div className="relative z-10">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl lg:text-2xl font-bold text-white mb-1 lg:mb-2 truncate">Activity Timeline</h2>
+                    <p className="text-blue-100 text-xs lg:text-sm truncate">
+                      {new Date().toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    {/* Mobile stats */}
+                    <div className="sm:hidden flex items-center space-x-3">
+                      <div className="text-right">
+                        <div className="text-white text-lg font-bold">{activities.length}</div>
+                        <div className="text-blue-100 text-xs">Events</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-        {/* Progress Indicator - Hidden on mobile */}
-        {/* <div className="hidden sm:block mt-4">
+                {/* Progress Indicator - Hidden on mobile */}
+                {/* <div className="hidden sm:block mt-4">
           <div className="flex justify-between text-blue-100 text-xs mb-1">
             <span>Daily Progress</span>
             <span>75%</span>
@@ -714,172 +729,172 @@ export default function EmployeeViewPage() {
             <div className="bg-white h-1.5 rounded-full w-3/4 shadow-lg"></div>
           </div>
         </div> */}
-      </div>
-    </div>
+              </div>
+            </div>
 
-    {activities.length === 0 ? (
-      <div className="p-6 lg:p-8 text-center">
-        <div className="relative w-16 h-16 lg:w-24 lg:h-24 mx-auto mb-4 lg:mb-6">
-          {/* Animated Orb */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-200 to-purple-200 rounded-full animate-pulse"></div>
-          <div className="absolute inset-2 lg:inset-4 bg-white rounded-full flex items-center justify-center shadow-lg">
-            <svg className="w-6 h-6 lg:w-8 lg:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3" />
-            </svg>
-          </div>
-        </div>
-        <h3 className="text-lg lg:text-xl font-semibold text-gray-800 mb-2">Ready to Start Your Day?</h3>
-        <p className="text-gray-500 text-sm lg:text-base mb-4 lg:mb-6 px-4">Log your first activity to begin tracking</p>
-        <button className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm lg:text-base w-full sm:w-auto">
-          Start Tracking
-        </button>
-      </div>
-    ) : (
-      <div className="p-4 lg:p-6">
-        {/* Interactive Timeline */}
-        <div className="relative">
-          {/* Central Timeline - Hidden on mobile */}
-          <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 w-1 h-full bg-gradient-to-b from-blue-200 via-purple-200 to-pink-200 rounded-full"></div>
+            {activities.length === 0 ? (
+              <div className="p-6 lg:p-8 text-center">
+                <div className="relative w-16 h-16 lg:w-24 lg:h-24 mx-auto mb-4 lg:mb-6">
+                  {/* Animated Orb */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-200 to-purple-200 rounded-full animate-pulse"></div>
+                  <div className="absolute inset-2 lg:inset-4 bg-white rounded-full flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 lg:w-8 lg:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3" />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-lg lg:text-xl font-semibold text-gray-800 mb-2">Ready to Start Your Day?</h3>
+                <p className="text-gray-500 text-sm lg:text-base mb-4 lg:mb-6 px-4">Log your first activity to begin tracking</p>
+                <button className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm lg:text-base w-full sm:w-auto">
+                  Start Tracking
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 lg:p-6">
+                {/* Interactive Timeline */}
+                <div className="relative">
+                  {/* Central Timeline - Hidden on mobile */}
+                  <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 w-1 h-full bg-gradient-to-b from-blue-200 via-purple-200 to-pink-200 rounded-full"></div>
 
-          <div className="space-y-6 lg:space-y-8">
-            {activities.map((activity, index) => {
-              const isEven = index % 2 === 0;
-              const typeConfig = {
-                'punch-in': {
-                  gradient: 'from-green-400 to-emerald-500',
-                  icon: (
-                    <svg className="w-4 h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  ),
-                  label: 'Punch In',
-                  color: 'green'
-                },
-                'punch-out': {
-                  gradient: 'from-red-400 to-rose-500',
-                  icon: (
-                    <svg className="w-4 h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  ),
-                  label: 'Punch Out',
-                  color: 'red'
-                },
-                'break-start': {
-                  gradient: 'from-amber-400 to-yellow-500',
-                  icon: (
-                    <svg className="w-4 h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
-                    </svg>
-                  ),
-                  label: 'Break Start',
-                  color: 'amber'
-                },
-                'break-end': {
-                  gradient: 'from-blue-400 to-indigo-500',
-                  icon: (
-                    <svg className="w-4 h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    </svg>
-                  ),
-                  label: 'Break End',
-                  color: 'blue'
-                }
-              }[activity.type];
+                  <div className="space-y-6 lg:space-y-8">
+                    {activities.map((activity, index) => {
+                      const isEven = index % 2 === 0;
+                      const typeConfig = {
+                        'punch-in': {
+                          gradient: 'from-green-400 to-emerald-500',
+                          icon: (
+                            <svg className="w-4 h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ),
+                          label: 'Punch In',
+                          color: 'green'
+                        },
+                        'punch-out': {
+                          gradient: 'from-red-400 to-rose-500',
+                          icon: (
+                            <svg className="w-4 h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ),
+                          label: 'Punch Out',
+                          color: 'red'
+                        },
+                        'break-start': {
+                          gradient: 'from-amber-400 to-yellow-500',
+                          icon: (
+                            <svg className="w-4 h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                            </svg>
+                          ),
+                          label: 'Break Start',
+                          color: 'amber'
+                        },
+                        'break-end': {
+                          gradient: 'from-blue-400 to-indigo-500',
+                          icon: (
+                            <svg className="w-4 h-4 lg:w-5 lg:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            </svg>
+                          ),
+                          label: 'Break End',
+                          color: 'blue'
+                        }
+                      }[activity.type];
 
-              return (
-                <div key={activity.id} className={`
+                      return (
+                        <div key={activity.id} className={`
                   relative group
                   md:flex md:items-center 
                   ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'}
                 `}>
-                  {/* Content Card */}
-                  <div className={`
+                          {/* Content Card */}
+                          <div className={`
                     w-full md:w-5/12 
                     ${isEven ? 'md:pr-4 lg:pr-8' : 'md:pl-4 lg:pl-8'}
                     mb-4 md:mb-0
                   `}>
-                    <div className={`
+                            <div className={`
                       bg-white rounded-xl lg:rounded-2xl p-4 lg:p-5 shadow-lg border border-gray-100 
                       transform hover:scale-105 hover:shadow-2xl transition-all duration-300
                       group-hover:border-${typeConfig.color}-200 group-hover:ring-2 group-hover:ring-${typeConfig.color}-100
                       w-full
                     `}>
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`bg-gradient-to-r ${typeConfig.gradient} text-white text-xs font-semibold px-2 lg:px-3 py-1 rounded-full shadow-sm whitespace-nowrap`}>
-                            {typeConfig.label}
-                          </span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded whitespace-nowrap">
-                            {formatDate(activity.date)}
-                          </span>
-                        </div>
-                        <div className={`w-2 h-2 bg-${typeConfig.color}-400 rounded-full ${index === 0 ? 'animate-ping' : ''} flex-shrink-0 ml-2`}></div>
-                      </div>
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`bg-gradient-to-r ${typeConfig.gradient} text-white text-xs font-semibold px-2 lg:px-3 py-1 rounded-full shadow-sm whitespace-nowrap`}>
+                                    {typeConfig.label}
+                                  </span>
+                                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded whitespace-nowrap">
+                                    {formatDate(activity.date)}
+                                  </span>
+                                </div>
+                                <div className={`w-2 h-2 bg-${typeConfig.color}-400 rounded-full ${index === 0 ? 'animate-ping' : ''} flex-shrink-0 ml-2`}></div>
+                              </div>
 
-                      <h3 className="text-gray-900 font-semibold text-base lg:text-lg mb-2 line-clamp-2">
-                        {activity.description}
-                      </h3>
+                              <h3 className="text-gray-900 font-semibold text-base lg:text-lg mb-2 line-clamp-2">
+                                {activity.description}
+                              </h3>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div className="flex items-center space-x-2 text-gray-600">
-                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
-                          </svg>
-                          <span className="font-mono font-bold text-sm lg:text-base">
-                            {new Date(activity.time).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                        </div>
-                        {activity.duration && (
-                          <span className="text-xs lg:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded self-start sm:self-auto">
-                            {activity.duration}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div className="flex items-center space-x-2 text-gray-600">
+                                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                                  </svg>
+                                  <span className="font-mono font-bold text-sm lg:text-base">
+                                    {new Date(activity.time).toLocaleTimeString([], {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
+                                </div>
+                                {activity.duration && (
+                                  <span className="text-xs lg:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded self-start sm:self-auto">
+                                    {activity.duration}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
 
-                  {/* Central Timeline Dot */}
-                  <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 z-20">
-                    <div className={`relative bg-gradient-to-r ${typeConfig.gradient} w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center shadow-xl border-4 border-white group-hover:scale-125 transition-transform duration-300`}>
-                      {typeConfig.icon}
-                      {/* Glow Effect */}
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-r opacity-75 animate-ping"></div>
-                    </div>
-                  </div>
+                          {/* Central Timeline Dot */}
+                          <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 z-20">
+                            <div className={`relative bg-gradient-to-r ${typeConfig.gradient} w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center shadow-xl border-4 border-white group-hover:scale-125 transition-transform duration-300`}>
+                              {typeConfig.icon}
+                              {/* Glow Effect */}
+                              <div className="absolute inset-0 rounded-full bg-gradient-to-r opacity-75 animate-ping"></div>
+                            </div>
+                          </div>
 
-                  {/* Mobile Timeline Dot */}
-                  <div className="md:hidden flex items-center justify-center my-4">
-                    <div className={`relative bg-gradient-to-r ${typeConfig.gradient} w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-4 border-white`}>
-                      {typeConfig.icon}
-                    </div>
-                  </div>
+                          {/* Mobile Timeline Dot */}
+                          <div className="md:hidden flex items-center justify-center my-4">
+                            <div className={`relative bg-gradient-to-r ${typeConfig.gradient} w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-4 border-white`}>
+                              {typeConfig.icon}
+                            </div>
+                          </div>
 
-                  {/* Time Label */}
-                  <div className={`
+                          {/* Time Label */}
+                          <div className={`
                     w-full md:w-5/12 
                     ${isEven ? 'md:pl-4 lg:pl-8 md:text-left' : 'md:pr-4 lg:pr-8 md:text-right'}
                     text-center md:text-inherit
                   `}>
-                    {/* <div className="text-gray-400 text-xs lg:text-sm font-mono bg-gray-50 inline-block px-3 py-2 rounded-lg">
+                            {/* <div className="text-gray-400 text-xs lg:text-sm font-mono bg-gray-50 inline-block px-3 py-2 rounded-lg">
                       {new Date(activity.time).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
                         second: '2-digit'
                       })}
                     </div> */}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Summary Stats */}
-        {/* <div className="mt-6 lg:mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+                {/* Summary Stats */}
+                {/* <div className="mt-6 lg:mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl lg:rounded-2xl p-3 lg:p-4 text-center border border-blue-200">
             <div className="text-lg lg:text-2xl font-bold text-blue-600">8.2h</div>
             <div className="text-blue-500 text-xs lg:text-sm">Total Time</div>
@@ -898,8 +913,8 @@ export default function EmployeeViewPage() {
           </div>
         </div> */}
 
-        {/* Quick Actions */}
-        {/* <div className="mt-6 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                {/* Quick Actions */}
+                {/* <div className="mt-6 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
           <button className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2 text-sm lg:text-base">
             <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -913,14 +928,14 @@ export default function EmployeeViewPage() {
             <span>Add Activity</span>
           </button>
         </div> */}
-      </div>
-    )}
-  </div>
-)}
+              </div>
+            )}
+          </div>
+        )}
 
         {activeTab === 'Calendar' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <EventCalendar
+            <ProfileCalendar
               events={[]}
               userRole={currentRole || undefined}
             />

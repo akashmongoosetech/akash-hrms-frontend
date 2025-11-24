@@ -41,6 +41,8 @@ export default function Dashboard() {
   const role = localStorage.getItem("role") || "Employee";
   const { dashboardPreferences } = useLayout();
 
+  const gridClass = (role === 'Admin' || role === 'SuperAdmin') ? 'grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 gap-4' : 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4';
+
   const [todos, setTodos] = useState<Todo[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [holidays, setHolidays] = useState([]);
@@ -458,7 +460,7 @@ export default function Dashboard() {
         </div>
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4">
+        <div className={gridClass}>
           <div className="dashboard-leaves">
             {dashboardPreferences.leaves && (
               <div className="mt-[50px]">
