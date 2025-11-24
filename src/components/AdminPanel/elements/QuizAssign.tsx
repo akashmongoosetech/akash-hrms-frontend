@@ -52,7 +52,7 @@ const QuizAssign: React.FC = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/users?role=Employee`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?role=Employee`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -69,7 +69,7 @@ const QuizAssign: React.FC = () => {
 
   const fetchQuestions = async () => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/quiz/admin/questions`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/admin/questions`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -103,7 +103,7 @@ const QuizAssign: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/quiz/admin/assign-quiz`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/admin/assign-quiz`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

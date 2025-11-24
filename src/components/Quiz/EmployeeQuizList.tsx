@@ -30,7 +30,7 @@ const EmployeeQuizList: React.FC = () => {
 
   const fetchAssignedQuizzes = async () => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/quiz/employee/quizzes`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/employee/quizzes`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

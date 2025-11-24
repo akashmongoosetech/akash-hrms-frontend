@@ -47,7 +47,7 @@ const QuizAddEdit: React.FC = () => {
 
   const fetchQuestion = async (questionId: string) => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/quiz/admin/questions`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/admin/questions`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -79,8 +79,8 @@ const QuizAddEdit: React.FC = () => {
     setLoading(true);
     try {
       const url = isEdit
-        ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/quiz/admin/question/${id}`
-        : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/quiz/admin/question`;
+        ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/admin/question/${id}`
+        : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/admin/question`;
 
       const response = await fetch(url, {
         method: isEdit ? 'PUT' : 'POST',

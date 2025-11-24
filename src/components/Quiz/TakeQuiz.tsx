@@ -36,7 +36,7 @@ const TakeQuiz: React.FC = () => {
     if (!quizId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/quiz/employee/quizzes`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/employee/quizzes`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -77,7 +77,7 @@ const TakeQuiz: React.FC = () => {
         selected_option: selectedOption
       };
 
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/quiz/employee/submit-quiz`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/employee/submit-quiz`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
