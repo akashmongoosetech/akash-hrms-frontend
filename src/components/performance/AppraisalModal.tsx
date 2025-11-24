@@ -75,12 +75,14 @@ export default function AppraisalModal({
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [reviewers, setReviewers] = useState<Reviewer[]>([]);
   const [isEditing, setIsEditing] = useState(!isViewMode);
+  const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     employee: '',
     reviewer: '',
     periodStart: '',
     periodEnd: '',
     overallRating: 3,
+    status: '',
     categories: [] as Category[],
     goals: [] as Goal[],
     strengths: [] as string[],
@@ -105,6 +107,7 @@ export default function AppraisalModal({
         periodStart: editingAppraisal.period.startDate.split('T')[0],
         periodEnd: editingAppraisal.period.endDate.split('T')[0],
         overallRating: editingAppraisal.overallRating,
+        status: editingAppraisal.status,
         categories: editingAppraisal.categories,
         goals: editingAppraisal.goals,
         strengths: editingAppraisal.strengths,
@@ -119,6 +122,7 @@ export default function AppraisalModal({
         periodStart: '',
         periodEnd: '',
         overallRating: 3,
+        status: '',
         categories: [],
         goals: [],
         strengths: [],
@@ -128,6 +132,13 @@ export default function AppraisalModal({
       });
     }
   }, [editingAppraisal, isOpen]);
+
+  useEffect(() => {
+    if (!loading && submitted) {
+      onClose();
+      setSubmitted(false);
+    }
+  }, [loading, submitted, onClose]);
 
   const fetchEmployees = async () => {
     try {
@@ -176,6 +187,7 @@ export default function AppraisalModal({
         endDate: formData.periodEnd
       },
       overallRating: formData.overallRating,
+      status: formData.status,
       categories: formData.categories,
       goals: formData.goals,
       strengths: formData.strengths.filter(s => s.trim()),
@@ -188,6 +200,7 @@ export default function AppraisalModal({
       (submitData as any).id = editingAppraisal._id;
     }
 
+    setSubmitted(true);
     onSubmit(submitData);
   };
 
@@ -396,6 +409,21 @@ export default function AppraisalModal({
                 <span className="ml-2 text-sm text-gray-600">{formData.overallRating}/5</span>
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="Draft">Draft</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
           </div>
 
           {/* Performance Categories */}
