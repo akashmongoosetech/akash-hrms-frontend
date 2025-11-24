@@ -13,6 +13,7 @@ import DashboardTickets from "./DashboardTickets";
 import DashboardLeaves from "./DashboardLeaves";
 import TeamDashboard from "./TeamDashboard";
 import DashboardActivities from "./Dashboard Activities";
+import DashboardPerformance from "./DashboardPerformance";
 import { useLayout } from "../common/Layout";
 import { UniversalSkeleton, BaseSkeleton } from "../ui/skeleton";
 
@@ -446,8 +447,18 @@ export default function Dashboard() {
           </div>
         )}
 
+        <div className="grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 gap-4">
+          <div className="dashboard-performance">
+            {dashboardPreferences.performance && (
+              <div className="mt-[50px]">
+                <DashboardPerformance />
+              </div>
+            )}
+          </div>
+        </div>
 
-        <div className="grid grid-cols-2 gap-4">
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4">
           <div className="dashboard-leaves">
             {dashboardPreferences.leaves && (
               <div className="mt-[50px]">
@@ -456,7 +467,7 @@ export default function Dashboard() {
             )}
           </div>
           <div className="dashboard-activities">
-            {dashboardPreferences.activities && role !== 'Employee' && (
+            {dashboardPreferences.activities && role === 'Employee' && (
               <div className="mt-[50px]">
                 <DashboardActivities />
               </div>

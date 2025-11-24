@@ -16,6 +16,7 @@ interface DashboardPreferences {
   tickets: boolean;
   leaves: boolean;
   activities: boolean;
+  performance: boolean;
 }
 
 interface BreakRecord {
@@ -243,7 +244,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClose, onNa
                   />
                   <span className="text-sm text-gray-700">Leaves</span>
                 </label>
-                {role !== 'Employee' && (
+                {role === 'Employee' && (
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -254,6 +255,15 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClose, onNa
                     <span className="text-sm text-gray-700">Activities</span>
                   </label>
                 )}
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={dashboardPreferences.performance}
+                    onChange={() => handleCheckboxChange('performance')}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <span className="text-sm text-gray-700">Performance</span>
+                </label>
               </div>
             </div>
 

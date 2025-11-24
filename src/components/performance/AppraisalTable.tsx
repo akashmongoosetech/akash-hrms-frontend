@@ -96,11 +96,16 @@ export default function AppraisalTable() {
   const handleSubmit = async (formData: any) => {
     setSubmitLoading(true);
     try {
-      const url = editingAppraisal
-        ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/appraisals/${editingAppraisal._id}`
+      const isUpdate = formData.id;
+      const url = isUpdate
+        ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/appraisals/${formData.id}`
         : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/appraisals`;
 
-      const method = editingAppraisal ? 'PUT' : 'POST';
+      const method = isUpdate ? 'PUT' : 'POST';
+
+      if (isUpdate) {
+        delete formData.id;
+      }
 
       const response = await fetch(url, {
         method,
@@ -113,8 +118,6 @@ export default function AppraisalTable() {
 
       if (response.ok) {
         fetchAppraisals(currentPage);
-        setShowModal(false);
-        setEditingAppraisal(null);
       } else {
         setError('Failed to save appraisal');
       }
@@ -122,6 +125,8 @@ export default function AppraisalTable() {
       setError('Error saving appraisal');
     } finally {
       setSubmitLoading(false);
+      setShowModal(false);
+      setEditingAppraisal(null);
     }
   };
 
@@ -340,7 +345,7 @@ export default function AppraisalTable() {
                   <div className="flex items-center space-x-3">
                     {appraisal.employee.photo ? (
                       <img
-                        src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${appraisal.employee.photo}`}
+                        src={appraisal.employee.photo.startsWith('http') ? appraisal.employee.photo : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${appraisal.employee.photo}`}
                         alt={appraisal.employee.firstName}
                         className="h-8 w-8 rounded-full object-cover"
                       />
@@ -382,7 +387,7 @@ export default function AppraisalTable() {
                     >
                       <Eye className="h-5 w-5" />
                     </button>
-                    {(appraisal.status === 'Draft' || localStorage.getItem('role') === 'Admin') && (
+                    {(appraisal.status === 'Draft' || localStorage.getItem('role') === 'Admin' || localStorage.getItem('role') === 'SuperAdmin') && (
                       <button
                         onClick={() => openModal(appraisal)}
                         className="p-2 rounded hover:bg-gray-100 text-blue-600"
@@ -418,7 +423,7 @@ export default function AppraisalTable() {
                         </button>
                       </>
                     )}
-                    {(appraisal.status === 'Draft' || localStorage.getItem('role') === 'Admin') && (
+                    {(appraisal.status === 'Draft' || appraisal.status === 'Submitted' || localStorage.getItem('role') === 'Admin' || localStorage.getItem('role') === 'SuperAdmin') && (
                       <button
                         onClick={() => handleDelete(appraisal._id)}
                         className="p-2 rounded hover:bg-gray-100 text-red-600"
@@ -469,165 +474,23 @@ export default function AppraisalTable() {
         </Pagination>
       )}
 
-      {/* Appraisal Details Modal */}
-      {selectedAppraisal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
-            <div className="flex items-start justify-between mb-4">
-              <h3 className="text-lg font-semibold">Appraisal Details</h3>
-              <button onClick={() => setSelectedAppraisal(null)} className="text-gray-500 hover:text-gray-700">✕</button>
-            </div>
-
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-gray-500 text-sm">Employee</div>
-                  <div className="text-gray-800 font-medium">
-                    {selectedAppraisal.employee.firstName} {selectedAppraisal.employee.lastName}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-500 text-sm">Reviewer</div>
-                  <div className="text-gray-800 font-medium">
-                    {selectedAppraisal.reviewer.firstName} {selectedAppraisal.reviewer.lastName}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-500 text-sm">Period</div>
-                  <div className="text-gray-800">
-                    {formatDate(selectedAppraisal.period.startDate)} - {formatDate(selectedAppraisal.period.endDate)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-500 text-sm">Overall Rating</div>
-                  <div className="text-gray-800 flex items-center space-x-1">
-                    <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                    <span>{selectedAppraisal.overallRating}/5</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-500 text-sm">Status</div>
-                  <div className="text-gray-800 flex items-center space-x-2">
-                    {getStatusIcon(selectedAppraisal.status)}
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedAppraisal.status)}`}>
-                      {selectedAppraisal.status}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-500 text-sm">Created</div>
-                  <div className="text-gray-800">{formatDate(selectedAppraisal.createdAt)}</div>
-                </div>
-              </div>
-
-              {selectedAppraisal.categories.length > 0 && (
-                <div>
-                  <div className="text-gray-500 text-sm mb-2">Performance Categories</div>
-                  <div className="space-y-2">
-                    {selectedAppraisal.categories.map((category, index) => (
-                      <div key={index} className="bg-gray-50 p-3 rounded">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">{category.name}</span>
-                          <div className="flex items-center space-x-1">
-                            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                            <span>{category.rating}/5</span>
-                          </div>
-                        </div>
-                        {category.comments && (
-                          <div className="text-sm text-gray-600">{category.comments}</div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedAppraisal.goals.length > 0 && (
-                <div>
-                  <div className="text-gray-500 text-sm mb-2">Goals</div>
-                  <div className="space-y-2">
-                    {selectedAppraisal.goals.map((goal, index) => (
-                      <div key={index} className="bg-gray-50 p-3 rounded">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">{goal.title}</span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            goal.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                            goal.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {goal.status}
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-600 mb-2">{goal.description}</div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span>Progress: {goal.progress}%</span>
-                          <span>Target: {formatDate(goal.targetDate)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedAppraisal.strengths.length > 0 && (
-                <div>
-                  <div className="text-gray-500 text-sm mb-2">Strengths</div>
-                  <ul className="list-disc list-inside text-sm text-gray-800 space-y-1">
-                    {selectedAppraisal.strengths.map((strength, index) => (
-                      <li key={index}>{strength}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {selectedAppraisal.areasForImprovement.length > 0 && (
-                <div>
-                  <div className="text-gray-500 text-sm mb-2">Areas for Improvement</div>
-                  <ul className="list-disc list-inside text-sm text-gray-800 space-y-1">
-                    {selectedAppraisal.areasForImprovement.map((area, index) => (
-                      <li key={index}>{area}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {selectedAppraisal.developmentPlan && (
-                <div>
-                  <div className="text-gray-500 text-sm mb-2">Development Plan</div>
-                  <div className="text-sm text-gray-800 bg-gray-50 p-3 rounded">
-                    {selectedAppraisal.developmentPlan}
-                  </div>
-                </div>
-              )}
-
-              {selectedAppraisal.comments && (
-                <div>
-                  <div className="text-gray-500 text-sm mb-2">Comments</div>
-                  <div className="text-sm text-gray-800 bg-gray-50 p-3 rounded">
-                    {selectedAppraisal.comments}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-4 border-t">
-              <button
-                onClick={() => setSelectedAppraisal(null)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <AppraisalModal
         isOpen={showModal}
         editingAppraisal={editingAppraisal}
         onClose={() => setShowModal(false)}
         onSubmit={handleSubmit}
+        onDelete={handleDelete}
         loading={submitLoading}
+      />
+
+      <AppraisalModal
+        isOpen={selectedAppraisal !== null}
+        isViewMode={true}
+        editingAppraisal={selectedAppraisal}
+        onClose={() => setSelectedAppraisal(null)}
+        onSubmit={handleSubmit}
+        onDelete={handleDelete}
       />
 
       <DeleteModal

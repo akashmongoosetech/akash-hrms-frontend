@@ -13,6 +13,7 @@ interface DashboardPreferences {
   tickets: boolean;
   leaves: boolean;
   activities: boolean;
+  performance: boolean;
 }
 
 interface LayoutContextType {
@@ -41,6 +42,7 @@ export default function Layout() {
     tickets: true,
     leaves: true,
     activities: true,
+    performance: true,
   });
 
   // Load preferences from localStorage on mount
@@ -56,6 +58,7 @@ export default function Layout() {
           tickets: typeof parsed.tickets === 'boolean' ? parsed.tickets : true,
           leaves: typeof parsed.leaves === 'boolean' ? parsed.leaves : true,
           activities: typeof parsed.activities === 'boolean' ? parsed.activities : true,
+          performance: typeof parsed.performance === 'boolean' ? parsed.performance : true,
         };
         setDashboardPreferences(validatedPreferences);
       } catch (error) {
