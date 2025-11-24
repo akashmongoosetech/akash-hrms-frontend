@@ -236,38 +236,40 @@ export default function EmployeeViewPage() {
 
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('View')}
-              className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'View'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-            >
-              <Eye className="h-4 w-4" />
-              <span>View</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('Timeline')}
-              className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'Timeline'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-            >
-              <Clock className="h-4 w-4" />
-              <span>Timeline</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('Calendar')}
-              className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'Calendar'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-            >
-              <Calendar className="h-4 w-4" />
-              <span>Calendar</span>
-            </button>
-          </div>
+          {currentRole == 'Employee' && (
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => setActiveTab('View')}
+                className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'View'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+              >
+                <Eye className="h-4 w-4" />
+                <span>View</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('Timeline')}
+                className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'Timeline'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+              >
+                <Clock className="h-4 w-4" />
+                <span>Timeline</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('Calendar')}
+                className={`flex items-center space-x-2 px-6 py-3 font-medium text-sm transition-colors ${activeTab === 'Calendar'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+              >
+                <Calendar className="h-4 w-4" />
+                <span>Calendar</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
@@ -325,7 +327,7 @@ export default function EmployeeViewPage() {
                     {employee.joiningDate && (
                       <span className="inline-flex items-center space-x-2 text-sm text-gray-600 bg-white px-3 py-1 rounded-full shadow-sm">
                         <span>📅</span>
-                        <span>Joined {new Date(employee.joiningDate).toLocaleDateString()}</span>
+                        <span>Joined: {formatDate(employee.joiningDate)}</span>
                       </span>
                     )}
                     {typeof employee.department === 'object' && employee.department?.name && (

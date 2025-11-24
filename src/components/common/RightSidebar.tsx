@@ -253,14 +253,14 @@ export default function RightSidebar() {
         },
         {
           id: "learning",
-          name: "Course Admin Panel",
+          name: "Admin Panel",
           icon: <Lightbulb className="h-5 w-5" />,
           path: "/learning",
           roles: ["Admin", "SuperAdmin"],
         },
         {
           id: "certificate-verification",
-          name: "Certificate Verification",
+          name: "Verification",
           icon: <BadgeCheck className="h-5 w-5" />,
           path: "/certificate-verification",
           roles: ["Admin", "SuperAdmin"],
