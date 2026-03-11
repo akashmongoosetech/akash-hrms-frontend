@@ -10,6 +10,7 @@ import { Label } from '../../ui/label';
 import { RadioGroup, RadioGroupItem } from '../../ui/radio-group';
 
 interface FormData {
+  module: string;
   questions: {
     question_text: string;
     option_a: string;
@@ -18,7 +19,6 @@ interface FormData {
     option_d: string;
     correct_option: string;
     difficulty: string;
-    category: string;
   }[];
 }
 
@@ -28,6 +28,7 @@ const QuizAddEdit: React.FC = () => {
   const isEdit = !!id;
   const { control, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
     defaultValues: {
+      module: '',
       questions: [{
         question_text: '',
         option_a: '',
@@ -36,7 +37,6 @@ const QuizAddEdit: React.FC = () => {
         option_d: '',
         correct_option: 'A',
         difficulty: 'Medium',
-        category: '',
       }],
     },
   });
@@ -67,6 +67,7 @@ const QuizAddEdit: React.FC = () => {
         const question = questions.find((q: any) => q._id === questionId);
         if (question) {
           reset({
+            module: question.category,
             questions: [{
               question_text: question.question_text,
               option_a: question.option_a,
@@ -75,7 +76,6 @@ const QuizAddEdit: React.FC = () => {
               option_d: question.option_d,
               correct_option: question.correct_option,
               difficulty: question.difficulty,
-              category: question.category,
             }],
           });
         }
@@ -112,13 +112,14 @@ const QuizAddEdit: React.FC = () => {
         // Create multiple questions
         const baseUrl = `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/admin/question`;
         for (const q of data.questions) {
+          const questionWithModule = { ...q, category: data.module };
           const response = await fetch(baseUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            body: JSON.stringify(q)
+            body: JSON.stringify(questionWithModule)
           });
 
           if (!response.ok) {
@@ -140,8 +141,19 @@ const QuizAddEdit: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">{isEdit ? 'Edit Question' : 'Add Questions'}</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">{isEdit ? 'Edit Question' : 'Add Questions to Module'}</h2>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Module Selection */}
+        <div className="mb-4">
+          <Label htmlFor="module">Module Name *</Label>
+          <Controller
+            name="module"
+            control={control}
+            rules={{ required: 'Module name is required' }}
+            render={({ field }) => <Input {...field} id="module" placeholder="Enter module name (e.g., Module 1)" />}
+          />
+          {errors.module && <p className="text-red-500 text-sm mt-1">{errors.module.message}</p>}
+        </div>
         {fields.map((field, index) => (
           <div key={field.id} className="border p-4 mb-4 rounded-lg">
             <h3 className="text-lg font-semibold mb-4">Question {index + 1}</h3>
@@ -235,35 +247,25 @@ const QuizAddEdit: React.FC = () => {
               {errors.questions?.[index]?.correct_option && <p className="text-red-500 text-sm mt-1">{errors.questions[index].correct_option.message}</p>}
             </div>
 
-            {/* Difficulty and Category */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <Label>Difficulty</Label>
-                <Controller
-                  name={`questions.${index}.difficulty`}
-                  control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select difficulty" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Easy">Easy</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="Hard">Hard</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-              <div>
-                <Label htmlFor={`category_${index}`}>Category</Label>
-                <Controller
-                  name={`questions.${index}.category`}
-                  control={control}
-                  render={({ field }) => <Input {...field} id={`category_${index}`} placeholder="Enter category (optional)" />}
-                />
-              </div>
+            {/* Difficulty */}
+            <div className="mb-4">
+              <Label>Difficulty</Label>
+              <Controller
+                name={`questions.${index}.difficulty`}
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Easy">Easy</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             {!isEdit && fields.length > 1 && (
@@ -283,7 +285,6 @@ const QuizAddEdit: React.FC = () => {
             option_d: '',
             correct_option: 'A',
             difficulty: 'Medium',
-            category: '',
           })} className="mb-4">
             Add Another Question
           </Button>

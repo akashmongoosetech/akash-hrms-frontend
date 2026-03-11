@@ -14,6 +14,14 @@ interface Question {
   option_b: string;
   option_c: string;
   option_d: string;
+  category: string;
+}
+
+interface QuizAssignment {
+  _id: string;
+  question_id: Question;
+  category: string;
+  completed: boolean;
 }
 
 interface QuizSubmission {
@@ -24,18 +32,19 @@ interface QuizSubmission {
 const TakeQuiz: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
-  const [question, setQuestion] = useState<Question | null>(null);
-  const [selectedOption, setSelectedOption] = useState<string>('');
+  const [questions, setQuestions] = useState<QuizAssignment[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<{ [questionId: string]: string }>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [quizResult, setQuizResult] = useState<{ score: number; total: number } | null>(null);
 
   useEffect(() => {
-    fetchQuizQuestion();
+    fetchQuizQuestions();
   }, [quizId]);
 
-  const fetchQuizQuestion = async () => {
+  const fetchQuizQuestions = async () => {
     if (!quizId) return;
 
     try {
@@ -46,10 +55,14 @@ const TakeQuiz: React.FC = () => {
       });
 
       if (response.ok) {
-        const quizzes = await response.json();
-        const quiz = quizzes.find((q: any) => q._id === quizId);
-        if (quiz) {
-          setQuestion(quiz.question_id);
+        const allQuizzes = await response.json();
+        const currentQuiz = allQuizzes.find((q: QuizAssignment) => q._id === quizId);
+        if (currentQuiz) {
+          const category = currentQuiz.question_id.category;
+          const pendingQuizzesInCategory = allQuizzes.filter((q: QuizAssignment) =>
+            !q.completed && q.question_id.category === category
+          );
+          setQuestions(pendingQuizzesInCategory);
         } else {
           toast.error('Quiz not found');
           navigate('/quiz');
@@ -67,18 +80,53 @@ const TakeQuiz: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!selectedOption || !question) {
-      toast.error('Please select an answer');
+  const handleAnswerSelect = (option: string) => {
+    const currentQuestion = questions[currentQuestionIndex];
+    if (currentQuestion) {
+      setAnswers(prev => ({
+        ...prev,
+        [currentQuestion.question_id._id]: option
+      }));
+    }
+  };
+
+  const handleNext = () => {
+    const currentQuestion = questions[currentQuestionIndex];
+    if (!answers[currentQuestion.question_id._id]) {
+      toast.error('Please select an answer before proceeding');
+      return;
+    }
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  const handleSubmitQuiz = async () => {
+    const currentQuestion = questions[currentQuestionIndex];
+    if (!answers[currentQuestion.question_id._id]) {
+      toast.error('Please select an answer for the current question');
+      return;
+    }
+
+    // Check if all questions have answers
+    const unanswered = questions.filter(q => !answers[q.question_id._id]);
+    if (unanswered.length > 0) {
+      toast.error('Please answer all questions before submitting');
       return;
     }
 
     setSubmitting(true);
     try {
-      const submission: QuizSubmission = {
-        question_id: question._id,
-        selected_option: selectedOption
-      };
+      const submissions: QuizSubmission[] = questions.map(q => ({
+        question_id: q.question_id._id,
+        selected_option: answers[q.question_id._id]
+      }));
 
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/employee/submit-quiz`, {
         method: 'POST',
@@ -86,7 +134,7 @@ const TakeQuiz: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ answers: [submission] })
+        body: JSON.stringify({ answers: submissions })
       });
 
       if (response.ok) {
@@ -126,54 +174,59 @@ const TakeQuiz: React.FC = () => {
     );
   }
 
-  if (!question) {
+  if (questions.length === 0) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center">
-        <div className="text-gray-500">Quiz not found</div>
+        <div className="text-gray-500">No questions available</div>
       </div>
     );
   }
+
+  const currentQuestion = questions[currentQuestionIndex];
+  const currentAnswer = answers[currentQuestion.question_id._id] || '';
 
   return (
     <div className="max-w-2xl mx-auto p-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Quiz Question</CardTitle>
+          <CardTitle className="text-xl">
+            Quiz Question {currentQuestionIndex + 1} of {questions.length}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <p className="text-lg font-medium mb-4">{question.question_text}</p>
+            <p className="text-lg font-medium mb-4">{currentQuestion.question_id.question_text}</p>
           </div>
 
           <div>
             <Label className="text-base font-medium mb-3 block">Select your answer:</Label>
-            <RadioGroup value={selectedOption} onValueChange={setSelectedOption} className="space-y-3">
+            <RadioGroup value={currentAnswer} onValueChange={handleAnswerSelect} className="space-y-3">
               <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
                 <RadioGroupItem value="A" id="option-a" />
                 <Label htmlFor="option-a" className="flex-1 cursor-pointer">
                   <span className="font-medium mr-2">A.</span>
-                  {question.option_a}
+                  {currentQuestion.question_id.option_a}
                 </Label>
               </div>
               <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
                 <RadioGroupItem value="B" id="option-b" />
                 <Label htmlFor="option-b" className="flex-1 cursor-pointer">
                   <span className="font-medium mr-2">B.</span>
-                  {question.option_b}
+                  {currentQuestion.question_id.option_b}
                 </Label>
               </div>
               <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
                 <RadioGroupItem value="C" id="option-c" />
                 <Label htmlFor="option-c" className="flex-1 cursor-pointer">
                   <span className="font-medium mr-2">C.</span>
-                  {question.option_c}
+                  {currentQuestion.question_id.option_c}
                 </Label>
               </div>
               <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
                 <RadioGroupItem value="D" id="option-d" />
                 <Label htmlFor="option-d" className="flex-1 cursor-pointer">
                   <span className="font-medium mr-2">D.</span>
-                  {question.option_d}
+                  {currentQuestion.question_id.option_d}
                 </Label>
               </div>
             </RadioGroup>
@@ -181,17 +234,33 @@ const TakeQuiz: React.FC = () => {
 
           <div className="flex space-x-4 pt-4">
             <Button
-              onClick={handleSubmit}
-              disabled={submitting || !selectedOption}
-              className="flex-1"
+              onClick={handlePrevious}
+              disabled={currentQuestionIndex === 0}
+              variant="outline"
             >
-              {submitting ? 'Submitting...' : 'Submit Answer'}
+              Previous
             </Button>
+            {currentQuestionIndex < questions.length - 1 ? (
+              <Button
+                onClick={handleNext}
+                disabled={!currentAnswer}
+                className="flex-1"
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmitQuiz}
+                disabled={submitting || !currentAnswer}
+                className="flex-1"
+              >
+                {submitting ? 'Submitting...' : 'Submit Quiz'}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => navigate('/quiz')}
               disabled={submitting}
-              className="flex-1"
             >
               Cancel
             </Button>

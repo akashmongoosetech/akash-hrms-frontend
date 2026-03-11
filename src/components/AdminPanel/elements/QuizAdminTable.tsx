@@ -5,6 +5,8 @@ import DeleteModal from '../../../Common/DeleteModal';
 import { formatDate } from '../../../Common/Commonfunction';
 import { UniversalSkeleton, BaseSkeleton } from '../../ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
+import { Label } from '../../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import toast from 'react-hot-toast';
 
 interface Question {
@@ -50,6 +52,8 @@ export default function QuizAdminTable() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(true);
   const [errorAssignments, setErrorAssignments] = useState<string | null>(null);
+  const [modules, setModules] = useState<string[]>([]);
+  const [selectedModule, setSelectedModule] = useState<string>('all');
 
   useEffect(() => {
     fetchQuestions();
@@ -67,6 +71,9 @@ export default function QuizAdminTable() {
       if (response.ok) {
         const data = await response.json();
         setQuestions(data);
+        // Extract unique modules
+        const uniqueModules = Array.from(new Set(data.map((q: Question) => q.category).filter(Boolean))) as string[];
+        setModules(uniqueModules);
       } else {
         setError('Failed to fetch questions');
       }
@@ -142,6 +149,24 @@ export default function QuizAdminTable() {
           <TabsTrigger value="assignments">Assigned Quizzes</TabsTrigger>
         </TabsList>
         <TabsContent value="questions">
+          {/* Module Filter */}
+          <div className="mb-4">
+            <Label>Filter by Module</Label>
+            <Select value={selectedModule} onValueChange={setSelectedModule}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Select module" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Modules</SelectItem>
+                {modules.map((module) => (
+                  <SelectItem key={module} value={module}>
+                    {module}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {loading ? (
             <div>
               <div className="flex justify-between items-center mb-6">
@@ -246,7 +271,9 @@ export default function QuizAdminTable() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {questions.map((question, index) => (
+                    {questions
+                      .filter(question => selectedModule === 'all' || question.category === selectedModule)
+                      .map((question, index) => (
                       <tr key={question._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {index + 1}
@@ -298,7 +325,7 @@ export default function QuizAdminTable() {
                 </table>
               </div>
 
-              {questions.length === 0 && (
+              {questions.filter(question => selectedModule === 'all' || question.category === selectedModule).length === 0 && (
                 <div className="text-center py-8 text-gray-500">No questions found</div>
               )}
             </div>

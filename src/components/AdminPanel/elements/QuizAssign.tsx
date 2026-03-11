@@ -26,7 +26,7 @@ interface Question {
 
 interface FormData {
   employee_id: string;
-  questions: string[];
+  modules: string[];
   due_date: string;
 }
 
@@ -35,7 +35,7 @@ const QuizAssign: React.FC = () => {
   const { control, handleSubmit, formState: { errors }, watch, setValue } = useForm<FormData>({
     defaultValues: {
       employee_id: '',
-      questions: [],
+      modules: [],
       due_date: '',
     },
   });
@@ -43,7 +43,8 @@ const QuizAssign: React.FC = () => {
   const [employees, setEmployees] = useState<User[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [modules, setModules] = useState<string[]>([]);
 
   useEffect(() => {
     fetchEmployees();
@@ -78,26 +79,29 @@ const QuizAssign: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setQuestions(data);
+        // Extract unique modules
+        const uniqueModules = Array.from(new Set(data.map((q: Question) => q.category).filter(Boolean))) as string[];
+        setModules(uniqueModules);
       }
     } catch (err) {
       console.error('Error fetching questions:', err);
     }
   };
 
-  const handleQuestionToggle = (questionId: string, checked: boolean) => {
+  const handleModuleToggle = (moduleName: string, checked: boolean) => {
     let newSelected;
     if (checked) {
-      newSelected = [...selectedQuestions, questionId];
+      newSelected = [...selectedModules, moduleName];
     } else {
-      newSelected = selectedQuestions.filter(id => id !== questionId);
+      newSelected = selectedModules.filter(name => name !== moduleName);
     }
-    setSelectedQuestions(newSelected);
-    setValue('questions', newSelected);
+    setSelectedModules(newSelected);
+    setValue('modules', newSelected);
   };
 
   const onSubmit = async (data: FormData) => {
-    if (!data.employee_id || data.questions.length === 0) {
-      toast.error('Please select an employee and at least one question');
+    if (!data.employee_id || data.modules.length === 0) {
+      toast.error('Please select an employee and at least one module');
       return;
     }
 
@@ -166,52 +170,46 @@ const QuizAssign: React.FC = () => {
           />
         </div>
 
-        {/* Question Selection */}
+        {/* Module Selection */}
         <div>
-          <Label>Questions *</Label>
+          <Label>Modules *</Label>
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Select Questions ({selectedQuestions.length} selected)</CardTitle>
+              <CardTitle className="text-lg">Select Modules ({selectedModules.length} selected)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {questions.map((question) => (
-                  <div key={question._id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50">
-                    <Checkbox
-                      id={`question-${question._id}`}
-                      checked={selectedQuestions.includes(question._id)}
-                      onCheckedChange={(checked) => handleQuestionToggle(question._id, checked as boolean)}
-                    />
-                    <div className="flex-1">
-                      <label htmlFor={`question-${question._id}`} className="text-sm font-medium cursor-pointer">
-                        {question.question_text}
-                      </label>
-                      <div className="flex space-x-2 mt-1">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          question.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
-                          question.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {question.difficulty}
-                        </span>
-                        {question.category && (
+                {modules.map((module) => {
+                  const questionCount = questions.filter(q => q.category === module).length;
+                  return (
+                    <div key={module} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+                      <Checkbox
+                        id={`module-${module}`}
+                        checked={selectedModules.includes(module)}
+                        onCheckedChange={(checked) => handleModuleToggle(module, checked as boolean)}
+                      />
+                      <div className="flex-1">
+                        <label htmlFor={`module-${module}`} className="text-sm font-medium cursor-pointer">
+                          {module}
+                        </label>
+                        <div className="flex space-x-2 mt-1">
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                            {question.category}
+                            {questionCount} questions
                           </span>
-                        )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-              {questions.length === 0 && (
+              {modules.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  No questions available. Please add questions first.
+                  No modules available. Please add questions to modules first.
                 </div>
               )}
             </CardContent>
           </Card>
-          {errors.questions && <p className="text-red-500 text-sm mt-1">{errors.questions.message}</p>}
+          {errors.modules && <p className="text-red-500 text-sm mt-1">{errors.modules.message}</p>}
         </div>
 
         <div className="flex space-x-4">
