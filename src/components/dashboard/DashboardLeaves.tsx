@@ -39,7 +39,7 @@ export default function DashboardLeaves() {
     fetchLeaves();
 
     // Set up socket connection for live updates
-    const socket = io((import.meta as any).env.VITE_API_URL || 'http://localhost:5000');
+    const socket = io(((import.meta as any).env.VITE_API_URL || 'http://localhost:5000').replace('/api', ''));
 
     socket.on('leave-created', (newLeave: Leave) => {
       setLeaves(prev => [newLeave, ...prev].slice(0, 100)); // Add to top, keep limit

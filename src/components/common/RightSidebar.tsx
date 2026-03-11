@@ -32,7 +32,7 @@ import {
   BookOpen,
   Notebook,
   LibraryBig,
-  School, BadgeCheck, Lightbulb, UserCheck, HelpCircle
+  School, BadgeCheck, Lightbulb, UserCheck, HelpCircle, MapPin
 } from "lucide-react";
 import SettingsSidebar from "./SettingsSidebar";
 
@@ -142,6 +142,13 @@ export default function RightSidebar() {
           name: "Statistics",
           icon: <BarChart3 className="h-5 w-5" />,
           path: "/statistics",
+          roles: ["Admin", "SuperAdmin"],
+        },
+        {
+          id: "employee-tracking",
+          name: "Employee Tracking",
+          icon: <MapPin className="h-5 w-5" />,
+          path: "/employee-tracking",
           roles: ["Admin", "SuperAdmin"],
         },
         {
