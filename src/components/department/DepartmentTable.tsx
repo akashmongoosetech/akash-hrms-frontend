@@ -15,6 +15,14 @@ interface Department {
   totalAssociateEmployee: number;
 }
 
+interface HeadOption {
+  id: string;
+  name: string;
+  role: string;
+}
+
+const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
+
 export default function DepartmentTable() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,10 +38,46 @@ export default function DepartmentTable() {
   const itemsPerPage = 10;
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('table');
+  const [headOptions, setHeadOptions] = useState<HeadOption[]>([]);
+  const [headOptionsLoading, setHeadOptionsLoading] = useState(true);
+  const [headOptionsFailed, setHeadOptionsFailed] = useState(false);
 
   useEffect(() => {
     fetchDepartments(currentPage);
   }, [currentPage]);
+
+  useEffect(() => {
+    fetchHeadOptions();
+  }, []);
+
+  // Populate the "Department Head" dropdown with every active user, regardless
+  // of role. Falls back to a free-text input if the list cannot be loaded.
+  const fetchHeadOptions = async () => {
+    setHeadOptionsLoading(true);
+    setHeadOptionsFailed(false);
+    try {
+      const response = await fetch(`${API_BASE}/users?status=Active&limit=1000`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to load users');
+      const data = await response.json();
+      const list: HeadOption[] = (data.users || []).map((user: any) => ({
+        id: user._id,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Unnamed',
+        role: user.role || ''
+      }));
+      list.sort((a, b) => a.name.localeCompare(b.name));
+      setHeadOptions(list);
+    } catch (error) {
+      console.error('Error fetching users for department head:', error);
+      setHeadOptions([]);
+      setHeadOptionsFailed(true);
+    } finally {
+      setHeadOptionsLoading(false);
+    }
+  };
 
   const fetchDepartments = async (page: number = 1) => {
     try {
@@ -45,8 +89,8 @@ export default function DepartmentTable() {
       if (response.ok) {
         const data = await response.json();
         setDepartments(data.departments || []);
-        setTotalPages(data.totalPages || 1);
-        setTotalItems(data.totalItems || 0);
+        setTotalPages(data.pagination?.totalPages ?? data.totalPages ?? 1);
+        setTotalItems(data.pagination?.totalItems ?? data.totalItems ?? 0);
       } else {
         console.error('Failed to fetch departments');
         setDepartments([]);
@@ -424,9 +468,14 @@ export default function DepartmentTable() {
 
       {/* Add/Edit Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="department-modal-title"
+            className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 shadow-xl sm:p-6"
+          >
+            <h3 id="department-modal-title" className="text-lg font-semibold mb-4">
               {editingDepartment ? 'Edit Department' : 'Add New Department'}
             </h3>
             <form onSubmit={handleSubmit}>
@@ -444,32 +493,70 @@ export default function DepartmentTable() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="department-head" className="block text-sm font-medium text-gray-700 mb-1">
                     Department Head
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.head}
-                    onChange={(e) => setFormData({ ...formData, head: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+
+                  {headOptionsFailed || (!headOptionsLoading && headOptions.length === 0) ? (
+                    <>
+                      <input
+                        id="department-head"
+                        type="text"
+                        required
+                        value={formData.head}
+                        onChange={(e) => setFormData({ ...formData, head: e.target.value })}
+                        placeholder="Enter department head name"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-amber-600">
+                        No user list available, so a name can be typed manually.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        id="department-head"
+                        required
+                        value={formData.head}
+                        onChange={(e) => setFormData({ ...formData, head: e.target.value })}
+                        disabled={headOptionsLoading}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+                      >
+                        <option value="">
+                          {headOptionsLoading ? 'Loading users...' : 'Select department head'}
+                        </option>
+                        {formData.head && !headOptions.some((option) => option.name === formData.head) && (
+                          <option value={formData.head}>{formData.head} (current)</option>
+                        )}
+                        {headOptions.map((option) => (
+                          <option key={option.id} value={option.name}>
+                            {option.name}{option.role ? ` — ${option.role}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {headOptionsLoading
+                          ? 'Loading users...'
+                          : `${headOptions.length} active user${headOptions.length === 1 ? '' : 's'} across all roles.`}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="flex justify-end space-x-3 mt-6">
+              <div className="flex flex-col-reverse gap-2 mt-6 sm:flex-row sm:justify-end sm:gap-3">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="w-full px-4 py-2 text-gray-600 hover:text-gray-800 sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  disabled={submitting || (headOptionsLoading && !headOptionsFailed)}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
                 >
-                  {submitting ? <Loader className="animate-spin h-5 w-5" /> : (editingDepartment ? 'Update' : 'Add')}
+                  {submitting ? <Loader className="animate-spin h-5 w-5 mx-auto" /> : (editingDepartment ? 'Update' : 'Add')}
                 </button>
               </div>
             </form>
