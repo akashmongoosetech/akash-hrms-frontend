@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -32,7 +32,7 @@ import {
   BookOpen,
   Notebook,
   LibraryBig,
-  School, BadgeCheck, Lightbulb, UserCheck, HelpCircle, MapPin
+  School, BadgeCheck, Lightbulb, UserCheck, HelpCircle, MapPin, ChevronDown
 } from "lucide-react";
 import SettingsSidebar from "./SettingsSidebar";
 
@@ -50,12 +50,38 @@ interface Section {
   items: NavItem[];
 }
 
-export default function RightSidebar() {
+interface RightSidebarProps {
+  /** Desktop: true when the sidebar is slid off-canvas. */
+  collapsed?: boolean;
+  /** Desktop: toggle collapse state. */
+  onToggleCollapsed?: () => void;
+  /** Mobile: drawer visibility. */
+  mobileOpen?: boolean;
+  /** Mobile: request a drawer state change. */
+  onMobileOpenChange?: (open: boolean) => void;
+}
+
+export default function RightSidebar({
+  collapsed = false,
+  onToggleCollapsed,
+  mobileOpen = false,
+  onMobileOpenChange,
+}: RightSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem("sidebarSections");
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
   const role = localStorage.getItem("role") || "Employee";
+
+  const closeMobile = () => onMobileOpenChange?.(false);
 
   // -------------------------
   // NAVIGATION SECTIONS
@@ -336,48 +362,121 @@ export default function RightSidebar() {
     ),
   }));
 
-  // -------------------------
-  // COMPONENT RENDER
-  // -------------------------
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <aside className="fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-gray-200 bg-white md:flex">
-        <div className="flex shrink-0 items-center justify-center border-b border-gray-100 px-4 py-3">
-          <img
-            src="/logo/logo.png"
-            alt="SoSapient HRMS"
-            className="h-9 w-auto max-w-full object-contain lg:h-10"
-          />
-        </div>
+  const isSectionOpen = (title: string) => openSections[title] ?? true;
 
-        <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4">
-          {filteredSections.map((section) => (
-            <div key={section.title}>
-              <div className="flex items-center space-x-2 mb-2">
+  const toggleSection = (title: string) => {
+    setOpenSections((prev) => {
+      const next = { ...prev, [title]: !(prev[title] ?? true) };
+      try {
+        localStorage.setItem("sidebarSections", JSON.stringify(next));
+      } catch {
+        // Storage can be unavailable (private mode); the UI still works.
+      }
+      return next;
+    });
+  };
+
+  // Always reveal the section that owns the current page (handles direct links
+  // and navigation from elsewhere while a section is collapsed).
+  useEffect(() => {
+    const activeSection = filteredSections.find((section) =>
+      section.items.some((item) => item.path === location.pathname)
+    );
+    if (!activeSection) return;
+    setOpenSections((prev) =>
+      prev[activeSection.title] === false
+        ? { ...prev, [activeSection.title]: true }
+        : prev
+    );
+  }, [location.pathname]);
+
+  const renderNav = (prefix: string, closeOnNavigate: boolean) => (
+    <div className="space-y-2">
+      {filteredSections.map((section) => {
+        const open = isSectionOpen(section.title);
+        const panelId = `${prefix}-section-${section.title
+          .toLowerCase()
+          .replace(/\s+/g, "-")}`;
+
+        return (
+          <div key={section.title}>
+            <button
+              type="button"
+              onClick={() => toggleSection(section.title)}
+              aria-expanded={open}
+              aria-controls={panelId}
+              className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-gray-50"
+            >
+              <span className="flex min-w-0 items-center space-x-2">
                 {section.icon}
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <span className="truncate text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {section.title}
-                </h2>
-              </div>
-              <div className="space-y-1">
+                </span>
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${
+                  open ? "rotate-0" : "-rotate-90"
+                }`}
+              />
+            </button>
+
+            {open && (
+              <div id={panelId} className="mt-1 space-y-1">
                 {section.items.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => navigate(item.path)}
-                    className={`flex items-center w-full space-x-3 px-3 py-2 text-sm rounded-lg transition-colors ${
+                    onClick={() => {
+                      navigate(item.path);
+                      if (closeOnNavigate) closeMobile();
+                    }}
+                    className={`flex w-full items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                       location.pathname === item.path
                         ? "bg-blue-100 text-blue-600 font-medium"
                         : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
                     {item.icon}
-                    <span>{item.name}</span>
+                    <span className="truncate">{item.name}</span>
                   </button>
                 ))}
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // -------------------------
+  // COMPONENT RENDER
+  // -------------------------
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside
+        id="app-sidebar"
+        aria-hidden={collapsed}
+        className={`fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 md:flex ${
+          collapsed ? "-translate-x-full pointer-events-none" : "translate-x-0"
+        }`}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+          <img
+            src="/logo/logo.png"
+            alt="SoSapient HRMS"
+            className="h-9 w-auto max-w-full object-contain lg:h-10"
+          />
+          <button
+            onClick={onToggleCollapsed}
+            aria-label="Close sidebar"
+            className="shrink-0 rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4">
+          {renderNav("desktop", false)}
         </nav>
 
         <div className="p-4 border-t border-gray-100">
@@ -394,14 +493,14 @@ export default function RightSidebar() {
       {/* Mobile Drawer */}
       <div
         className={`fixed inset-0 bg-black/40 z-30 md:hidden transition-opacity ${
-          isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          mobileOpen ? "opacity-100 visible" : "opacity-0 invisible"
         }`}
-        onClick={() => setIsOpen(false)}
+        onClick={closeMobile}
       />
       <aside
-        aria-hidden={!isOpen}
+        aria-hidden={!mobileOpen}
         className={`fixed left-0 top-0 z-40 flex h-dvh w-[min(18rem,85vw)] flex-col border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 md:hidden ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
@@ -411,7 +510,7 @@ export default function RightSidebar() {
             className="h-8 w-auto max-w-[170px] object-contain"
           />
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={closeMobile}
             aria-label="Close menu"
             className="shrink-0 rounded-md p-1 text-gray-600 hover:bg-gray-100"
           >
@@ -420,41 +519,13 @@ export default function RightSidebar() {
         </div>
 
         <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-4">
-          {filteredSections.map((section) => (
-            <div key={section.title}>
-              <div className="flex items-center space-x-2 mb-2">
-                {section.icon}
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {section.title}
-                </h2>
-              </div>
-              <div className="space-y-1">
-                {section.items.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      navigate(item.path);
-                      setIsOpen(false);
-                    }}
-                    className={`flex items-center w-full space-x-3 px-3 py-2 text-sm rounded-lg transition-colors ${
-                      location.pathname === item.path
-                        ? "bg-blue-100 text-blue-600 font-medium"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    {item.icon}
-                    <span>{item.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+          {renderNav("mobile", true)}
         </nav>
 
         <div className="shrink-0 border-t border-gray-100 p-4">
           <button
             onClick={() => {
-              setIsOpen(false);
+              closeMobile();
               setIsRightSidebarOpen(true);
             }}
             className="flex w-full items-center space-x-2 text-gray-700 hover:text-blue-600"
@@ -467,7 +538,7 @@ export default function RightSidebar() {
 
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-gray-200 bg-white px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
-        <button onClick={() => setIsOpen(true)} className="flex flex-col items-center text-gray-700">
+        <button onClick={() => onMobileOpenChange?.(true)} className="flex flex-col items-center text-gray-700">
           <Menu className="h-5 w-5" />
           <span className="text-xs">Menu</span>
         </button>

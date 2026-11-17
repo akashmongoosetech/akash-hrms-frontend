@@ -10,7 +10,8 @@ import {
   Clock,
   X,
   CalendarDays,
-  History
+  History,
+  Menu
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import socket, { disconnectSocket } from "../../utils/socket";
@@ -19,7 +20,11 @@ import TextCKeditor from '../../components/common/TextCKeditor';
 import API from '../../utils/api';
 import toast from 'react-hot-toast';
 
-export default function Header() {
+interface HeaderProps {
+  onToggleSidebar?: () => void;
+}
+
+export default function Header({ onToggleSidebar }: HeaderProps) {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -548,22 +553,21 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="px-6 py-4">
+      <div className="px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {/* <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Users className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">
-                  Welcome back, {userName}
-                </p>
-              </div>
-            </div> */}
+          <div className="flex min-w-0 items-center space-x-2 sm:space-x-4">
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-label="Toggle sidebar"
+              aria-controls="app-sidebar"
+              className="shrink-0 rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex min-w-0 items-center space-x-1 sm:space-x-4">
             {/* Punch Button - Only for Employees */}
             {role === "Employee" && (
               <button

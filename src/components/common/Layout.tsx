@@ -35,6 +35,33 @@ export default function Layout() {
   usePushNotifications();
   const navigate = useNavigate();
 
+  // Desktop: sidebar slid off-canvas. Mobile: drawer visibility.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('sidebarCollapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    // One button, two behaviours: drawer on phones, collapse on md+ screens.
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) {
+      setSidebarCollapsed(prev => {
+        const next = !prev;
+        try {
+          localStorage.setItem('sidebarCollapsed', String(next));
+        } catch {
+          // ignore storage failures (private mode)
+        }
+        return next;
+      });
+    } else {
+      setMobileSidebarOpen(prev => !prev);
+    }
+  };
+
   const [dashboardPreferences, setDashboardPreferences] = useState<DashboardPreferences>({
     projects: true,
     teams: true,
@@ -101,11 +128,20 @@ export default function Layout() {
     <LayoutContext.Provider value={{ dashboardPreferences, updateDashboardPreferences }}>
       <div className=" min-h-screen bg-gray-50">
         {/* Sidebar */}
-        <LeftSidebar />
+        <LeftSidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={toggleSidebar}
+          mobileOpen={mobileSidebarOpen}
+          onMobileOpenChange={setMobileSidebarOpen}
+        />
 
         {/* Main Content */}
-        <div className="flex-1 md:ml-64 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
-          <Header />
+        <div
+          className={`flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] transition-[margin] duration-300 md:pb-0 ${
+            sidebarCollapsed ? 'md:ml-0' : 'md:ml-64'
+          }`}
+        >
+          <Header onToggleSidebar={toggleSidebar} />
           <main className="w-full">
             <Outlet />
           </main>
