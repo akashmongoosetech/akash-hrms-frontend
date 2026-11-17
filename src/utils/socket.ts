@@ -1,20 +1,31 @@
-// import { io, Socket } from 'socket.io-client';
-
-// const socket: Socket = io('https://akash-hrms-backend.onrender.com');
-
-// export default socket;
-
 import { io, Socket } from 'socket.io-client';
 
-const socket: Socket = io((import.meta as any).env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
+const baseUrl =
+  (import.meta as any).env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+// The connection is authenticated with the JWT, so it must not be opened before
+// login. `autoConnect: false` + connectSocket() lets the app control that.
+const socket: Socket = io(baseUrl, {
+  autoConnect: false,
   transports: ['websocket', 'polling'],
-  reconnectionAttempts: 3,
+  reconnectionAttempts: 5,
   reconnectionDelay: 1000,
   withCredentials: true,
-  timeout: 5000
+  timeout: 5000,
+  auth: { token: localStorage.getItem('token') || '' },
 });
 
-// Handle connection errors gracefully
+export const connectSocket = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  socket.auth = { token };
+  if (!socket.connected) socket.connect();
+};
+
+export const disconnectSocket = () => {
+  if (socket.connected) socket.disconnect();
+};
+
 socket.on('connect_error', (error) => {
   console.log('Socket connection error:', error.message);
 });

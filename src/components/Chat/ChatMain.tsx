@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import API from '../../utils/api';
-import socket from '../../utils/socket';
+import socket, { connectSocket } from '../../utils/socket';
 import { Send, MessageCircle, Search, Paperclip, Trash2, X } from 'lucide-react';
 import Icon from '../common/Icon';
 import { motion, AnimatePresence } from "framer-motion";
@@ -76,10 +76,11 @@ const ChatMain: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Join socket room
+  // Ensure the authenticated socket is connected. The server puts the socket
+  // in the user's own room from the JWT, so no 'join' emit is needed.
   useEffect(() => {
     if (currentUserId) {
-      socket.emit('join', currentUserId);
+      connectSocket();
     }
   }, [currentUserId]);
 

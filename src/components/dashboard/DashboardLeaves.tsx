@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
+import socket, { connectSocket } from '../../utils/socket';
 import { formatDate } from '../../Common/Commonfunction';
 import { BaseSkeleton } from '../ui/skeleton';
 
@@ -38,23 +38,30 @@ export default function DashboardLeaves() {
   useEffect(() => {
     fetchLeaves();
 
-    // Set up socket connection for live updates
-    const socket = io(((import.meta as any).env.VITE_API_URL || 'http://localhost:5000').replace('/api', ''));
+    // Use the shared, authenticated socket (the server already placed us in our
+    // own room). Never disconnect it here: other components share this socket.
+    connectSocket();
 
-    socket.on('leave-created', (newLeave: Leave) => {
+    const handleLeaveCreated = (newLeave: Leave) => {
       setLeaves(prev => [newLeave, ...prev].slice(0, 100)); // Add to top, keep limit
-    });
+    };
 
-    socket.on('leave-updated', (updatedLeave: Leave) => {
+    const handleLeaveUpdated = (updatedLeave: Leave) => {
       setLeaves(prev => prev.map(leave => leave._id === updatedLeave._id ? updatedLeave : leave));
-    });
+    };
 
-    socket.on('leave-deleted', (leaveId: string) => {
+    const handleLeaveDeleted = (leaveId: string) => {
       setLeaves(prev => prev.filter(leave => leave._id !== leaveId));
-    });
+    };
+
+    socket.on('leave-created', handleLeaveCreated);
+    socket.on('leave-updated', handleLeaveUpdated);
+    socket.on('leave-deleted', handleLeaveDeleted);
 
     return () => {
-      socket.disconnect();
+      socket.off('leave-created', handleLeaveCreated);
+      socket.off('leave-updated', handleLeaveUpdated);
+      socket.off('leave-deleted', handleLeaveDeleted);
     };
   }, []);
 

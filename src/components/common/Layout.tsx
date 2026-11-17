@@ -4,7 +4,7 @@ import LeftSidebar from "./RightSidebar";
 import Header from "./Header";
 import Toaster from "./Toaster";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
-import socket from "../../utils/socket";
+import socket, { connectSocket, disconnectSocket } from "../../utils/socket";
 
 interface DashboardPreferences {
   projects: boolean;
@@ -67,9 +67,17 @@ export default function Layout() {
     }
   }, []);
 
+  // Open the authenticated socket connection once the layout (i.e. a logged-in
+  // session) is mounted. Without this, real-time events never arrive after a
+  // page refresh because the connection is no longer opened automatically.
+  useEffect(() => {
+    connectSocket();
+  }, []);
+
   // Socket listener for logout
   useEffect(() => {
     socket.on('logout', (data) => {
+      disconnectSocket();
       localStorage.removeItem('token');
       localStorage.removeItem('role');
       localStorage.removeItem('userId');

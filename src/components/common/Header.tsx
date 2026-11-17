@@ -13,7 +13,7 @@ import {
   History
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
-import socket from "../../utils/socket";
+import socket, { disconnectSocket } from "../../utils/socket";
 import { formatDate } from "../../Common/Commonfunction";
 import TextCKeditor from '../../components/common/TextCKeditor';
 import API from '../../utils/api';
@@ -388,6 +388,8 @@ export default function Header() {
   const userPhoto = userData?.photo || null;
 
   const handleLogout = () => {
+    // Close the authenticated socket before clearing the token.
+    disconnectSocket();
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("userId");

@@ -89,14 +89,14 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/employees/edit/:id" element={
-            // <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute requiredRole="Admin">
               <EmployeeEditPage/>
-            // </ProtectedRoute>
+            </ProtectedRoute>
           } />
           <Route path="/employees/view/:id" element={
-            // <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute requiredRole="Admin">
               <EmployeeViewPage/>
-            // </ProtectedRoute>
+            </ProtectedRoute>
           } />
           <Route path="/department" element={
             <ProtectedRoute requiredRole="Admin">
@@ -124,9 +124,9 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/todo" element={
-            // <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute requiredRole="Admin">
               <TodoPage/>
-            // </ProtectedRoute>
+            </ProtectedRoute>
           } />
           <Route path="/link" element={
             <ProtectedRoute requiredRole="Admin">
@@ -198,11 +198,27 @@ function AppRoutes() {
               <BlogAddPage />
             </ProtectedRoute>
           } />
-          <Route path="/attendance" element={<AttendancePage/>} />
+          <Route path="/attendance" element={
+            <ProtectedRoute requiredRole="Admin">
+              <AttendancePage/>
+            </ProtectedRoute>
+          } />
           <Route path="/leave" element={<LeavePage/>} />
-          <Route path="/payroll" element={<PayrollPage/>} />
-          <Route path="/recruitment" element={<RecruitmentPage />} />
-          <Route path="/punchtime" element={<PunchTime/>} />
+          <Route path="/payroll" element={
+            <ProtectedRoute requiredRole="Admin">
+              <PayrollPage/>
+            </ProtectedRoute>
+          } />
+          <Route path="/recruitment" element={
+            <ProtectedRoute requiredRole="Admin">
+              <RecruitmentPage/>
+            </ProtectedRoute>
+          } />
+          <Route path="/punchtime" element={
+            <ProtectedRoute requiredRole="Admin">
+              <PunchTime/>
+            </ProtectedRoute>
+          } />
           <Route path="/alternate-saturday" element={
             <ProtectedRoute requiredRole="Admin">
               <SaturdaySetting/>

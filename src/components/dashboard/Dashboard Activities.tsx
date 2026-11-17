@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
+import socket, { connectSocket } from '../../utils/socket';
 import { Clock, Coffee, LogIn, LogOut } from 'lucide-react';
 import { BaseSkeleton } from '../ui/skeleton';
 import { formatDateTime } from '../../Common/Commonfunction';
@@ -93,26 +93,11 @@ export default function DashboardActivities() {
     // Refetch activities every 30 seconds as fallback for live updates
     const interval = setInterval(fetchActivities, 30000);
 
-    // Set up socket connection for live updates
-    const socket = io(((import.meta as any).env.VITE_API_URL || 'http://localhost:5000').replace('/api', ''), {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      query: {
-        token: localStorage.getItem('token')
-      }
-    });
+    // Use the shared, authenticated socket. The server derives our identity from
+    // the JWT, so no token query string and no manual join are needed.
+    connectSocket();
 
-    socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
-    });
-
-    socket.on('punch-in', (data: { employee: any; punchTime: any }) => {
+    const handlePunchIn = (data: { employee: any; punchTime: any }) => {
       console.log('Received punch-in event:', data);
       const activity: Activity = {
         type: 'punch-in',
@@ -121,9 +106,9 @@ export default function DashboardActivities() {
         timestamp: data.punchTime.punchInTime
       };
       setActivities(prev => [activity, ...prev]);
-    });
+    };
 
-    socket.on('punch-out', (data: { employee: any; punchTime: any }) => {
+    const handlePunchOut = (data: { employee: any; punchTime: any }) => {
       console.log('Received punch-out event:', data);
       const activity: Activity = {
         type: 'punch-out',
@@ -132,9 +117,9 @@ export default function DashboardActivities() {
         timestamp: data.punchTime.punchOutTime
       };
       setActivities(prev => [activity, ...prev]);
-    });
+    };
 
-    socket.on('newBreak', (breakRecord: any) => {
+    const handleNewBreak = (breakRecord: any) => {
       console.log('Received newBreak event:', breakRecord);
       const activity: Activity = {
         type: breakRecord.action === 'Break In' ? 'break-in' : 'break-out',
@@ -144,10 +129,17 @@ export default function DashboardActivities() {
         reason: breakRecord.reason
       };
       setActivities(prev => [activity, ...prev]);
-    });
+    };
+
+    socket.on('punch-in', handlePunchIn);
+    socket.on('punch-out', handlePunchOut);
+    socket.on('newBreak', handleNewBreak);
 
     return () => {
-      socket.disconnect();
+      // Do not disconnect: the socket is shared across the app.
+      socket.off('punch-in', handlePunchIn);
+      socket.off('punch-out', handlePunchOut);
+      socket.off('newBreak', handleNewBreak);
       clearInterval(interval);
     };
   }, []);
