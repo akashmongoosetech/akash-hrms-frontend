@@ -154,8 +154,17 @@ export default function DepartmentTable() {
     setShowAddModal(true);
   };
 
-  const handleDelete = (departmentId: string) => {
-    setDeleteDepartmentId(departmentId);
+  const handleDelete = (department: Department) => {
+    const assigned = department.totalAssociateEmployee || 0;
+
+    if (assigned > 0) {
+      toast.error(
+        `Cannot delete "${department.name}": ${assigned} ${assigned === 1 ? 'employee is' : 'employees are'} still assigned to this department. Reassign them to another department first.`
+      );
+      return;
+    }
+
+    setDeleteDepartmentId(department._id);
     setShowDeleteModal(true);
   };
 
@@ -163,21 +172,29 @@ export default function DepartmentTable() {
     if (!deleteDepartmentId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/departments/${deleteDepartmentId}`, {
+      const response = await fetch(`${API_BASE}/departments/${deleteDepartmentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
-        fetchDepartments(currentPage);
+        toast.success('Department deleted successfully');
         setShowDeleteModal(false);
         setDeleteDepartmentId(null);
+        fetchDepartments(currentPage);
       } else {
-        console.error('Failed to delete department');
+        // The backend also refuses deletion when users are still assigned (e.g.
+        // someone was added after this page loaded). Surface its message.
+        const error = await response.json().catch(() => ({}));
+        toast.error(error.message || 'Failed to delete department');
+        setShowDeleteModal(false);
+        setDeleteDepartmentId(null);
+        fetchDepartments(currentPage);
       }
     } catch (error) {
       console.error('Error deleting department:', error);
+      toast.error('Failed to delete department');
     }
   };
 
@@ -336,9 +353,15 @@ export default function DepartmentTable() {
                         <Edit className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(department._id)}
-                        disabled={department.totalAssociateEmployee > 0}
-                        className={`text-red-600 hover:text-red-900 ${department.totalAssociateEmployee > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        type="button"
+                        onClick={() => handleDelete(department)}
+                        aria-label={`Delete department ${department.name}`}
+                        title={
+                          department.totalAssociateEmployee > 0
+                            ? 'Reassign its employees before deleting this department'
+                            : 'Delete department'
+                        }
+                        className={`text-red-600 hover:text-red-900 ${department.totalAssociateEmployee > 0 ? 'opacity-60' : ''}`}
                       >
                         <Trash2 className="h-5 w-5" />
                       </button>
@@ -404,9 +427,15 @@ export default function DepartmentTable() {
                       <Edit className="h-5 w-5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(department._id)}
-                      disabled={department.totalAssociateEmployee > 0}
-                      className={`text-red-600 hover:text-red-900 ${department.totalAssociateEmployee > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      type="button"
+                      onClick={() => handleDelete(department)}
+                      aria-label={`Delete department ${department.name}`}
+                      title={
+                        department.totalAssociateEmployee > 0
+                          ? 'Reassign its employees before deleting this department'
+                          : 'Delete department'
+                      }
+                      className={`text-red-600 hover:text-red-900 ${department.totalAssociateEmployee > 0 ? 'opacity-60' : ''}`}
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>

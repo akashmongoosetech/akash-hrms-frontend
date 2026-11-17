@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import AlertMessages from '../../components/common/AlertMessages';
 import YearSelector from '../../components/common/YearSelector';
 import MonthSelector from '../../components/common/MonthSelector';
 import AttendanceTableSkeleton from '../../components/common/AttendanceTableSkeleton';
 import moment from 'moment';
-import {sortEmployeesAlphabetically} from '../../Common/Commonfunction';
+import { sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 
 interface Employee {
   _id: string;
@@ -17,18 +17,9 @@ interface Employee {
 
 interface Report {
   _id: string;
-  employee: Employee;
+  employee: Employee | null;
   date: string;
   workingHours: string;
-}
-
-interface Leave {
-  _id: string;
-  employee: string;
-  startDate: string;
-  endDate: string;
-  is_half_day?: string | number;
-  status: string;
 }
 
 interface Saturday {
@@ -45,22 +36,114 @@ interface Holiday {
   date: string;
 }
 
+interface LeaveRow {
+  employee_id: string;
+  from_date: string;
+  to_date: string;
+  is_half_day: boolean;
+}
+
+interface DayCell {
+  display: string;
+  style: string;
+}
+
+const PAGE_SIZE = 200;
+const MAX_PAGES = 100;
+
+const STYLE_FULL_DAY = '!bg-green-500 !text-white';
+const STYLE_HALF_DAY = '!bg-cyan-400 !text-black';
+const STYLE_ABSENT = '!bg-red-500 !text-white';
+const STYLE_WEEKEND = '!bg-yellow-200';
+
+const normalizeDate = (value?: string | null) => (value ? String(value).slice(0, 10) : '');
+
+const parseHours = (value: string) => {
+  const parts = value.split(':').map(Number);
+  if (parts.some((part) => Number.isNaN(part))) return 0;
+  return (parts[0] || 0) + (parts[1] || 0) / 60;
+};
+
+/** "09:30:00" / "09:30" -> "9:30", "8" -> "8". */
+const formatHours = (value: string) => {
+  if (!value) return '';
+  const parts = value.split(':');
+  if (parts.length < 2) return value;
+  return `${Number(parts[0])}:${parts[1]}`;
+};
+
+const parseLocalDate = (key: string) => {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year || 1970, (month || 1) - 1, day || 1);
+};
+
 const Statistics: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [employeesData, setEmployeesData] = useState<Employee[]>([]);
   const [reportsData, setReportsData] = useState<Report[]>([]);
-  const [leavesData, setLeavesData] = useState<any[]>([]);
+  const [leavesData, setLeavesData] = useState<LeaveRow[]>([]);
   const [alternateSaturdayData, setAlternateSaturdayData] = useState<string[]>([]);
   const [holidaysData, setHolidaysData] = useState<Holiday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
+
+  // Several requests run in parallel; keep the skeleton up until the last one
+  // settles instead of hiding it as soon as the fastest one finishes.
+  const pendingFetches = useRef(0);
+  const reportsRequestId = useRef(0);
+
+  const beginLoad = () => {
+    pendingFetches.current += 1;
+    setIsLoading(true);
+  };
+
+  const endLoad = () => {
+    pendingFetches.current = Math.max(0, pendingFetches.current - 1);
+    if (pendingFetches.current === 0) setIsLoading(false);
+  };
+
+  /**
+   * The API paginates every list endpoint (default limit 10). The statistics
+   * table needs the whole month and every active employee, so walk the pages
+   * instead of silently showing only the first ten records.
+   */
+  const fetchAllPages = async <T,>(
+    buildUrl: (page: number) => string,
+    pick: (payload: any) => T[] | undefined
+  ): Promise<T[]> => {
+    const items: T[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const response = await fetch(buildUrl(page), {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        break;
+      }
+      if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+
+      const payload = await response.json();
+      items.push(...(pick(payload) || []));
+
+      const reportedTotal = Number(payload?.pagination?.totalPages);
+      totalPages = Number.isFinite(reportedTotal) && reportedTotal > 0 ? reportedTotal : 1;
+      page += 1;
+    } while (page <= totalPages && page <= MAX_PAGES);
+
+    return items;
+  };
 
   useEffect(() => {
     fetchEmployees();
@@ -71,74 +154,60 @@ const Statistics: React.FC = () => {
   }, []);
 
   const fetchEmployees = async () => {
+    beginLoad();
     try {
-      const response = await fetch(`${API_BASE_URL}/users?role=Employee&status=Active&statistics_visibility_status=statistics_visibility_status`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('token');
-        // Handle redirect to login if needed
-        return;
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        setEmployeesData(sortEmployeesAlphabetically(data.users || []) as Employee[]);
-      } else {
-        setErrorMessage('Failed to fetch employees data');
-        setShowError(true);
-      }
+      const users = await fetchAllPages<Employee>(
+        (page) =>
+          `${API_BASE_URL}/users?role=Employee&status=Active&page=${page}&limit=${PAGE_SIZE}`,
+        (payload) => payload.users
+      );
+      setEmployeesData(sortEmployeesAlphabetically(users) as Employee[]);
     } catch (err) {
       setErrorMessage('Failed to fetch employees data');
       setShowError(true);
       console.error(err);
     } finally {
-      setIsLoading(false);
+      endLoad();
     }
   };
 
   const fetchReports = async (year: number = selectedYear, month: number = selectedMonth) => {
+    const requestId = ++reportsRequestId.current;
+    beginLoad();
     try {
-      const firstDay = moment({ year, month: month - 1 }).startOf('month');
-      const lastDay = moment({ year, month: month - 1 }).endOf('month');
-      const fromDate = firstDay.format('YYYY-MM-DD');
-      const toDate = lastDay.format('YYYY-MM-DD');
+      const firstDay = moment({ year, month: month - 1 }).startOf('month').format('YYYY-MM-DD');
+      const lastDay = moment({ year, month: month - 1 }).endOf('month').format('YYYY-MM-DD');
 
-      const response = await fetch(`${API_BASE_URL}/reports?fromDate=${fromDate}&toDate=${toDate}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const reports = await fetchAllPages<Report>(
+        (page) =>
+          `${API_BASE_URL}/reports?fromDate=${firstDay}&toDate=${lastDay}&page=${page}&limit=${PAGE_SIZE}`,
+        (payload) => payload.reports
+      );
 
-      if (response.status === 401) {
-        localStorage.removeItem('token');
-        return;
+      // A report whose employee was removed or deactivated comes back with
+      // employee: null, which has no column to render into.
+      const usable = reports.filter((report) => report && report.employee && report.employee._id);
+
+      if (requestId === reportsRequestId.current) {
+        setReportsData(usable);
       }
-
-      if (response.ok) {
-        const data = await response.json();
-        setReportsData(data.reports || []);
-      } else {
+    } catch (err) {
+      if (requestId === reportsRequestId.current) {
         setErrorMessage('Failed to fetch reports data');
         setShowError(true);
       }
-    } catch (err) {
-      setErrorMessage('Failed to fetch reports data');
-      setShowError(true);
       console.error(err);
     } finally {
-      setIsLoading(false);
+      endLoad();
     }
   };
 
   const fetchLeaves = async () => {
+    beginLoad();
     try {
       const response = await fetch(`${API_BASE_URL}/leaves?status=approved`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
 
@@ -146,35 +215,44 @@ const Statistics: React.FC = () => {
         localStorage.removeItem('token');
         return;
       }
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log(data, 'sdgjh')
-        const approvedLeaves = (data.leaves || []).filter((leave: any) => leave.status === 'Approved').map((leave: any) => ({
-          ...leave,
-          employee_id: leave.employee._id,
-          from_date: leave.startDate.split('T')[0],
-          to_date: leave.endDate.split('T')[0]
-        }));
-        setLeavesData(approvedLeaves);
-      } else {
+      if (!response.ok) {
         setErrorMessage('Failed to fetch leaves data');
         setShowError(true);
+        return;
       }
+
+      const data = await response.json();
+      const approvedLeaves: LeaveRow[] = (data.leaves || [])
+        .filter((leave: any) => leave && String(leave.status).toLowerCase() === 'approved')
+        .map((leave: any) => ({
+          employee_id:
+            typeof leave.employee === 'string' ? leave.employee : leave.employee?._id || '',
+          from_date: normalizeDate(leave.startDate),
+          to_date: normalizeDate(leave.endDate),
+          is_half_day:
+            leave.is_half_day === '1' || leave.is_half_day === 1 || leave.is_half_day === true
+        }))
+        .filter((leave: LeaveRow) => leave.employee_id && leave.from_date && leave.to_date);
+
+      setLeavesData(approvedLeaves);
     } catch (err) {
       setErrorMessage('Failed to fetch leaves data');
       setShowError(true);
       console.error(err);
     } finally {
-      setIsLoading(false);
+      endLoad();
     }
   };
 
-  const fetchAlternateSaturdays = async (year: number = selectedYear, month: number = selectedMonth) => {
+  const fetchAlternateSaturdays = async (
+    year: number = selectedYear,
+    month: number = selectedMonth
+  ) => {
+    beginLoad();
     try {
       const response = await fetch(`${API_BASE_URL}/saturdays?year=${year}&month=${month - 1}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
 
@@ -182,35 +260,38 @@ const Statistics: React.FC = () => {
         localStorage.removeItem('token');
         return;
       }
+      if (!response.ok) {
+        setAlternateSaturdayData([]);
+        return;
+      }
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log(data, 'altSaturday')
-        if (Array.isArray(data)) {
-          const alternateSaturdays = data.filter((s: Saturday) => s.isWeekend).map((s: Saturday) => {
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        const alternateSaturdays = data
+          .filter((s: Saturday) => s.isWeekend)
+          .map((s: Saturday) => {
             // Normalize date to UTC to avoid timezone issues
             const date = new Date(s.date);
             return date.toISOString().split('T')[0];
           });
-          setAlternateSaturdayData(alternateSaturdays);
-        } else {
-          setAlternateSaturdayData([]);
-        }
+        setAlternateSaturdayData(alternateSaturdays);
       } else {
         setAlternateSaturdayData([]);
       }
     } catch (error) {
       console.error('Failed to fetch saved Saturdays:', error);
       setAlternateSaturdayData([]);
+    } finally {
+      endLoad();
     }
   };
 
   const fetchHolidays = async () => {
+    beginLoad();
     try {
-      setIsLoading(true);
       const response = await fetch(`${API_BASE_URL}/holidays`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
 
@@ -218,21 +299,20 @@ const Statistics: React.FC = () => {
         localStorage.removeItem('token');
         return;
       }
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log(data, 'Holidays')
-        setHolidaysData(data.holidays);
-      } else {
+      if (!response.ok) {
         setErrorMessage('Failed to fetch holidays data');
         setShowError(true);
+        return;
       }
+
+      const data = await response.json();
+      setHolidaysData(data.holidays || []);
     } catch (err) {
       setErrorMessage('Failed to fetch holidays data');
       setShowError(true);
       console.error(err);
     } finally {
-      setIsLoading(false);
+      endLoad();
     }
   };
 
@@ -241,8 +321,6 @@ const Statistics: React.FC = () => {
     setSelectedYear(year);
     fetchAlternateSaturdays(year, selectedMonth);
     fetchReports(year, selectedMonth);
-    fetchEmployees();
-    fetchHolidays();
   };
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -250,51 +328,25 @@ const Statistics: React.FC = () => {
     setSelectedMonth(month);
     fetchAlternateSaturdays(selectedYear, month);
     fetchReports(selectedYear, month);
-    fetchEmployees();
   };
 
+  /** Every date of the selected month, in display order. */
   const getAllDatesOfMonth = (year: number, month: number) => {
-    const date = new Date(year, month - 1, 1);
-    const days = [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const days: Array<{ display: string; key: string }> = [];
 
-    while (date.getMonth() === month - 1) {
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(year, month - 1, day);
       const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
-      const day = date.getDate();
       const monthName = date.toLocaleDateString('en-US', { month: 'long' });
-      const yearValue = date.getFullYear();
 
       days.push({
         display: `${weekday}, ${day} ${monthName}`,
-        key: `${yearValue}-${month < 10 ? '0' + month : month}-${day < 10 ? '0' + day : day}`,
+        key: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       });
-
-      date.setDate(date.getDate() + 1);
     }
 
     return days;
-  };
-
-  const prepareAttendanceFromReports = () => {
-    const attendanceByDate: { [key: string]: { [key: string]: string } } = {};
-
-    reportsData.forEach(report => {
-      const date = report.date;
-      if (!attendanceByDate[date]) {
-        attendanceByDate[date] = {};
-      }
-      attendanceByDate[date][report.employee._id] = report.workingHours || '';
-    });
-
-    return attendanceByDate;
-  };
-
-  const initalizeEmployeeData = (employeesData: Employee[]) => {
-    const counts: { [key: string]: number } = {};
-    employeesData.forEach(employee => {
-      counts[employee._id] = 0;
-    });
-
-    return counts;
   };
 
   const calculateWorking = (hours: number) => {
@@ -307,10 +359,104 @@ const Statistics: React.FC = () => {
     return 0;
   };
 
-  const monthDays = getAllDatesOfMonth(selectedYear, selectedMonth);
-  const attendanceByDate = prepareAttendanceFromReports();
-  const leaveCounts = initalizeEmployeeData(employeesData);
-  const extraWorkingCounts = initalizeEmployeeData(employeesData);
+  const monthDays = useMemo(
+    () => getAllDatesOfMonth(selectedYear, selectedMonth),
+    [selectedYear, selectedMonth]
+  );
+
+  const attendanceByDate = useMemo(() => {
+    const byDate: { [date: string]: { [employeeId: string]: string } } = {};
+
+    reportsData.forEach((report) => {
+      const date = normalizeDate(report.date);
+      if (!date || !report.employee?._id) return;
+      if (!byDate[date]) byDate[date] = {};
+      byDate[date][report.employee._id] = report.workingHours || '';
+    });
+
+    return byDate;
+  }, [reportsData]);
+
+  /**
+   * Builds the whole month grid in one pass, so summary counts and cell colours
+   * always come from the same data. Only saved records produce a filled cell:
+   * a report, an approved leave or a holiday. Dates with none of those stay
+   * blank.
+   */
+  const { cellsByDate, leaveCounts, extraWorkingCounts } = useMemo(() => {
+    const cellsByDate: { [date: string]: { [employeeId: string]: DayCell } } = {};
+    const leaveCounts: { [employeeId: string]: number } = {};
+    const extraWorkingCounts: { [employeeId: string]: number } = {};
+
+    employeesData.forEach((employee) => {
+      leaveCounts[employee._id] = 0;
+      extraWorkingCounts[employee._id] = 0;
+    });
+
+    monthDays.forEach((day) => {
+      const dayAttendance = attendanceByDate[day.key] || {};
+      const isAlternateSaturday = alternateSaturdayData.includes(day.key);
+      const isSunday = parseLocalDate(day.key).getDay() === 0;
+      const isWeekend = isAlternateSaturday || isSunday;
+      const holiday = holidaysData.find((item) => normalizeDate(item.date) === day.key);
+
+      const row: { [employeeId: string]: DayCell } = {};
+
+      employeesData.forEach((employee) => {
+        const saved = dayAttendance[employee._id] || '';
+        const hasReport = saved.trim() !== '';
+        const hours = hasReport ? parseHours(saved) : 0;
+        const workedDays = hasReport ? calculateWorking(hours) : 0;
+
+        const matchingLeave = leavesData.find(
+          (leave) =>
+            leave.employee_id === employee._id &&
+            day.key >= leave.from_date &&
+            day.key <= leave.to_date
+        );
+
+        let display = formatHours(saved);
+        let style = '';
+
+        if (hasReport) {
+          if (isWeekend || holiday) {
+            // Working on a default day off counts as extra working.
+            style = STYLE_FULL_DAY;
+            extraWorkingCounts[employee._id] += hours >= 8 ? 1 : 0.5;
+          } else if (workedDays === 1) {
+            style = STYLE_FULL_DAY;
+          } else if (workedDays === 0.5) {
+            style = STYLE_HALF_DAY;
+            leaveCounts[employee._id] += 0.5;
+          } else {
+            style = STYLE_ABSENT;
+            leaveCounts[employee._id] += 1;
+          }
+        } else if (matchingLeave) {
+          style = matchingLeave.is_half_day ? STYLE_HALF_DAY : STYLE_ABSENT;
+          leaveCounts[employee._id] += matchingLeave.is_half_day ? 0.5 : 1;
+        } else if (holiday) {
+          display = holiday.name;
+          style = STYLE_ABSENT;
+        } else if (isWeekend) {
+          style = STYLE_WEEKEND;
+        }
+
+        row[employee._id] = { display, style };
+      });
+
+      cellsByDate[day.key] = row;
+    });
+
+    return { cellsByDate, leaveCounts, extraWorkingCounts };
+  }, [
+    monthDays,
+    attendanceByDate,
+    alternateSaturdayData,
+    holidaysData,
+    leavesData,
+    employeesData
+  ]);
 
   return (
     <>
@@ -345,7 +491,12 @@ const Statistics: React.FC = () => {
               />
             </div>
 
-            <div className="legend-container flex ml-auto gap-2">
+            <div className="mb-2 mr-3 text-sm text-gray-600">
+              {moment({ year: selectedYear, month: selectedMonth - 1 }).format('MMMM YYYY')} ·{' '}
+              {monthDays.length} days
+            </div>
+
+            <div className="legend-container flex ml-auto gap-2 flex-wrap">
               <span className="leave bg-red-500 p-2 rounded text-white">Leave</span>
               <span className="halfDay bg-blue-500 p-2 rounded text-white">Half day</span>
               <span className="extraWorking bg-green-500 p-2 rounded text-white">Extra working</span>
@@ -366,119 +517,38 @@ const Statistics: React.FC = () => {
                   <tr>
                     <th className="px-4 py-3 !bg-gray-300">Date</th>
                     {employeesData.map((employee) => (
-                      <th className="px-4 py-3 !bg-gray-300" key={employee._id}>{employee.firstName}</th>
+                      <th className="px-4 py-3 !bg-gray-300" key={employee._id}>
+                        {employee.firstName}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {monthDays.map((day, rowIndex) => {
-                    const dayAttendance = attendanceByDate[day.key] || {};
+                  {monthDays.map((day) => {
+                    const dayCells = cellsByDate[day.key] || {};
                     const isAlternateSaturday = alternateSaturdayData.includes(day.key);
-                    const dateObj = new Date(day.key);
-                    const isSunday = dateObj.getDay() === 0;
-                    const holiday = holidaysData.find(h => h.date.split('T')[0] === day.key);
-                    const isHoliday = !!holiday;
-
-                    // Highlight entire row if Sunday or alternate Saturday
-                    const highlightRow = isAlternateSaturday || isSunday || isHoliday;
+                    const isSunday = parseLocalDate(day.key).getDay() === 0;
+                    const isHoliday = holidaysData.some(
+                      (holiday) => normalizeDate(holiday.date) === day.key
+                    );
 
                     return (
-                      <tr key={rowIndex} className={isHoliday ? '!bg-red-200' : (isAlternateSaturday || isSunday) ? '!bg-yellow-200' : ''}>
+                      <tr
+                        key={day.key}
+                        className={
+                          isHoliday
+                            ? '!bg-red-200'
+                            : isAlternateSaturday || isSunday
+                              ? '!bg-yellow-200'
+                              : ''
+                        }
+                      >
                         <td className="!bg-green-200 px-4 py-2 min-w-48">{day.display}</td>
-                        {employeesData.map((employee, colIndex) => {
-                          const value = dayAttendance[employee._id] || '';
-                          const isMissingReport = value === '';
-
-                          let hoursNumber = 0;
-                          let cellStyle = '';
-
-                          const matchingLeave = leavesData.find((leave) =>
-                            leave.employee_id === employee._id &&
-                            day.key >= leave.from_date &&
-                            day.key <= leave.to_date
-                          );
-                          const isOnLeave = !!matchingLeave;
-                          const isHalfDayLeave = matchingLeave?.is_half_day === '1' || matchingLeave?.is_half_day === 1;
-                          const workedOnSpecialDay = !isMissingReport && (
-                            isSunday || isAlternateSaturday || isHoliday
-                          );
-
-                          if (!isMissingReport && value.includes(':')) {
-                            const parts = value.split(':').map(Number);
-
-                            hoursNumber = parts[0] + parts[1] / 60;
-
-                            if (workedOnSpecialDay) {
-                              cellStyle = '!bg-green-500 !text-white'; // Green for working on a special day
-                              extraWorkingCounts[employee._id] = extraWorkingCounts[employee._id] + (hoursNumber >= 8 ? 1 : 0.5);
-                            }
-                          }
-                          const calculateDay = calculateWorking(hoursNumber);
-                          const today = new Date();
-                          const currentDate = new Date(day.key);
-                          today.setHours(0, 0, 0, 0);
-                          currentDate.setHours(0, 0, 0, 0);
-
-                          if (isOnLeave) {
-                            if (currentDate >= today && isMissingReport) {
-                              if (isHalfDayLeave) {
-                                cellStyle = '!bg-cyan-400 !text-black'; // Cyan for half-day
-                                leaveCounts[employee._id] = leaveCounts[employee._id] + 0.5;
-                              } else {
-                                cellStyle = '!bg-red-500 !text-white'; // Red for full-day
-                                leaveCounts[employee._id] = leaveCounts[employee._id] + 1;
-                              }
-                            } else if (isMissingReport) {
-                              cellStyle = '!bg-red-500 !text-white'; // Red for full-day
-                              leaveCounts[employee._id] = leaveCounts[employee._id] + 1;
-                            } else {
-                              if (calculateDay === 0.5) {
-                                cellStyle = '!bg-cyan-400 !text-black'; // Cyan for half-day
-                                leaveCounts[employee._id] = leaveCounts[employee._id] + calculateDay;
-                              } else if (calculateDay === 0) {
-                                cellStyle = '!bg-red-500 !text-white'; // Red for full-day
-                                leaveCounts[employee._id] = leaveCounts[employee._id] + 1;
-                              }
-                            }
-                          } else if (isMissingReport && !highlightRow && currentDate < today) {
-                            cellStyle = '!bg-red-500 !text-white'; // Red for full-day
-                            leaveCounts[employee._id] = leaveCounts[employee._id] + 1;
-                          } else if (!isMissingReport) {
-                            if (calculateDay === 1 && !workedOnSpecialDay) {
-                              cellStyle = '!bg-green-500 !text-white'; // Green for full working day
-                            } else if (calculateDay === 0.5 && !workedOnSpecialDay) {
-                              cellStyle = '!bg-cyan-400 !text-black'; // Cyan for half-day
-                              leaveCounts[employee._id] = leaveCounts[employee._id] + calculateDay;
-                            } else if (calculateDay === 0 && !workedOnSpecialDay) {
-                              cellStyle = '!bg-red-500 !text-white'; // Red for full-day
-                              leaveCounts[employee._id] = leaveCounts[employee._id] + 1;
-                            }
-                          }
-
-                          let displayValue = dayAttendance[employee._id] || '';
-                          if (displayValue && displayValue.split(':').length === 3) {
-                            displayValue = displayValue.split(':').slice(0, 2).join(':');
-
-                            // Remove the leading 0 from the hour part (if it exists)
-                            let parts = displayValue.split(':');
-                            if (parts[0].startsWith('0')) {
-                              parts[0] = parts[0].slice(1);
-                            }
-                            displayValue = parts.join(':');
-                          }
-
-                          if (holiday && isMissingReport) {
-                            displayValue = holiday.name;
-                            cellStyle = '!bg-red-500 !text-white';
-                          }
-
-                          if ((isAlternateSaturday || isSunday) && !isOnLeave) {
-                            cellStyle = '!bg-yellow-200';
-                          }
-
+                        {employeesData.map((employee) => {
+                          const cell = dayCells[employee._id] || { display: '', style: '' };
                           return (
-                            <td key={colIndex} className={`px-2 py-1 ${cellStyle}`}>
-                              {displayValue}
+                            <td key={employee._id} className={`px-2 py-1 ${cell.style}`}>
+                              {cell.display}
                             </td>
                           );
                         })}
@@ -491,8 +561,12 @@ const Statistics: React.FC = () => {
                     <td className="!bg-gray-400 !text-black px-4 py-2">Leave Taken(-)</td>
                     {employeesData.map((emp) => {
                       const fullLeaves = leaveCounts[emp._id] || 0;
-                      const total = Math.round((fullLeaves) * 10) / 10; // Round to 1 decimal
-                      return <td key={emp._id} className="px-2 py-1">{total}</td>;
+                      const total = Math.round(fullLeaves * 10) / 10; // Round to 1 decimal
+                      return (
+                        <td key={emp._id} className="px-2 py-1">
+                          {total}
+                        </td>
+                      );
                     })}
                   </tr>
 
@@ -500,7 +574,9 @@ const Statistics: React.FC = () => {
                   <tr className="font-bold">
                     <td className="!bg-green-400 px-4 py-2">Extra Working Days(+)</td>
                     {employeesData.map((emp) => (
-                      <td key={emp._id} className="px-2 py-1">{extraWorkingCounts[emp._id] || 0}</td>
+                      <td key={emp._id} className="px-2 py-1">
+                        {extraWorkingCounts[emp._id] || 0}
+                      </td>
                     ))}
                   </tr>
 
@@ -508,7 +584,9 @@ const Statistics: React.FC = () => {
                   <tr className="font-bold">
                     <td className="!bg-green-400 px-4 py-2">Paid Leave(+)</td>
                     {employeesData.map((emp) => (
-                      <td key={emp._id} className="px-2 py-1">1</td>
+                      <td key={emp._id} className="px-2 py-1">
+                        1
+                      </td>
                     ))}
                   </tr>
 
@@ -518,23 +596,29 @@ const Statistics: React.FC = () => {
                     {employeesData.map((emp) => {
                       const fullLeaves = leaveCounts[emp._id] || 0;
                       const extraWorkCounts = extraWorkingCounts[emp._id] || 0;
-                      const totalDeduction = (extraWorkCounts + 1) - (fullLeaves); // Subtract 1 paid leave
+                      const totalDeduction = extraWorkCounts + 1 - fullLeaves; // Subtract 1 paid leave
                       return (
-                        <td key={emp._id} className="px-2 py-1">{totalDeduction}</td>
+                        <td key={emp._id} className="px-2 py-1">
+                          {totalDeduction}
+                        </td>
                       );
                     })}
                   </tr>
 
                   {/* Summary Row 5: No Of Days Salary To Be Credited */}
                   <tr className="font-bold">
-                    <td className="px-4 py-2 !bg-red-400 !text-white">No Of Days Salary To Be Credited</td>
+                    <td className="px-4 py-2 !bg-red-400 !text-white">
+                      No Of Days Salary To Be Credited
+                    </td>
                     {employeesData.map((emp) => {
                       const fullLeaves = leaveCounts[emp._id] || 0;
                       const extraWorkCounts = extraWorkingCounts[emp._id] || 0;
-                      const deduction = (extraWorkCounts + 1) - (fullLeaves);
+                      const deduction = extraWorkCounts + 1 - fullLeaves;
                       const salaryDays = deduction + 30;
                       return (
-                        <td key={emp._id} className="px-2 py-1">{salaryDays}</td>
+                        <td key={emp._id} className="px-2 py-1">
+                          {salaryDays}
+                        </td>
                       );
                     })}
                   </tr>
