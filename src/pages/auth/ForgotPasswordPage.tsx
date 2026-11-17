@@ -62,16 +62,24 @@ export default function ForgotPasswordPage() {
             <div className="bg-blue-400 w-28 h-28 rounded-bl-full m-2"></div>
           </div>
 
-          {/* Logo + Text */}
-          <div className="relative text-white text-center z-10">
-            <h1 className="text-3xl font-bold mb-2">My HR</h1>
-            <p className="text-blue-100">Stay organized</p>
+          {/* Logo */}
+          <div className="relative z-10 max-w-[80%] px-6">
+            <img
+              src="/logo/logo.png"
+              alt="SoSapient HRMS"
+              className="h-10 w-auto max-w-full rounded-xl bg-white object-contain px-3 py-2 shadow-lg sm:h-12"
+            />
           </div>
         </div>
 
         {/* Right section (Forgot Password Form) */}
         <div className="flex flex-col justify-center items-center w-full md:w-1/2 px-8">
           <div className="w-full max-w-sm">
+            <img
+              src="/logo/logo.png"
+              alt="SoSapient HRMS"
+              className="mb-6 h-10 w-auto max-w-[200px] object-contain md:hidden"
+            />
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Forgot Password</h2>
             <p className="text-gray-500 mb-6">Enter your email to reset your password</p>
 

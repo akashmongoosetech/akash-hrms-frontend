@@ -342,15 +342,16 @@ export default function RightSidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 z-20">
-        <div className="p-4 flex items-center justify-between border-b border-gray-100">
-          <h1 className="text-xl font-bold text-gray-800">Sosapient <span className="text-blue-600 italic">HRMS</span></h1>
-          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden">
-            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+      <aside className="fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-gray-200 bg-white md:flex">
+        <div className="flex shrink-0 items-center justify-center border-b border-gray-100 px-4 py-3">
+          <img
+            src="/logo/logo.png"
+            alt="SoSapient HRMS"
+            className="h-9 w-auto max-w-full object-contain lg:h-10"
+          />
         </div>
 
-        <nav className="p-4 overflow-y-auto flex-1 space-y-6">
+        <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4">
           {filteredSections.map((section) => (
             <div key={section.title}>
               <div className="flex items-center space-x-2 mb-2">
@@ -398,18 +399,27 @@ export default function RightSidebar() {
         onClick={() => setIsOpen(false)}
       />
       <aside
-        className={`fixed left-0 top-0 w-64 bg-white h-full border-r border-gray-200 z-40 transform transition-transform duration-300 md:hidden ${
+        aria-hidden={!isOpen}
+        className={`fixed left-0 top-0 z-40 flex h-dvh w-[min(18rem,85vw)] flex-col border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 md:hidden ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="font-semibold text-gray-700">Menu</h2>
-          <button onClick={() => setIsOpen(false)}>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+          <img
+            src="/logo/logo.png"
+            alt="SoSapient HRMS"
+            className="h-8 w-auto max-w-[170px] object-contain"
+          />
+          <button
+            onClick={() => setIsOpen(false)}
+            aria-label="Close menu"
+            className="shrink-0 rounded-md p-1 text-gray-600 hover:bg-gray-100"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav className="p-4 overflow-y-auto flex-1 space-y-6">
+        <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-4">
           {filteredSections.map((section) => (
             <div key={section.title}>
               <div className="flex items-center space-x-2 mb-2">
@@ -440,10 +450,23 @@ export default function RightSidebar() {
             </div>
           ))}
         </nav>
+
+        <div className="shrink-0 border-t border-gray-100 p-4">
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              setIsRightSidebarOpen(true);
+            }}
+            className="flex w-full items-center space-x-2 text-gray-700 hover:text-blue-600"
+          >
+            <Settings className="h-5 w-5" />
+            <span>Settings</span>
+          </button>
+        </div>
       </aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center p-2 md:hidden z-30">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-gray-200 bg-white px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
         <button onClick={() => setIsOpen(true)} className="flex flex-col items-center text-gray-700">
           <Menu className="h-5 w-5" />
           <span className="text-xs">Menu</span>

@@ -104,7 +104,7 @@ export default function Layout() {
         <LeftSidebar />
 
         {/* Main Content */}
-        <div className="flex-1 md:ml-64 pb-16 md:pb-0">
+        <div className="flex-1 md:ml-64 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
           <Header />
           <main className="w-full">
             <Outlet />
