@@ -6,6 +6,23 @@ import toast from 'react-hot-toast';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 
 interface Department {
   _id: string;
@@ -69,7 +86,15 @@ export default function DepartmentTable() {
         role: user.role || ''
       }));
       list.sort((a, b) => a.name.localeCompare(b.name));
-      setHeadOptions(list);
+      // SelectItem values must be unique; the value is the person's name.
+      const seen = new Set<string>();
+      setHeadOptions(
+        list.filter((option) => {
+          if (seen.has(option.name)) return false;
+          seen.add(option.name);
+          return true;
+        })
+      );
     } catch (error) {
       console.error('Error fetching users for department head:', error);
       setHeadOptions([]);
@@ -114,6 +139,13 @@ export default function DepartmentTable() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // The head is a Radix Select, not a native required field, so validate it here.
+    if (!formData.name.trim() || !formData.head.trim()) {
+      toast.error(formData.name.trim() ? 'Please select a department head' : 'Department name is required');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const url = editingDepartment
@@ -496,102 +528,111 @@ export default function DepartmentTable() {
       </Tabs>
 
       {/* Add/Edit Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="department-modal-title"
-            className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 shadow-xl sm:p-6"
-          >
-            <h3 id="department-modal-title" className="text-lg font-semibold mb-4">
+      <Dialog
+        open={showAddModal}
+        onOpenChange={(open) => {
+          if (!open) closeModal();
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
               {editingDepartment ? 'Edit Department' : 'Add New Department'}
-            </h3>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department Name
-                  </label>
-                  <input
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="department-name">Department Name</Label>
+              <Input
+                id="department-name"
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g. Engineering"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department-head">Department Head</Label>
+
+              {headOptionsFailed || (!headOptionsLoading && headOptions.length === 0) ? (
+                <>
+                  <Input
+                    id="department-head"
                     type="text"
                     required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.head}
+                    onChange={(e) => setFormData({ ...formData, head: e.target.value })}
+                    placeholder="Enter department head name"
                   />
-                </div>
-                <div>
-                  <label htmlFor="department-head" className="block text-sm font-medium text-gray-700 mb-1">
-                    Department Head
-                  </label>
-
-                  {headOptionsFailed || (!headOptionsLoading && headOptions.length === 0) ? (
-                    <>
-                      <input
-                        id="department-head"
-                        type="text"
-                        required
-                        value={formData.head}
-                        onChange={(e) => setFormData({ ...formData, head: e.target.value })}
-                        placeholder="Enter department head name"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  <p className="text-xs text-amber-600">
+                    No user list available, so a name can be typed manually.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Select
+                    value={formData.head}
+                    onValueChange={(value) => setFormData({ ...formData, head: value })}
+                    disabled={headOptionsLoading}
+                  >
+                    <SelectTrigger id="department-head" className="w-full">
+                      <SelectValue
+                        placeholder={
+                          headOptionsLoading ? 'Loading users...' : 'Select department head'
+                        }
                       />
-                      <p className="mt-1 text-xs text-amber-600">
-                        No user list available, so a name can be typed manually.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <select
-                        id="department-head"
-                        required
-                        value={formData.head}
-                        onChange={(e) => setFormData({ ...formData, head: e.target.value })}
-                        disabled={headOptionsLoading}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
-                      >
-                        <option value="">
-                          {headOptionsLoading ? 'Loading users...' : 'Select department head'}
-                        </option>
-                        {formData.head && !headOptions.some((option) => option.name === formData.head) && (
-                          <option value={formData.head}>{formData.head} (current)</option>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.head &&
+                        !headOptions.some((option) => option.name === formData.head) && (
+                          <SelectItem value={formData.head}>{formData.head} (current)</SelectItem>
                         )}
-                        {headOptions.map((option) => (
-                          <option key={option.id} value={option.name}>
-                            {option.name}{option.role ? ` — ${option.role}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="mt-1 text-xs text-gray-500">
-                        {headOptionsLoading
-                          ? 'Loading users...'
-                          : `${headOptions.length} active user${headOptions.length === 1 ? '' : 's'} across all roles.`}
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col-reverse gap-2 mt-6 sm:flex-row sm:justify-end sm:gap-3">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="w-full px-4 py-2 text-gray-600 hover:text-gray-800 sm:w-auto"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || (headOptionsLoading && !headOptionsFailed)}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
-                >
-                  {submitting ? <Loader className="animate-spin h-5 w-5 mx-auto" /> : (editingDepartment ? 'Update' : 'Add')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                      {headOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.name}>
+                          {option.name}
+                          {option.role ? ` — ${option.role}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {headOptionsLoading
+                      ? 'Loading users...'
+                      : `${headOptions.length} active user${headOptions.length === 1 ? '' : 's'} across all roles.`}
+                  </p>
+                </>
+              )}
+            </div>
+
+            <DialogFooter className="flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end sm:gap-3 sm:space-x-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeModal}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={submitting || (headOptionsLoading && !headOptionsFailed)}
+                className="w-full sm:w-auto"
+              >
+                {submitting ? (
+                  <Loader className="h-4 w-4 animate-spin" />
+                ) : editingDepartment ? (
+                  'Update'
+                ) : (
+                  'Add'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <DeleteModal
         isOpen={showDeleteModal}

@@ -1,9 +1,35 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import API from '../../utils/api';
 import socket, { connectSocket } from '../../utils/socket';
-import { Send, MessageCircle, Search, Paperclip, Trash2, X } from 'lucide-react';
+import {
+  Send,
+  MessageCircle,
+  MessagesSquare,
+  Search,
+  Paperclip,
+  Trash2,
+  X,
+  ArrowLeft,
+  CheckCheck,
+  Check,
+  Ban,
+  Download,
+  Loader2,
+  Mail,
+  CircleCheck,
+} from 'lucide-react';
 import Icon from '../common/Icon';
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Message as MessageItem,
+  MessageContent,
+  MessageFooter,
+  MessageAvatar,
+} from '../ui/message';
+import { Bubble, BubbleContent, BubbleGroup } from '../ui/bubble';
+import { Marker, MarkerContent } from '../ui/marker';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import toast from 'react-hot-toast';
 
 interface User {
   _id: string;
@@ -14,6 +40,13 @@ interface User {
   role?: string;
   lastMessage?: string;
   lastMessageTime?: string;
+}
+
+interface FileAttachment {
+  name: string;
+  path: string;
+  type: string;
+  size: number;
 }
 
 interface Message {
@@ -28,85 +61,232 @@ interface Message {
   message: string;
   createdAt: string;
   read: boolean;
-  file?: {
-    name: string;
-    path: string;
-    type: string;
-    size: number;
-  };
+  file?: FileAttachment | null;
   isDeletedForEveryone?: boolean;
 }
 
 type IconType = 'audio' | 'code' | 'document' | 'empty' | 'folder' | 'image' | 'img' | 'spreadsheets' | 'video' | 'video-01' | 'video-02' | 'aep' | 'ai' | 'avi' | 'css' | 'csv' | 'dmg' | 'doc' | 'docx' | 'exe' | 'fig' | 'gif' | 'html' | 'java' | 'mp4' | 'mpeg' | 'pdf' | 'pdf-simple' | 'png' | 'ppt' | 'pptx' | 'psd' | 'sql' | 'svg' | 'txt' | 'webp' | 'xls' | 'xlsx' | 'xml' | 'zip';
+
+const getIconType = (file: { name: string; type: string }): IconType => {
+  const mime = file.type;
+  if (mime === 'application/pdf') return 'pdf';
+  if (mime === 'application/msword') return 'doc';
+  if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'docx';
+  if (mime === 'application/vnd.ms-excel') return 'xls';
+  if (mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return 'xlsx';
+  if (mime === 'text/plain') return 'txt';
+  if (mime === 'application/zip' || mime === 'application/x-zip-compressed') return 'zip';
+  return 'document';
+};
+
+const initialsOf = (first?: string, last?: string) =>
+  `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase() || '?';
+
+const sameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+const formatDayLabel = (iso: string) => {
+  const date = new Date(iso);
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  if (sameDay(date, now)) return 'Today';
+  if (sameDay(date, yesterday)) return 'Yesterday';
+  return date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
+  });
+};
+
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+const formatListTime = (iso: string) => {
+  const date = new Date(iso);
+  const now = new Date();
+  if (sameDay(date, now)) return formatTime(iso);
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (sameDay(date, yesterday)) return 'Yesterday';
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
+  });
+};
+
+const formatBytes = (bytes: number) => {
+  if (!bytes) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+};
 
 const ChatMain: React.FC = () => {
   const [chatUsers, setChatUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{
+    firstName?: string;
+    lastName?: string;
+    photo?: string;
+  } | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectedUserIdRef = useRef<string | null>(null);
+
   const currentUserId = localStorage.getItem('userId');
-
-  const getIconType = (file: { name: string; type: string }): IconType => {
-    const mime = file.type;
-    if (mime === 'application/pdf') return 'pdf';
-    if (mime === 'application/msword') return 'doc';
-    if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'docx';
-    if (mime === 'application/vnd.ms-excel') return 'xls';
-    if (mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return 'xlsx';
-    if (mime === 'text/plain') return 'txt';
-    if (mime === 'application/zip' || mime === 'application/x-zip-compressed') return 'zip';
-    return 'document';
-  };
-
-  // Scroll to bottom when messages change
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const currentUserName = localStorage.getItem('userName') || 'You';
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    selectedUserIdRef.current = selectedUser?._id ?? null;
+  }, [selectedUser]);
 
-  // Ensure the authenticated socket is connected. The server puts the socket
-  // in the user's own room from the JWT, so no 'join' emit is needed.
+  // The login response does not include the photo, so fetch the signed-in
+  // user's profile to show their real picture on their own messages.
   useEffect(() => {
-    if (currentUserId) {
-      connectSocket();
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await API.get('/users/me');
+        if (cancelled) return;
+        setCurrentUserProfile({
+          firstName: response.data?.firstName,
+          lastName: response.data?.lastName,
+          photo: response.data?.photo,
+        });
+      } catch (error) {
+        console.error('Error loading current user profile:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const fetchChatUsers = useCallback(async () => {
+    try {
+      const response = await API.get('/chats/users');
+      setChatUsers(response.data.chatUsers);
+    } catch (error) {
+      console.error('Error fetching chat users:', error);
+    } finally {
+      setUsersLoading(false);
     }
-  }, [currentUserId]);
+  }, []);
 
-  // Listen for new messages and message deletions
+  const markConversationAsRead = useCallback(async (userId: string) => {
+    try {
+      await API.put(`/chats/read/${userId}`);
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  }, []);
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    const container = messagesScrollRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior });
+  };
+
+  useEffect(() => {
+    connectSocket();
+  }, []);
+
+  useEffect(() => {
+    fetchChatUsers();
+  }, [fetchChatUsers]);
+
+  // Fetch messages whenever a conversation is opened
+  useEffect(() => {
+    if (!selectedUser) {
+      setMessages([]);
+      return;
+    }
+
+    let cancelled = false;
+    setMessagesLoading(true);
+    setMessages([]);
+
+    (async () => {
+      try {
+        const response = await API.get(`/chats/messages/${selectedUser._id}`);
+        if (cancelled) return;
+        setMessages(response.data.messages);
+        markConversationAsRead(selectedUser._id);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+        toast.error('Could not load this conversation');
+      } finally {
+        if (!cancelled) setMessagesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedUser, markConversationAsRead]);
+
+  useEffect(() => {
+    if (messagesLoading) return;
+    const timer = setTimeout(() => scrollToBottom(messages.length > 0 ? 'smooth' : 'auto'), 40);
+    return () => clearTimeout(timer);
+  }, [messages, messagesLoading]);
+
+  // Live updates
   useEffect(() => {
     const handleNewMessage = (message: Message) => {
-      if (selectedUser && (message.sender._id === selectedUser._id || message.receiver === selectedUser._id)) {
-        setMessages(prev => [...prev, message]);
+      const activeUserId = selectedUserIdRef.current;
+      const isActiveConversation =
+        !!activeUserId && (message.sender._id === activeUserId || message.receiver === activeUserId);
+
+      if (isActiveConversation) {
+        setMessages(prev => {
+          if (prev.some(item => item._id === message._id)) return prev;
+          return [...prev, message];
+        });
+        if (activeUserId) markConversationAsRead(activeUserId);
       }
-      // Update chat users list
+
       fetchChatUsers();
     };
 
     const handleMessageDeleted = (data: { messageId: string; isDeletedForEveryone: boolean }) => {
       if (data.isDeletedForEveryone) {
-        // Update the message to show "Deleted by user" instead of removing it
-        setMessages(prev => prev.map(msg =>
-          msg._id === data.messageId
-            ? { ...msg, message: 'Deleted by user', file: undefined, isDeletedForEveryone: true }
-            : msg
-        ));
+        setMessages(prev =>
+          prev.map(msg =>
+            msg._id === data.messageId
+              ? { ...msg, message: 'Deleted by user', file: undefined, isDeletedForEveryone: true }
+              : msg,
+          ),
+        );
       } else {
-        // Remove the message (delete for me)
         setMessages(prev => prev.filter(msg => msg._id !== data.messageId));
       }
-      // Update chat users list
       fetchChatUsers();
     };
 
@@ -117,557 +297,996 @@ const ChatMain: React.FC = () => {
       socket.off('newMessage', handleNewMessage);
       socket.off('messageDeleted', handleMessageDeleted);
     };
-  }, [selectedUser]);
+  }, [fetchChatUsers, markConversationAsRead]);
 
-  // Fetch chat users
-  const fetchChatUsers = async () => {
-    try {
-      const response = await API.get('/chats/users');
-      setChatUsers(response.data.chatUsers);
-    } catch (error) {
-      console.error('Error fetching chat users:', error);
+  // Debounced user search
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
     }
-  };
 
-  // Fetch messages for selected user
-  const fetchMessages = async (userId: string) => {
-    try {
-      const response = await API.get(`/chats/messages/${userId}`);
-      setMessages(response.data.messages);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
+    let cancelled = false;
+    setIsSearching(true);
 
-  // Send message
-  const sendMessage = async () => {
-    if ((!newMessage.trim() && !selectedFile) || !selectedUser) return;
-
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('receiverId', selectedUser._id);
-      formData.append('message', newMessage.trim() || ' '); // Message is required, so send space if only file
-      if (selectedFile) {
-        formData.append('file', selectedFile);
+    const timer = setTimeout(async () => {
+      try {
+        const response = await API.get(`/chats/search-users?query=${encodeURIComponent(query)}`);
+        if (!cancelled) setSearchResults(response.data.users);
+      } catch (error) {
+        console.error('Error searching users:', error);
+      } finally {
+        if (!cancelled) setIsSearching(false);
       }
+    }, 300);
 
-      const response = await API.post('/chats/send', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
-      // Add the message to local state immediately
-      const sentMessage = {
-        _id: response.data.data._id,
-        sender: {
-          _id: currentUserId!,
-          firstName: localStorage.getItem('userName')?.split(' ')[0] || '',
-          lastName: localStorage.getItem('userName')?.split(' ')[1] || '',
-        },
-        receiver: selectedUser._id,
-        message: newMessage.trim(),
-        file: selectedFile ? {
-          name: selectedFile.name,
-          path: response.data.data.file?.path,
-          type: selectedFile.type,
-          size: selectedFile.size,
-        } : undefined,
-        createdAt: response.data.data.createdAt,
-        read: false,
-      };
-      setMessages(prev => [...prev, sentMessage]);
-
-      // Update chat users list
-      fetchChatUsers();
-
-      setNewMessage('');
-      setSelectedFile(null);
-    } catch (error) {
-      console.error('Error sending message:', error);
-    } finally {
-      setLoading(false);
+  // Selected attachment preview lifecycle
+  useEffect(() => {
+    if (!selectedFile || !selectedFile.type.startsWith('image/')) {
+      setPreviewUrl(null);
+      return;
     }
-  };
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
 
-  // Handle user selection
+  // Auto-grow composer
+  useEffect(() => {
+    const element = textareaRef.current;
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${Math.min(element.scrollHeight, 132)}px`;
+  }, [newMessage]);
+
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);
     setSelectedMessages([]);
     setIsSelectionMode(false);
-    fetchMessages(user._id);
+    setSearchQuery('');
   };
 
-  // Handle message selection
-  const handleMessageSelect = (messageId: string) => {
-    setSelectedMessages(prev =>
-      prev.includes(messageId)
-        ? prev.filter(id => id !== messageId)
-        : [...prev, messageId]
-    );
-  };
+  const sendMessage = async () => {
+    if ((!newMessage.trim() && !selectedFile) || !selectedUser || sending) return;
 
-  // Toggle selection mode
-  const toggleSelectionMode = () => {
-    setIsSelectionMode(!isSelectionMode);
-    if (isSelectionMode) {
-      setSelectedMessages([]);
-    }
-  };
-
-  // Check if any received messages are selected
-  const hasReceivedMessagesSelected = () => {
-    return selectedMessages.some(messageId => {
-      const message = messages.find(msg => msg._id === messageId);
-      return message && message.sender._id !== currentUserId;
-    });
-  };
-
-  // Delete selected messages
-  const deleteMessages = async (deleteForEveryone: boolean) => {
-    if (selectedMessages.length === 0) return;
-
+    setSending(true);
     try {
-      // For each selected message, determine the appropriate deletion endpoint
-      const deletePromises = selectedMessages.map(messageId => {
-        const message = messages.find(msg => msg._id === messageId);
-        if (!message) return Promise.resolve();
+      const formData = new FormData();
+      formData.append('receiverId', selectedUser._id);
+      formData.append('message', newMessage.trim() || ' ');
+      if (selectedFile) formData.append('file', selectedFile);
 
-        // If deleting for everyone, only allow if user is the sender
-        const isSentMessage = message.sender._id === currentUserId;
-        const shouldDeleteForEveryone = deleteForEveryone && isSentMessage;
-
-        return API.delete(shouldDeleteForEveryone ? `/chats/delete-for-everyone/${messageId}` : `/chats/delete-for-me/${messageId}`);
+      const response = await API.post('/chats/send', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      await Promise.all(deletePromises);
+      const sentMessage: Message = {
+        _id: response.data.data._id,
+        sender: {
+          _id: currentUserId!,
+          firstName: currentUserName.split(' ')[0] || '',
+          lastName: currentUserName.split(' ').slice(1).join(' ') || '',
+        },
+        receiver: selectedUser._id,
+        message: newMessage.trim(),
+        file: selectedFile
+          ? {
+              name: selectedFile.name,
+              path: response.data.data.file?.path,
+              type: selectedFile.type,
+              size: selectedFile.size,
+            }
+          : undefined,
+        createdAt: response.data.data.createdAt,
+        read: false,
+      };
 
-      // Update local state based on deletion type
-      setMessages(prev => prev.map(msg => {
-        if (!selectedMessages.includes(msg._id)) return msg;
-
-        const isSentMessage = msg.sender._id === currentUserId;
-        const shouldDeleteForEveryone = deleteForEveryone && isSentMessage;
-
-        if (shouldDeleteForEveryone) {
-          // Update message to show "Deleted by user"
-          return { ...msg, message: 'Deleted by user', file: undefined, isDeletedForEveryone: true };
-        } else {
-          // For "delete for me", remove the message from local state
-          return null;
-        }
-      }).filter(Boolean) as Message[]);
-
-      setSelectedMessages([]);
-      setIsSelectionMode(false);
-      setShowDeleteModal(false);
-
-      // Update chat users list
+      setMessages(prev => [...prev, sentMessage]);
+      setNewMessage('');
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       fetchChatUsers();
+      textareaRef.current?.focus();
     } catch (error) {
-      console.error('Error deleting messages:', error);
+      console.error('Error sending message:', error);
+      toast.error('Message could not be sent. Please try again.');
+    } finally {
+      setSending(false);
     }
   };
 
-  // Handle enter key
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const handleComposerKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       sendMessage();
     }
   };
 
-  // Search users
-  useEffect(() => {
-    const searchUsers = async () => {
-      if (searchQuery.trim() === '') {
-        setSearchResults([]);
-        return;
-      }
+  const handleMessageSelect = (messageId: string) => {
+    setSelectedMessages(prev =>
+      prev.includes(messageId) ? prev.filter(id => id !== messageId) : [...prev, messageId],
+    );
+  };
 
-      setIsSearching(true);
-      try {
-        const response = await API.get(`/chats/search-users?query=${encodeURIComponent(searchQuery)}`);
-        setSearchResults(response.data.users);
-      } catch (error) {
-        console.error('Error searching users:', error);
-      } finally {
-        setIsSearching(false);
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(prev => !prev);
+    setSelectedMessages([]);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedMessages.length === messages.length) setSelectedMessages([]);
+    else setSelectedMessages(messages.map(message => message._id));
+  };
+
+  const hasReceivedMessagesSelected = () =>
+    selectedMessages.some(id => {
+      const message = messages.find(msg => msg._id === id);
+      return message && message.sender._id !== currentUserId;
+    });
+
+  const deleteMessages = async (deleteForEveryone: boolean) => {
+    if (selectedMessages.length === 0) return;
+
+    try {
+      await Promise.all(
+        selectedMessages.map(messageId => {
+          const message = messages.find(msg => msg._id === messageId);
+          if (!message) return Promise.resolve();
+
+          const shouldDeleteForEveryone = deleteForEveryone && message.sender._id === currentUserId;
+          return API.delete(
+            shouldDeleteForEveryone
+              ? `/chats/delete-for-everyone/${messageId}`
+              : `/chats/delete-for-me/${messageId}`,
+          );
+        }),
+      );
+
+      setMessages(prev =>
+        prev
+          .map(msg => {
+            if (!selectedMessages.includes(msg._id)) return msg;
+
+            const shouldDeleteForEveryone =
+              deleteForEveryone && msg.sender._id === currentUserId;
+
+            if (shouldDeleteForEveryone) {
+              return {
+                ...msg,
+                message: 'Deleted by user',
+                file: undefined,
+                isDeletedForEveryone: true,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean) as Message[],
+      );
+
+      setSelectedMessages([]);
+      setIsSelectionMode(false);
+      setShowDeleteModal(false);
+      fetchChatUsers();
+      toast.success(deleteForEveryone ? 'Messages deleted for everyone' : 'Messages deleted for you');
+    } catch (error) {
+      console.error('Error deleting messages:', error);
+      toast.error('Could not delete the selected messages');
+    }
+  };
+
+  const sharedFiles = useMemo(
+    () =>
+      messages
+        .filter(message => message.file && !message.isDeletedForEveryone)
+        .map(message => message.file as FileAttachment)
+        .reverse(),
+    [messages],
+  );
+
+  // Consecutive messages from the same sender (within 5 minutes) share one
+  // Message with a BubbleGroup, matching the reference design.
+  const messageGroups = useMemo(() => {
+    const groups: {
+      key: string;
+      isMine: boolean;
+      sender: Message['sender'];
+      messages: Message[];
+    }[] = [];
+
+    messages.forEach(message => {
+      const isMine = message.sender._id === currentUserId;
+      const lastGroup = groups[groups.length - 1];
+      const lastMessage = lastGroup?.messages[lastGroup.messages.length - 1];
+
+      const continuesGroup =
+        !!lastGroup &&
+        !!lastMessage &&
+        lastGroup.isMine === isMine &&
+        lastGroup.sender._id === message.sender._id &&
+        sameDay(new Date(lastMessage.createdAt), new Date(message.createdAt)) &&
+        new Date(message.createdAt).getTime() - new Date(lastMessage.createdAt).getTime() <
+          5 * 60 * 1000;
+
+      if (continuesGroup) {
+        lastGroup.messages.push(message);
+      } else {
+        groups.push({
+          key: message._id,
+          isMine,
+          sender: message.sender,
+          messages: [message],
+        });
       }
+    });
+
+    return groups;
+  }, [messages, currentUserId]);
+
+  const currentUser = useMemo(() => {
+    const parts = currentUserName.trim().split(/\s+/);
+    return {
+      firstName: currentUserProfile?.firstName || parts[0] || 'You',
+      lastName: currentUserProfile?.lastName ?? parts.slice(1).join(' '),
+      photo: currentUserProfile?.photo,
     };
+  }, [currentUserName, currentUserProfile]);
 
-    const debounceTimer = setTimeout(searchUsers, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
+  const renderAvatar = (user: { firstName: string; lastName: string; photo?: string }, size = 'h-10 w-10') => (
+    <Avatar className={`${size} border border-white shadow-sm`}>
+      {user.photo ? <AvatarImage src={user.photo} alt={`${user.firstName} ${user.lastName}`} /> : null}
+      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-xs font-semibold text-white">
+        {initialsOf(user.firstName, user.lastName)}
+      </AvatarFallback>
+    </Avatar>
+  );
 
-  useEffect(() => {
-    fetchChatUsers();
-  }, []);
+  const showSearchResults = searchQuery.trim().length > 0;
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Users List */}
-      <div className="w-1/3 bg-white border-r border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">Chats</h2>
-          <div className="mt-2 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search users to start chat..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-          </div>
-        </div>
-        <div className="overflow-y-auto h-full">
-          {isSearching ? (
-            <div className="p-4 text-center text-gray-500">
-              <p>Searching...</p>
+    <div className="flex h-[calc(100dvh-9rem)] min-h-[540px] w-full flex-col bg-slate-100/70 p-3 sm:p-4 md:h-[calc(100dvh-4.75rem)] lg:p-5">
+      <div className="mx-auto flex h-full w-full max-w-[1500px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_18px_40px_-20px_rgba(15,23,42,0.25)]">
+        {/* Conversation list */}
+        <aside
+          className={`w-full shrink-0 flex-col border-r border-slate-200 bg-white sm:flex sm:w-[320px] lg:w-[360px] ${
+            selectedUser ? 'hidden' : 'flex'
+          }`}
+        >
+          <div className="border-b border-slate-100 px-4 pb-3 pt-4 sm:px-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h1 className="text-lg font-semibold tracking-tight text-slate-900">Messages</h1>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {chatUsers.length > 0
+                    ? `${chatUsers.length} conversation${chatUsers.length === 1 ? '' : 's'}`
+                    : 'Team conversations live here'}
+                </p>
+              </div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <MessagesSquare className="h-[18px] w-[18px]" />
+              </div>
             </div>
-          ) : searchQuery.trim() !== '' ? (
-            // Show search results
-            searchResults.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
-                <p>No users found</p>
-              </div>
-            ) : (
-              searchResults.map((user) => (
-                <div
-                  key={user._id}
-                  onClick={() => handleUserSelect(user)}
-                  className="p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100"
-                >
-                  <div className="flex items-center">
-                    {user.photo ? (
-                      <img
-                        src={user.photo}
-                        alt={`${user.firstName} ${user.lastName}`}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {user.firstName[0]}{user.lastName[0]}
-                      </div>
-                    )}
-                    <div className="ml-3 flex-1">
-                      <p className="font-medium text-gray-900">
-                        {user.firstName} {user.lastName}
-                      </p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
-                      <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                        {user.role}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )
-          ) : (
-            // Show chat users
-            chatUsers.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
-                <MessageCircle className="mx-auto mb-2 h-8 w-8" />
-                <p>No chats yet</p>
-                <p className="text-sm mt-1">Use the search above to start a new conversation</p>
-              </div>
-            ) : (
-              chatUsers.map((user) => (
-                <div
-                  key={user._id}
-                  onClick={() => handleUserSelect(user)}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 ${selectedUser?._id === user._id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                    }`}
-                >
-                  <div className="flex items-center">
-                    {user.photo ? (
-                      <img
-                        src={user.photo}
-                        alt={`${user.firstName} ${user.lastName}`}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {user.firstName[0]}{user.lastName[0]}
-                      </div>
-                    )}
-                    <div className="ml-3 flex-1">
-                      <p className="font-medium text-gray-900">
-                        {user.firstName} {user.lastName}
-                      </p>
-                      {user.lastMessage && (
-                        <p className="text-sm text-gray-500 truncate">
-                          {user.lastMessage}
-                        </p>
-                      )}
-                    </div>
-                    {user.lastMessageTime && (
-                      <span className="text-xs text-gray-400">
-                        {new Date(user.lastMessageTime).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
-            )
-          )}
-        </div>
-      </div>
 
-      {/* Chat Window */}
-      <div className="flex-1 flex flex-col">
-        {selectedUser ? (
-          <>
-            {/* Chat Header */}
-            <div className="p-4 bg-white border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  {selectedUser.photo ? (
-                    <img
-                      src={selectedUser.photo}
-                      alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {selectedUser.firstName[0]}{selectedUser.lastName[0]}
+            <div className="relative mt-3">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search teammates..."
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-9 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-2 pb-3 pt-1">
+            {showSearchResults ? (
+              <>
+                <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  {isSearching ? 'Searching…' : 'Search results'}
+                </p>
+
+                {isSearching ? (
+                  <div className="space-y-2 px-2 py-3">
+                    {[0, 1, 2].map(row => (
+                      <div key={row} className="flex animate-pulse items-center gap-3 rounded-xl px-2 py-2">
+                        <div className="h-10 w-10 rounded-full bg-slate-200" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 w-28 rounded bg-slate-200" />
+                          <div className="h-3 w-40 rounded bg-slate-100" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="flex flex-col items-center px-6 py-10 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                      <Search className="h-5 w-5" />
                     </div>
-                  )}
-                  <div className="ml-3">
-                    <p className="font-medium text-gray-900">
+                    <p className="mt-3 text-sm font-medium text-slate-700">No teammates found</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Try a different name or email address.
+                    </p>
+                  </div>
+                ) : (
+                  searchResults.map(user => (
+                    <button
+                      key={user._id}
+                      type="button"
+                      onClick={() => handleUserSelect(user)}
+                      className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50"
+                    >
+                      {renderAvatar(user)}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {user.firstName} {user.lastName}
+                          </p>
+                          {user.role && (
+                            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                              {user.role}
+                            </span>
+                          )}
+                        </div>
+                        <p className="truncate text-xs text-slate-500">{user.email}</p>
+                      </div>
+                      <span className="shrink-0 text-[11px] font-medium text-blue-600 opacity-0 transition group-hover:opacity-100">
+                        Chat
+                      </span>
+                    </button>
+                  ))
+                )}
+              </>
+            ) : usersLoading ? (
+              <div className="space-y-2 px-2 py-3">
+                {[0, 1, 2, 3].map(row => (
+                  <div key={row} className="flex animate-pulse items-center gap-3 rounded-xl px-2 py-2">
+                    <div className="h-10 w-10 rounded-full bg-slate-200" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-32 rounded bg-slate-200" />
+                      <div className="h-3 w-44 rounded bg-slate-100" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : chatUsers.length === 0 ? (
+              <div className="flex flex-col items-center px-6 py-12 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                  <MessageCircle className="h-6 w-6" />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-slate-800">No conversations yet</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  Search for a teammate above and send your first message.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  Recent
+                </p>
+                {chatUsers.map(user => {
+                  const isActive = selectedUser?._id === user._id;
+                  return (
+                    <button
+                      key={user._id}
+                      type="button"
+                      onClick={() => handleUserSelect(user)}
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+                        isActive
+                          ? 'bg-blue-50 ring-1 ring-inset ring-blue-100'
+                          : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      {renderAvatar(user)}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p
+                            className={`truncate text-sm font-semibold ${
+                              isActive ? 'text-blue-700' : 'text-slate-900'
+                            }`}
+                          >
+                            {user.firstName} {user.lastName}
+                          </p>
+                          {user.lastMessageTime && (
+                            <span className="shrink-0 text-[10px] font-medium text-slate-400">
+                              {formatListTime(user.lastMessageTime)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="truncate text-xs text-slate-500">
+                          {user.lastMessage?.trim() || 'Say hello 👋'}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </aside>
+
+        {/* Conversation */}
+        <section
+          className={`min-w-0 flex-1 flex-col bg-slate-50/60 sm:flex ${
+            selectedUser ? 'flex' : 'hidden'
+          }`}
+        >
+          {selectedUser ? (
+            <>
+              <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white/90 px-3 py-2.5 backdrop-blur sm:px-5">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUser(null)}
+                    aria-label="Back to conversations"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 sm:hidden"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+
+                  {renderAvatar(selectedUser, 'h-9 w-9 sm:h-10 sm:w-10')}
+
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900 sm:text-[15px]">
                       {selectedUser.firstName} {selectedUser.lastName}
                     </p>
-                    <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                    <p className="flex items-center gap-1.5 truncate text-[11px] text-slate-500">
+                      {selectedUser.role && (
+                        <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600">
+                          {selectedUser.role}
+                        </span>
+                      )}
+                      <span className="truncate">{selectedUser.email}</span>
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+
+                <div className="flex shrink-0 items-center gap-1">
                   {isSelectionMode ? (
                     <>
                       {selectedMessages.length > 0 && (
                         <button
+                          type="button"
                           onClick={() => setShowDeleteModal(true)}
-                          className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+                          className="flex items-center gap-1.5 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100"
                         >
-                          <Trash2 className="h-4 w-4 inline mr-1" />
+                          <Trash2 className="h-3.5 w-3.5" />
                           Delete ({selectedMessages.length})
                         </button>
                       )}
                       <button
-                        onClick={toggleSelectionMode}
-                        className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                        type="button"
+                        onClick={toggleSelectAll}
+                        className="hidden rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 sm:block"
                       >
-                        <X className="h-4 w-4 inline mr-1" />
-                        Cancel
+                        {selectedMessages.length === messages.length ? 'Clear all' : 'Select all'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={toggleSelectionMode}
+                        aria-label="Exit selection mode"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                      >
+                        <X className="h-4 w-4" />
                       </button>
                     </>
                   ) : (
                     <button
+                      type="button"
                       onClick={toggleSelectionMode}
-                      className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+                      disabled={messages.length === 0}
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Select
                     </button>
                   )}
                 </div>
-              </div>
-            </div>
+              </header>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message._id}
-                  className={`flex ${message.sender._id === currentUserId ? 'justify-end' : 'justify-start'}`}
-                >
-                  {isSelectionMode && (
-                    <input
-                      type="checkbox"
-                      checked={selectedMessages.includes(message._id)}
-                      onChange={() => handleMessageSelect(message._id)}
-                      className="mr-2 mt-2"
-                    />
-                  )}
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${
-                      message.isDeletedForEveryone
-                        ? 'bg-gray-100 text-gray-500 italic border border-gray-200'
-                        : message.sender._id === currentUserId
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 text-gray-800'
-                    } ${selectedMessages.includes(message._id) ? 'ring-2 ring-red-500' : ''}`}
-                  >
-                    {message.file && !message.isDeletedForEveryone && (
-                      <div className="mb-2">
-                        {message.file.type.startsWith('image/') ? (
-                          <img
-                            src={message.file.path}
-                            alt={message.file.name}
-                            className="max-w-full h-auto rounded cursor-pointer"
-                            onClick={() => window.open(message.file.path, '_blank')}
-                          />
-                        ) : message.file.type.startsWith('video/') ? (
-                          <video
-                            controls
-                            className="max-w-full h-auto rounded"
-                            src={message.file.path}
-                          />
-                        ) : message.file.type.startsWith('audio/') ? (
-                          <audio
-                            controls
-                            className="max-w-full"
-                            src={message.file.path}
-                          />
-                        ) : (
-                          <a
-                            href={message.file.path}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`underline ${message.sender._id === currentUserId ? 'text-blue-200' : 'text-blue-600'}`}
-                          >
-                            <Icon type={getIconType(message.file)} size={16} className="inline mr-1" />
-                            {message.file.name}
-                          </a>
-                        )}
+              <div
+                ref={messagesScrollRef}
+                className="relative flex-1 overflow-y-auto px-3 py-4 sm:px-6"
+              >
+                {messagesLoading ? (
+                  <div className="space-y-4">
+                    {[0, 1, 2].map(row => (
+                      <div
+                        key={row}
+                        className={`flex ${row % 2 === 0 ? 'justify-start' : 'justify-end'}`}
+                      >
+                        <div className="h-14 w-40 animate-pulse rounded-2xl bg-slate-200/70 sm:w-52" />
                       </div>
-                    )}
-                    <p className={message.isDeletedForEveryone ? 'text-sm' : ''}>{message.message}</p>
-                    <span className={`text-xs ${message.isDeletedForEveryone ? 'text-gray-400' : 'opacity-75'}`}>
-                      {new Date(message.createdAt).toLocaleTimeString()}
-                    </span>
+                    ))}
                   </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm ring-1 ring-slate-200">
+                      <MessagesSquare className="h-7 w-7" />
+                    </div>
+                    <p className="mt-4 text-base font-semibold text-slate-900">
+                      Start the conversation
+                    </p>
+                    <p className="mt-1 max-w-xs text-sm text-slate-500">
+                      Send {selectedUser.firstName} a message — share an update, a file, or a quick
+                      hello.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {messageGroups.map((group, groupIndex) => {
+                      const firstMessage = group.messages[0];
+                      const lastMessage = group.messages[group.messages.length - 1];
+                      const previousGroup = messageGroups[groupIndex - 1];
 
-            {/* Message Input */}
-            <div className="p-4 bg-white border-t border-gray-200">
-              {selectedFile && (
-                <div className="mb-2 p-2 bg-gray-100 rounded flex items-center justify-between">
-                  <span className="text-sm text-gray-700">{selectedFile.name}</span>
+                      const showDayLabel =
+                        !previousGroup ||
+                        !sameDay(
+                          new Date(previousGroup.messages[0].createdAt),
+                          new Date(firstMessage.createdAt),
+                        );
+
+                      return (
+                        <React.Fragment key={group.key}>
+                          {showDayLabel && (
+                            <Marker variant="separator" className="my-4 px-1">
+                              <MarkerContent className="text-[11px] font-medium">
+                                {formatDayLabel(firstMessage.createdAt)}
+                              </MarkerContent>
+                            </Marker>
+                          )}
+
+                          <MessageItem
+                            align={group.isMine ? 'end' : 'start'}
+                            className={`items-end ${showDayLabel ? 'mt-1' : 'mt-3'}`}
+                          >
+                            <MessageAvatar className="mb-4 bg-transparent">
+                              {group.isMine ? (
+                                <Avatar className="h-8 w-8 border border-white shadow-sm">
+                                  {currentUser.photo ? (
+                                    <AvatarImage
+                                      src={currentUser.photo}
+                                      alt={`${currentUser.firstName} ${currentUser.lastName}`}
+                                    />
+                                  ) : null}
+                                  <AvatarFallback className="bg-gradient-to-br from-slate-700 to-slate-900 text-[10px] font-semibold text-white">
+                                    {initialsOf(currentUser.firstName, currentUser.lastName)}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ) : (
+                                renderAvatar(group.sender, 'h-8 w-8')
+                              )}
+                            </MessageAvatar>
+
+                            <MessageContent
+                              className={`gap-1.5 ${group.isMine ? 'items-end' : 'items-start'}`}
+                            >
+                              <BubbleGroup
+                                className={`w-full gap-1 ${
+                                  group.isMine ? 'items-end' : 'items-start'
+                                }`}
+                              >
+                                {group.messages.map(message => {
+                                  const isSelected = selectedMessages.includes(message._id);
+
+                                  return (
+                                    <Bubble
+                                      key={message._id}
+                                      variant={
+                                        message.isDeletedForEveryone
+                                          ? 'outline'
+                                          : group.isMine
+                                            ? 'default'
+                                            : 'muted'
+                                      }
+                                      className="max-w-[85%] sm:max-w-[75%]"
+                                    >
+                                      <BubbleContent
+                                        role={isSelectionMode ? 'button' : undefined}
+                                        tabIndex={isSelectionMode ? 0 : undefined}
+                                        onClick={
+                                          isSelectionMode
+                                            ? () => handleMessageSelect(message._id)
+                                            : undefined
+                                        }
+                                        onKeyDown={
+                                          isSelectionMode
+                                            ? event => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                  event.preventDefault();
+                                                  handleMessageSelect(message._id);
+                                                }
+                                              }
+                                            : undefined
+                                        }
+                                        className={`text-[13px] ${
+                                          message.isDeletedForEveryone
+                                            ? 'border-dashed border-slate-300 bg-slate-100 text-slate-400'
+                                            : group.isMine
+                                              ? 'bg-primary text-primary-foreground'
+                                              : 'bg-muted text-slate-800'
+                                        } ${isSelectionMode ? 'cursor-pointer' : ''} ${
+                                          isSelected
+                                            ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-50'
+                                            : ''
+                                        }`}
+                                      >
+                                        {message.isDeletedForEveryone ? (
+                                          <span className="flex items-center gap-1.5 text-xs italic text-slate-400">
+                                            <Ban className="h-3.5 w-3.5" />
+                                            This message was deleted
+                                          </span>
+                                        ) : (
+                                          <>
+                                            {message.file && (
+                                              <div className="mb-1.5">
+                                                {message.file.type?.startsWith('image/') ? (
+                                                  <img
+                                                    src={message.file.path}
+                                                    alt={message.file.name}
+                                                    className="max-h-64 w-auto cursor-pointer rounded-lg object-cover"
+                                                    onClick={() => {
+                                                      if (isSelectionMode) return;
+                                                      window.open(message.file!.path, '_blank');
+                                                    }}
+                                                  />
+                                                ) : message.file.type?.startsWith('video/') ? (
+                                                  <video
+                                                    controls
+                                                    className="max-h-64 w-full rounded-lg"
+                                                    src={message.file.path}
+                                                  />
+                                                ) : message.file.type?.startsWith('audio/') ? (
+                                                  <audio
+                                                    controls
+                                                    className="w-56 max-w-full"
+                                                    src={message.file.path}
+                                                  />
+                                                ) : (
+                                                  <a
+                                                    href={message.file.path}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={event => {
+                                                      if (isSelectionMode) event.preventDefault();
+                                                    }}
+                                                    className={`flex items-center gap-2.5 rounded-lg border px-2.5 py-2 transition ${
+                                                      group.isMine
+                                                        ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                                                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                                                    }`}
+                                                  >
+                                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white">
+                                                      <Icon
+                                                        type={getIconType(message.file)}
+                                                        size={18}
+                                                      />
+                                                    </span>
+                                                    <span className="min-w-0 flex-1">
+                                                      <span className="block truncate text-xs font-semibold">
+                                                        {message.file.name}
+                                                      </span>
+                                                      <span
+                                                        className={`block text-[10px] ${
+                                                          group.isMine
+                                                            ? 'text-blue-100'
+                                                            : 'text-slate-500'
+                                                        }`}
+                                                      >
+                                                        {formatBytes(message.file.size)}
+                                                      </span>
+                                                    </span>
+                                                    <Download className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                                                  </a>
+                                                )}
+                                              </div>
+                                            )}
+
+                                            {message.message?.trim() && (
+                                              <p className="whitespace-pre-wrap break-words">
+                                                {message.message}
+                                              </p>
+                                            )}
+                                          </>
+                                        )}
+                                      </BubbleContent>
+                                    </Bubble>
+                                  );
+                                })}
+                              </BubbleGroup>
+
+                              <MessageFooter
+                                className={`px-1 text-[10px] ${
+                                  group.isMine ? 'justify-end' : 'justify-start'
+                                }`}
+                              >
+                                {formatTime(lastMessage.createdAt)}
+                                {group.isMine && !lastMessage.isDeletedForEveryone && (
+                                  <span className="ml-1 inline-flex items-center">
+                                    {lastMessage.read ? (
+                                      <CheckCheck className="h-3.5 w-3.5 text-blue-600" />
+                                    ) : (
+                                      <Check className="h-3.5 w-3.5 text-slate-400" />
+                                    )}
+                                  </span>
+                                )}
+                              </MessageFooter>
+                            </MessageContent>
+                          </MessageItem>
+                        </React.Fragment>
+                      );
+                    })}
+                    <div ref={messagesEndRef} className="h-1" />
+                  </div>
+                )}
+              </div>
+
+              {/* Composer */}
+              <div className="border-t border-slate-200 bg-white px-3 py-3 sm:px-5">
+                {selectedFile && (
+                  <div className="mb-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
+                    {previewUrl ? (
+                      <img
+                        src={previewUrl}
+                        alt={selectedFile.name}
+                        className="h-9 w-9 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white ring-1 ring-slate-200">
+                        <Icon type={getIconType(selectedFile)} size={18} />
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-slate-800">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-[10px] text-slate-500">{formatBytes(selectedFile.size)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      aria-label="Remove attachment"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1.5 transition focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/10">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    id="chat-file-input"
+                    onChange={event => setSelectedFile(event.target.files?.[0] || null)}
+                    className="hidden"
+                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+                  />
                   <button
-                    onClick={() => setSelectedFile(null)}
-                    className="text-red-500 hover:text-red-700"
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="Attach a file"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-200/70 hover:text-slate-900"
                   >
-                    ×
+                    <Paperclip className="h-[18px] w-[18px]" />
+                  </button>
+
+                  <textarea
+                    ref={textareaRef}
+                    value={newMessage}
+                    onChange={event => setNewMessage(event.target.value)}
+                    onKeyDown={handleComposerKeyDown}
+                    placeholder={`Message ${selectedUser.firstName}...`}
+                    rows={1}
+                    disabled={sending}
+                    className="max-h-[132px] min-h-[36px] flex-1 resize-none bg-transparent px-1 py-2 text-sm leading-5 text-slate-800 placeholder:text-slate-400 focus:outline-none disabled:opacity-60"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={sendMessage}
+                    disabled={(!newMessage.trim() && !selectedFile) || sending}
+                    aria-label="Send message"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                  >
+                    {sending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
-              )}
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type a message..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={loading}
-                />
-                <input
-                  type="file"
-                  id="file-input"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
-                />
-                <label
-                  htmlFor="file-input"
-                  className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 cursor-pointer flex items-center"
-                >
-                  <Paperclip className="h-5 w-5" />
-                </label>
-                <button
-                  onClick={sendMessage}
-                  disabled={(!newMessage.trim() && !selectedFile) || loading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Send className="h-5 w-5" />
-                </button>
+
+                <p className="mt-1.5 hidden px-1 text-[10px] text-slate-400 sm:flex sm:items-center sm:gap-1">
+                  <CircleCheck className="h-3 w-3" />
+                  Press Enter to send · Shift + Enter for a new line
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-blue-600 shadow-sm ring-1 ring-slate-200">
+                <MessagesSquare className="h-9 w-9" />
+              </div>
+              <h2 className="mt-5 text-lg font-semibold text-slate-900">
+                Pick a conversation to start
+              </h2>
+              <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-slate-500">
+                Chat with your team, share files and keep everything in one place. Select someone
+                from the list or search for a teammate.
+              </p>
+              <div className="mt-6 flex items-center gap-2 text-[11px] font-medium text-slate-400">
+                <span className="rounded-full bg-white px-3 py-1 ring-1 ring-slate-200">
+                  Secure & private
+                </span>
+                <span className="rounded-full bg-white px-3 py-1 ring-1 ring-slate-200">
+                  File sharing
+                </span>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center text-gray-500">
-              <MessageCircle className="mx-auto mb-4 h-16 w-16" />
-              <h3 className="text-lg font-medium">Select a chat to start messaging</h3>
-              <p>Choose a user from the list to begin a conversation</p>
+          )}
+        </section>
+
+        {/* Contact / shared files panel */}
+        {selectedUser && (
+          <aside className="hidden w-[280px] shrink-0 flex-col border-l border-slate-200 bg-white xl:flex">
+            <div className="flex flex-col items-center border-b border-slate-100 px-5 py-6 text-center">
+              {renderAvatar(selectedUser, 'h-16 w-16')}
+              <p className="mt-3 text-sm font-semibold text-slate-900">
+                {selectedUser.firstName} {selectedUser.lastName}
+              </p>
+              {selectedUser.role && (
+                <span className="mt-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600">
+                  {selectedUser.role}
+                </span>
+              )}
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+                <Mail className="h-3.5 w-3.5" />
+                <span className="truncate">{selectedUser.email}</span>
+              </p>
             </div>
-          </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  Shared files
+                </p>
+                <span className="text-[11px] font-medium text-slate-500">{sharedFiles.length}</span>
+              </div>
+
+              {sharedFiles.length === 0 ? (
+                <p className="mt-3 rounded-xl bg-slate-50 px-3 py-4 text-xs leading-relaxed text-slate-500">
+                  Files you exchange in this chat will show up here.
+                </p>
+              ) : (
+                <div className="mt-2 space-y-1.5">
+                  {sharedFiles.slice(0, 8).map((file, index) => (
+                    <a
+                      key={`${file.path}-${index}`}
+                      href={file.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-slate-50"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-slate-200">
+                        <Icon type={getIconType(file)} size={16} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-medium text-slate-700">
+                          {file.name}
+                        </span>
+                        <span className="block text-[10px] text-slate-400">
+                          {formatBytes(file.size)}
+                        </span>
+                      </span>
+                      <Download className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-5 rounded-xl bg-blue-50/70 px-3 py-3">
+                <p className="text-[11px] font-semibold text-blue-700">HRMS tip</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-blue-700/80">
+                  Use chat to coordinate quickly, but keep official requests in Tickets so they are
+                  tracked.
+                </p>
+              </div>
+            </div>
+          </aside>
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <AnimatePresence>
+      {/* Delete confirmation modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+            onClick={() => setShowDeleteModal(false)}
           >
-            {/* Modal Card */}
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 max-w-md w-full mx-4 border border-gray-200 dark:border-gray-700"
+              initial={{ scale: 0.94, opacity: 0, y: 8 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 8 }}
+              transition={{ duration: 0.18 }}
+              onClick={event => event.stopPropagation()}
+              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
             >
-              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
-                Confirm Deletion
-              </h3>
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">Delete messages?</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                    You are about to delete{' '}
+                    <strong className="font-semibold text-slate-700">
+                      {selectedMessages.length}
+                    </strong>{' '}
+                    message{selectedMessages.length > 1 ? 's' : ''}. This cannot be undone.
+                  </p>
+                </div>
+              </div>
 
-              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                You are about to delete <strong>{selectedMessages.length}</strong>{" "}
-                message{selectedMessages.length > 1 ? "s" : ""}.
-                {hasReceivedMessagesSelected() ? (
-                  <span className="block mt-2 text-sm text-orange-600 dark:text-orange-400">
-                    Note: Received messages can only be deleted from your chat feed.
-                  </span>
-                ) : (
-                  <span className="block mt-2 text-sm text-gray-500">
-                    Choose how you want to delete these messages.
-                  </span>
-                )}
-              </p>
+              {hasReceivedMessagesSelected() && (
+                <p className="mt-4 rounded-xl bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-700">
+                  Received messages can only be deleted from your own chat feed.
+                </p>
+              )}
 
-              {/* Buttons */}
-              <div className={`grid gap-3 ${hasReceivedMessagesSelected() ? 'grid-cols-2' : 'grid-cols-3'}`}>
-
-                {/* Delete for me */}
+              <div className="mt-6 grid gap-2 sm:grid-cols-3">
                 <button
+                  type="button"
                   onClick={() => deleteMessages(false)}
-                  className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all shadow-sm hover:shadow-md"
+                  className="rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
                 >
-                  For Me
+                  For me
                 </button>
 
-                {/* Delete for Everyone - only show if no received messages are selected */}
                 {!hasReceivedMessagesSelected() && (
                   <button
+                    type="button"
                     onClick={() => deleteMessages(true)}
-                    className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition-all shadow-sm hover:shadow-md"
+                    className="rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
                   >
-                    For All
+                    For everyone
                   </button>
                 )}
 
-                {/* Cancel */}
                 <button
+                  type="button"
                   onClick={() => setShowDeleteModal(false)}
-                  className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all shadow-sm"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Cancel
                 </button>
               </div>
             </motion.div>
           </motion.div>
-        </AnimatePresence>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };
