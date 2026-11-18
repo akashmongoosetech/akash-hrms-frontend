@@ -8,6 +8,15 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import Icon from "../../components/common/Icon";
 import { UniversalSkeleton, BaseSkeleton } from '../../components/ui/skeleton';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
 interface Link {
   _id: string;
   type: 'git' | 'excel' | 'codebase';
@@ -252,95 +261,95 @@ export default function LinkPage() {
 
         {loading ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-300">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-2 border-b text-left">
+            <Table className="min-w-full bg-white border border-gray-300">
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="px-4 py-2 border-b text-left">
                     <BaseSkeleton className="h-4 w-4" />
-                  </th>
-                  <th className="px-4 py-2 border-b text-left">
+                  </TableHead>
+                  <TableHead className="px-4 py-2 border-b text-left">
                     <BaseSkeleton className="h-4 w-12" />
-                  </th>
-                  <th className="px-4 py-2 border-b text-left">
+                  </TableHead>
+                  <TableHead className="px-4 py-2 border-b text-left">
                     <BaseSkeleton className="h-4 w-8" />
-                  </th>
+                  </TableHead>
                   {(activeTab === 'excel' || activeTab === 'codebase') && (
                     <>
-                      <th className="px-4 py-2 border-b text-left">
+                      <TableHead className="px-4 py-2 border-b text-left">
                         <BaseSkeleton className="h-4 w-8" />
-                      </th>
+                      </TableHead>
                     </>
                   )}
-                  <th className="px-4 py-2 border-b text-left">
+                  <TableHead className="px-4 py-2 border-b text-left">
                     <BaseSkeleton className="h-4 w-12" />
-                  </th>
-                  <th className="px-4 py-2 border-b text-left">
+                  </TableHead>
+                  <TableHead className="px-4 py-2 border-b text-left">
                     <BaseSkeleton className="h-4 w-14" />
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {Array.from({ length: 5 }, (_, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border-b text-sm font-medium text-gray-900">
+                  <TableRow key={index} className="hover:bg-gray-50">
+                    <TableCell className="px-4 py-2 border-b text-sm font-medium text-gray-900">
                       <BaseSkeleton className="h-5 w-8" />
-                    </td>
-                    <td className="px-4 py-2 border-b">
+                    </TableCell>
+                    <TableCell className="px-4 py-2 border-b">
                       <BaseSkeleton className="h-4 w-24" />
-                    </td>
-                    <td className="px-4 py-2 border-b">
+                    </TableCell>
+                    <TableCell className="px-4 py-2 border-b">
                       <BaseSkeleton className="h-4 w-32" />
-                    </td>
+                    </TableCell>
                     {(activeTab === 'excel' || activeTab === 'codebase') && (
                       <>
-                        <td className="px-4 py-2 border-b">
+                        <TableCell className="px-4 py-2 border-b">
                           <BaseSkeleton className="h-8 w-8 rounded" />
-                        </td>
+                        </TableCell>
                       </>
                     )}
-                    <td className="px-4 py-2 border-b">
+                    <TableCell className="px-4 py-2 border-b">
                       <BaseSkeleton className="h-4 w-16" />
-                    </td>
-                    <td className="px-4 py-2 border-b">
+                    </TableCell>
+                    <TableCell className="px-4 py-2 border-b">
                       <div className="flex space-x-2">
                         <BaseSkeleton className="h-6 w-6 rounded" />
                         <BaseSkeleton className="h-6 w-6 rounded" />
                         <BaseSkeleton className="h-6 w-6 rounded" />
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         ) : filteredLinks.length === 0 ? (
           <p className="text-gray-600">No {activeTab} links found.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-300">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-2 border-b text-left">#</th>
-                  <th className="px-4 py-2 border-b text-left">Title</th>
-                  <th className="px-4 py-2 border-b text-left">URL</th>
+            <Table className="min-w-full bg-white border border-gray-300">
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="px-4 py-2 border-b text-left">#</TableHead>
+                  <TableHead className="px-4 py-2 border-b text-left">Title</TableHead>
+                  <TableHead className="px-4 py-2 border-b text-left">URL</TableHead>
                   {(activeTab === 'excel' || activeTab === 'codebase') && (
                     <>
-                      {/* <th className="px-4 py-2 border-b text-left">Image</th> */}
-                      <th className="px-4 py-2 border-b text-left">File</th>
+                      {/* <TableHead className="px-4 py-2 border-b text-left">Image</TableHead> */}
+                      <TableHead className="px-4 py-2 border-b text-left">File</TableHead>
                     </>
                   )}
-                  <th className="px-4 py-2 border-b text-left">Created</th>
-                  <th className="px-4 py-2 border-b text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+                  <TableHead className="px-4 py-2 border-b text-left">Created</TableHead>
+                  <TableHead className="px-4 py-2 border-b text-left">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredLinks.map((link, index) => (
-                  <tr key={link._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border-b text-sm font-medium text-gray-900">
+                  <TableRow key={link._id} className="hover:bg-gray-50">
+                    <TableCell className="px-4 py-2 border-b text-sm font-medium text-gray-900">
                       {(currentPage - 1) * itemsPerPage + index + 1}
-                    </td>
-                    <td className="px-4 py-2 border-b">{link.title}</td>
-                    <td className="px-4 py-2 border-b">
+                    </TableCell>
+                    <TableCell className="px-4 py-2 border-b">{link.title}</TableCell>
+                    <TableCell className="px-4 py-2 border-b">
                       {link.url ? (
                         <a
                           href={link.url}
@@ -356,17 +365,17 @@ export default function LinkPage() {
                       ) : (
                         '-'
                       )}
-                    </td>
+                    </TableCell>
                     {(activeTab === 'excel' || activeTab === 'codebase') && (
                       <>
-                        {/* <td className="px-4 py-2 border-b">
+                        {/* <TableCell className="px-4 py-2 border-b">
                           {link.image ? (
                             <img src={link.image} alt={link.title} className="w-16 h-16 object-cover" />
                           ) : (
                             '-'
                           )}
-                        </td> */}
-                        <td className="px-4 py-2 border-b">
+                        </TableCell> */}
+                        <TableCell className="px-4 py-2 border-b">
                             {link.file ? (
                               <button onClick={() => handleFileDownload(link.file)} className="flex items-center space-x-2 text-blue-600 hover:underline">
                                 <Icon type={getIconType(link.file) as any} size={30} />
@@ -375,11 +384,11 @@ export default function LinkPage() {
                             ) : (
                               '-'
                             )}
-                          </td>
+                          </TableCell>
                       </>
                     )}
-                    <td className="px-4 py-2 border-b">{formatDate(link.createdAt)}</td>
-                    <td className="px-4 py-2 border-b">
+                    <TableCell className="px-4 py-2 border-b">{formatDate(link.createdAt)}</TableCell>
+                    <TableCell className="px-4 py-2 border-b">
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleView(link)}
@@ -403,11 +412,11 @@ export default function LinkPage() {
                           <Trash2 size={16} />
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

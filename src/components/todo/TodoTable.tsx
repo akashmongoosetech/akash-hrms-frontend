@@ -14,6 +14,15 @@ import { formatDate } from "../../Common/Commonfunction";
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 import { Input } from '../ui/input';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
 interface Todo {
   _id: string;
   title: string;
@@ -196,90 +205,90 @@ export default function TodoTable({
       {/* Todo List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto max-h-96">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <Table className="min-w-full divide-y divide-gray-200">
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   #
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Title
-                </th>
+                </TableHead>
                 {role !== 'Employee' && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Employee
-                  </th>
+                  </TableHead>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Due Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Priority
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
-                </th>
+                </TableHead>
                 {role !== 'Employee' && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
-                  </th>
+                  </TableHead>
                 )}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 Array.from({ length: 5 }, (_, rowIndex) => (
-                  <tr key={rowIndex} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <TableRow key={rowIndex} className="hover:bg-gray-50">
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <BaseSkeleton className="h-5 w-8" />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         <BaseSkeleton className="h-4 w-24 mb-1" />
                       </div>
                       <div className="text-sm text-gray-500">
                         <BaseSkeleton className="h-3 w-32" />
                       </div>
-                    </td>
+                    </TableCell>
                     {role !== 'Employee' && (
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <BaseSkeleton className="h-4 w-4 mr-2" />
                           <div className="text-sm text-gray-900">
                             <BaseSkeleton className="h-4 w-20" />
                           </div>
                         </div>
-                      </td>
+                      </TableCell>
                     )}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
                         <BaseSkeleton className="h-4 w-4 mr-2" />
                         <BaseSkeleton className="h-4 w-16" />
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <BaseSkeleton className="h-5 w-16" />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <BaseSkeleton className="h-5 w-20" />
-                    </td>
+                    </TableCell>
                     {role !== 'Employee' && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <BaseSkeleton className="h-6 w-6 rounded" />
                           <BaseSkeleton className="h-6 w-6 rounded" />
                         </div>
-                      </td>
+                      </TableCell>
                     )}
-                  </tr>
+                  </TableRow>
                 ))
               ) : (
                 filteredTodos.map((todo, index) => (
-                  <tr key={todo._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <TableRow key={todo._id} className="hover:bg-gray-50">
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {index + 1}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {todo.title}
                       </div>
@@ -288,24 +297,24 @@ export default function TodoTable({
                           {todo.description}
                         </div>
                       )}
-                    </td>
+                    </TableCell>
                     {role !== 'Employee' && (
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <User className="h-4 w-4 text-gray-400 mr-2" />
                           <div className="text-sm text-gray-900">
                             {todo.employee ? `${todo.employee.firstName} ${todo.employee.lastName}` : 'Unknown Employee'}
                           </div>
                         </div>
-                      </td>
+                      </TableCell>
                     )}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
                         <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                         {formatDate(todo.dueDate)}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
                           todo.priority
@@ -313,8 +322,8 @@ export default function TodoTable({
                       >
                         {todo.priority}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <select
                         value={todo.status}
                         onChange={(e) => handleStatusChange(todo._id, e.target.value as "Pending" | "In Progress" | "Completed")}
@@ -327,9 +336,9 @@ export default function TodoTable({
                         <option value="In Progress">In Progress</option>
                         <option value="Completed">Completed</option>
                       </select>
-                    </td>
+                    </TableCell>
                     {role !== 'Employee' && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEdit(todo)}
@@ -344,13 +353,13 @@ export default function TodoTable({
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                      </td>
+                      </TableCell>
                     )}
-                  </tr>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {filteredTodos.length === 0 && (

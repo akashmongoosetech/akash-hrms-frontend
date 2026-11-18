@@ -1,5 +1,14 @@
 import React from 'react';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
 interface AttendanceTableSkeletonProps {
   employeeCount: number;
   dayCount: number;
@@ -11,34 +20,34 @@ export default function AttendanceTableSkeleton({
 }: AttendanceTableSkeletonProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="table table-bordered table-sm text-center">
-        <thead>
-          <tr>
-            <th className="p-4">
+      <Table className="table table-bordered table-sm text-center">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="p-4">
               <div className="skeleton-loader w-20 h-4"></div>
-            </th>
+            </TableHead>
             {Array.from({ length: employeeCount }).map((_, index) => (
-              <th key={index} className="p-4">
+              <TableHead key={index} className="p-4">
                 <div className="skeleton-loader w-16 h-4"></div>
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {Array.from({ length: dayCount }).map((_, rowIndex) => (
-            <tr key={rowIndex}>
-              <td className="p-4">
+            <TableRow key={rowIndex}>
+              <TableCell className="p-4">
                 <div className="skeleton-loader w-24 h-4"></div>
-              </td>
+              </TableCell>
               {Array.from({ length: employeeCount }).map((_, colIndex) => (
-                <td key={colIndex} className="p-4">
+                <TableCell key={colIndex} className="p-4">
                   <div className="skeleton-loader w-12 h-4"></div>
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

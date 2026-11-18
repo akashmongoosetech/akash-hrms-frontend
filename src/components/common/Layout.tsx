@@ -5,6 +5,7 @@ import Header from "./Header";
 import Toaster from "./Toaster";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
 import socket, { connectSocket, disconnectSocket } from "../../utils/socket";
+import { SidebarProvider, useSidebar } from "../ui/sidebar";
 
 interface DashboardPreferences {
   projects: boolean;
@@ -34,33 +35,6 @@ export const useLayout = () => {
 export default function Layout() {
   usePushNotifications();
   const navigate = useNavigate();
-
-  // Desktop: sidebar slid off-canvas. Mobile: drawer visibility.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem('sidebarCollapsed') === 'true';
-    } catch {
-      return false;
-    }
-  });
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
-  const toggleSidebar = () => {
-    // One button, two behaviours: drawer on phones, collapse on md+ screens.
-    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) {
-      setSidebarCollapsed(prev => {
-        const next = !prev;
-        try {
-          localStorage.setItem('sidebarCollapsed', String(next));
-        } catch {
-          // ignore storage failures (private mode)
-        }
-        return next;
-      });
-    } else {
-      setMobileSidebarOpen(prev => !prev);
-    }
-  };
 
   const [dashboardPreferences, setDashboardPreferences] = useState<DashboardPreferences>({
     projects: true,
@@ -126,29 +100,33 @@ export default function Layout() {
 
   return (
     <LayoutContext.Provider value={{ dashboardPreferences, updateDashboardPreferences }}>
-      <div className=" min-h-screen bg-gray-50">
-        {/* Sidebar */}
-        <LeftSidebar
-          collapsed={sidebarCollapsed}
-          onToggleCollapsed={toggleSidebar}
-          mobileOpen={mobileSidebarOpen}
-          onMobileOpenChange={setMobileSidebarOpen}
-        />
+      <SidebarProvider
+        style={
+          {
+            '--sidebar-width': '16rem',
+            '--sidebar-width-mobile': '18rem',
+          } as React.CSSProperties
+        }
+      >
+        <LeftSidebar />
 
-        {/* Main Content */}
-        <div
-          className={`flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] transition-[margin] duration-300 md:pb-0 ${
-            sidebarCollapsed ? 'md:ml-0' : 'md:ml-64'
-          }`}
-        >
-          <Header onToggleSidebar={toggleSidebar} />
-          <main className="w-full">
-            <Outlet />
-          </main>
-        </div>
+        <AppContent>
+          <Outlet />
+        </AppContent>
 
         <Toaster />
-      </div>
+      </SidebarProvider>
     </LayoutContext.Provider>
+  );
+}
+
+function AppContent({ children }: { children: React.ReactNode }) {
+  const { toggleSidebar } = useSidebar();
+
+  return (
+    <div className="flex min-h-svh min-w-0 flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+      <Header onToggleSidebar={toggleSidebar} />
+      <main className="w-full flex-1">{children}</main>
+    </div>
   );
 }

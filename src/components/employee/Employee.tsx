@@ -2,6 +2,15 @@
 
 import React, { useState } from "react";
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -64,10 +73,10 @@ export default function EmployeeTable() {
 
       {/* Wrapper for horizontal scroll on small screens */}
       <div className="overflow-x-auto shadow-md rounded-lg ring-1 ring-black/5">
-        <table className="min-w-full bg-white">
+        <Table className="min-w-full bg-white">
           {/* Header */}
-          <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-600">
-            <tr>
+          <TableHeader className="bg-gray-50 text-xs uppercase tracking-wider text-gray-600">
+            <TableRow>
               {[
                 "Name",
                 "Email",
@@ -78,32 +87,32 @@ export default function EmployeeTable() {
                 "Salary",
                 "Actions",
               ].map((col) => (
-                <th
+                <TableHead
                   key={col}
                   scope="col"
                   className="px-4 py-3 text-left font-medium"
                 >
                   {col}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
+            </TableRow>
+          </TableHeader>
 
           {/* Body */}
-          <tbody className="divide-y divide-gray-200 text-sm text-gray-800">
+          <TableBody className="divide-y divide-gray-200 text-sm text-gray-800">
             {employees.map((emp) => (
-              <tr
+              <TableRow
                 key={emp.id}
                 className="hover:bg-gray-50 transition-colors"
               >
-                <td className="px-4 py-3 font-medium whitespace-nowrap">
+                <TableCell className="px-4 py-3 font-medium whitespace-nowrap">
                   {emp.name}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">{emp.email}</td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                </TableCell>
+                <TableCell className="px-4 py-3 whitespace-nowrap">{emp.email}</TableCell>
+                <TableCell className="px-4 py-3 whitespace-nowrap">
                   {emp.department}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                </TableCell>
+                <TableCell className="px-4 py-3 whitespace-nowrap">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       emp.status === "Active"
@@ -113,15 +122,15 @@ export default function EmployeeTable() {
                   >
                     {emp.status}
                   </span>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                </TableCell>
+                <TableCell className="px-4 py-3 whitespace-nowrap">
                   {emp.joiningDate}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">{emp.mobile}</td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                </TableCell>
+                <TableCell className="px-4 py-3 whitespace-nowrap">{emp.mobile}</TableCell>
+                <TableCell className="px-4 py-3 whitespace-nowrap">
                   ${emp.salary.toLocaleString()}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                </TableCell>
+                <TableCell className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <button
                       aria-label="Edit"
@@ -136,11 +145,11 @@ export default function EmployeeTable() {
                       Delete
                     </button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </section>
   );

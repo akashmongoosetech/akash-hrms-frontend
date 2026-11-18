@@ -1,10 +1,19 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, Eye, Plus } from 'lucide-react';
 import DeleteModal from '../../Common/DeleteModal';
 import { formatDate, sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface Employee {
   _id: string;
@@ -26,7 +35,7 @@ interface Employee {
 
 export default function EmployeeTable() {
   const navigate = useNavigate();
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -48,15 +57,23 @@ export default function EmployeeTable() {
   const [departments, setDepartments] = useState<{ _id: string; name: string }[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
 
+  // Paging is done on the client: the API orders by createdAt only, and many
+  // seeded employees share the same timestamp, so server pages could overlap.
+  // Fetching the full roster once also keeps alphabetical order global.
+  const employees = allEmployees.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const totalItems = allEmployees.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
   useEffect(() => {
-    fetchEmployees(currentPage);
+    fetchEmployees();
     fetchCurrentUser();
     fetchDepartments();
-  }, [currentPage]);
+  }, []);
 
   const fetchCurrentUser = async () => {
     try {
@@ -105,28 +122,52 @@ export default function EmployeeTable() {
     }
   };
 
-  const fetchEmployees = async (page: number = 1) => {
+  const fetchEmployees = async () => {
+    const PAGE_SIZE = 200;
+    const MAX_PAGES = 50;
+    const collected: Employee[] = [];
+
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?page=${page}&limit=${itemsPerPage}&role=Employee`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      let page = 1;
+      let pages = 1;
+
+      do {
+        const response = await fetch(
+          `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?page=${page}&limit=${PAGE_SIZE}&role=Employee`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+          return;
         }
-      });
 
-      if (response.status === 401) {
-        localStorage.removeItem('token');
-        navigate('/login');
-        return;
-      }
+        if (!response.ok) {
+          setError('Failed to fetch employees');
+          return;
+        }
 
-      if (response.ok) {
         const data = await response.json();
-        setEmployees(sortEmployeesAlphabetically(data.users || []));
-        setTotalPages(data.totalPages || 1);
-        setTotalItems(data.totalItems || 0);
-      } else {
-        setError('Failed to fetch employees');
-      }
+        collected.push(...(data.users || []));
+
+        const meta = data.pagination || data;
+        pages = Math.max(1, Number(meta.totalPages) || 1);
+        page += 1;
+      } while (page <= pages && page <= MAX_PAGES);
+
+      const sorted = sortEmployeesAlphabetically(collected);
+      setAllEmployees(sorted);
+      setError(null);
+
+      // If deleting the last row emptied the final page, step back onto a page
+      // that still has data.
+      const lastPage = Math.max(1, Math.ceil(sorted.length / itemsPerPage));
+      if (currentPage > lastPage) setCurrentPage(lastPage);
     } catch (err) {
       setError('Error fetching employees');
     } finally {
@@ -158,7 +199,7 @@ export default function EmployeeTable() {
         return;
       }
       if (response.ok) {
-        fetchEmployees(currentPage);
+        fetchEmployees();
         setShowModal(false);
         resetForm();
       } else {
@@ -186,7 +227,7 @@ export default function EmployeeTable() {
       });
 
       if (response.ok) {
-        fetchEmployees(currentPage);
+        fetchEmployees();
         setShowDeleteModal(false);
         setDeleteEmployeeId(null);
       } else {
@@ -245,51 +286,51 @@ export default function EmployeeTable() {
           <BaseSkeleton className="h-10 w-32" />
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <Table className="min-w-full divide-y divide-gray-200">
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-4" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-16" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-12" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-16" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-12" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-20" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-12" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-8" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-12" />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-14" />
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white divide-y divide-gray-200">
               {Array.from({ length: itemsPerPage }, (_, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <TableRow key={rowIndex} className="hover:bg-gray-50">
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     <BaseSkeleton className="h-5 w-8" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     <BaseSkeleton className="h-5 w-16" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-3">
                       <UniversalSkeleton type="avatar" size={40} />
                       <div className="flex flex-col space-y-1">
@@ -297,36 +338,36 @@ export default function EmployeeTable() {
                         <BaseSkeleton className="h-3 w-32" />
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     <BaseSkeleton className="h-5 w-20" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <BaseSkeleton className="h-5 w-16" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <BaseSkeleton className="h-5 w-20" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <BaseSkeleton className="h-5 w-24" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <BaseSkeleton className="h-5 w-20" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <BaseSkeleton className="h-5 w-16" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
                     <div className="flex space-x-2">
                       <BaseSkeleton className="h-8 w-8 rounded" />
                       <BaseSkeleton className="h-8 w-8 rounded" />
                       <BaseSkeleton className="h-8 w-8 rounded" />
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
     );
@@ -355,31 +396,31 @@ export default function EmployeeTable() {
         </button>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee Code</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th> */}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joining Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DOB</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+        <Table className="min-w-full divide-y divide-gray-200">
+          <TableHeader className="bg-gray-50">
+            <TableRow>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee Code</TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</TableHead>
+              {/* <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</TableHead> */}
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joining Date</TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DOB</TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="bg-white divide-y divide-gray-200">
             {employees.map((employee, index) => (
-              <tr key={employee._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <TableRow key={employee._id} className="hover:bg-gray-50">
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {(currentPage - 1) * itemsPerPage + index + 1}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {employee.employeeCode || '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-3">
                     {/* Profile Photo / Initials */}
                     <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
@@ -411,28 +452,28 @@ export default function EmployeeTable() {
                       <span className="text-xs text-gray-500">{employee.email}</span>
                     </div>
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {employee.department?.name || '-'}
-                </td>
-                {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                </TableCell>
+                {/* <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${employee.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
                     {employee.status || 'Active'}
                   </span>
-                </td> */}
-                {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.role}</td> */}
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                </TableCell> */}
+                {/* <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.role}</TableCell> */}
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {employee.joiningDate && !isNaN(new Date(employee.joiningDate).getTime()) ? formatDate(employee.joiningDate) : '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {employee.mobile1}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {employee.joiningDate && !isNaN(new Date(employee.joiningDate).getTime()) ? formatDate(employee.joiningDate) : '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.salary ? `₹${employee.salary}` : '-'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.salary ? `â‚¹${employee.salary}` : '-'}</TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
                   <div className="flex space-x-2">
                     <button
                       onClick={() => navigate(`/employees/view/${employee._id}`)}
@@ -456,45 +497,52 @@ export default function EmployeeTable() {
                       <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
-      {employees.length === 0 && (
+      {allEmployees.length === 0 && (
         <div className="text-center py-8 text-gray-500">No employees found</div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <Pagination className="mt-6">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-              />
-            </PaginationItem>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <PaginationItem key={page}>
-                <PaginationLink
-                  onClick={() => setCurrentPage(page)}
-                  isActive={currentPage === page}
-                  className="cursor-pointer"
-                >
-                  {page}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+      {totalItems > 0 && (
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-500">
+            Showing {(currentPage - 1) * itemsPerPage + 1}–
+            {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} employees
+          </p>
+          {totalPages > 1 && (
+            <Pagination className="mx-0 w-auto justify-start sm:justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
       )}
 
       {/* View Modal */}
@@ -503,7 +551,7 @@ export default function EmployeeTable() {
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-start justify-between">
               <h3 className="text-lg font-semibold">Employee Details</h3>
-              <button onClick={() => setViewEmployee(null)} className="text-gray-500 hover:text-gray-700">✕</button>
+              <button onClick={() => setViewEmployee(null)} className="text-gray-500 hover:text-gray-700">âœ•</button>
             </div>
             <div className="mt-4 space-y-4 text-sm">
               <div>
@@ -528,7 +576,7 @@ export default function EmployeeTable() {
               </div>
               <div>
                 <div className="text-gray-500">Salary</div>
-                <div className="text-gray-800">{viewEmployee.salary ? `₹${viewEmployee.salary}` : '-'}</div>
+                <div className="text-gray-800">{viewEmployee.salary ? `â‚¹${viewEmployee.salary}` : '-'}</div>
               </div>
               <div>
                 <div className="text-gray-500">Department</div>

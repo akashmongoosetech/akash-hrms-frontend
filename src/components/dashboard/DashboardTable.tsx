@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Users, Code } from 'lucide-react';
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
 interface Client {
   _id: string;
   name: string;
@@ -150,30 +159,30 @@ export default function DashboardTable() {
 
         {/* Desktop Table View Skeleton */}
         <div className="hidden md:block overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <Table className="min-w-full divide-y divide-gray-200">
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-12" />
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-20" />
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-20" />
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-16" />
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <BaseSkeleton className="h-4 w-12" />
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white divide-y divide-gray-200">
               {Array(5).fill(0).map((_, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-gray-50">
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                <TableRow key={rowIndex} className="hover:bg-gray-50">
+                  <TableCell className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <UniversalSkeleton type="avatar" size={32} className="mr-3" />
                       <div>
@@ -181,28 +190,28 @@ export default function DashboardTable() {
                         <BaseSkeleton className="h-3 w-24" />
                       </div>
                     </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-4 sm:px-6 py-4">
                     <div className="flex items-center">
                       <UniversalSkeleton type="avatar" size={32} className="" />
                       <UniversalSkeleton type="avatar" size={32} className="ml-1" />
                       <BaseSkeleton className="h-8 w-8 rounded-full ml-1" />
                     </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                  </TableCell>
+                  <TableCell className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <BaseSkeleton className="h-4 w-24 mb-1" />
                     <BaseSkeleton className="h-3 w-32" />
-                  </td>
-                  <td className="px-4 sm:px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-4 sm:px-6 py-4">
                     <BaseSkeleton className="h-4 w-16" />
-                  </td>
-                  <td className="px-4 sm:px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-4 sm:px-6 py-4">
                     <BaseSkeleton className="h-5 w-16" />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
     );
@@ -320,31 +329,31 @@ export default function DashboardTable() {
 
       {/* Desktop Table View */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <Table className="min-w-full divide-y divide-gray-200">
+          <TableHeader className="bg-gray-50">
+            <TableRow>
+              <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Client
-              </th>
-              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Team Members
-              </th>
-              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Project Name
-              </th>
-              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Technology
-              </th>
-              <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="bg-white divide-y divide-gray-200">
             {filteredProjects.slice(0, 10).map((project) => (
-              <tr key={project._id} className="hover:bg-gray-50">
+              <TableRow key={project._id} className="hover:bg-gray-50">
                 {/* Client */}
-                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                <TableCell className="px-4 sm:px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     {getClientProfile(project) && (
                       <img
@@ -364,10 +373,10 @@ export default function DashboardTable() {
                       )}
                     </div>
                   </div>
-                </td>
+                </TableCell>
 
                 {/* Team Members */}
-                <td className="px-4 sm:px-6 py-4 cursor-pointer">
+                <TableCell className="px-4 sm:px-6 py-4 cursor-pointer">
                   <div className="flex items-center">
                     {project.teamMembers && project.teamMembers.length > 0 ? (
                       <div className="flex -space-x-2">
@@ -421,10 +430,10 @@ export default function DashboardTable() {
                       }
                     `}
                   </style>
-                </td>
+                </TableCell>
 
                 {/* Project Info */}
-                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                <TableCell className="px-4 sm:px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {project.name}
                   </div>
@@ -433,27 +442,27 @@ export default function DashboardTable() {
                       {project.description}
                     </div>
                   )}
-                </td>
+                </TableCell>
 
                 {/* Technology */}
-                <td className="px-4 sm:px-6 py-4">
+                <TableCell className="px-4 sm:px-6 py-4">
                   <div className="flex items-center text-sm text-gray-900">
                     <Code className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
                     <span>{project.technology || 'Not specified'}</span>
                   </div>
-                </td>
+                </TableCell>
 
                 {/* Status */}
-                <td className="px-4 sm:px-6 py-4">
+                <TableCell className="px-4 sm:px-6 py-4">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getProjectDisplayStatus(project) === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                     }`}>
                     {getProjectDisplayStatus(project)}
                   </span>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {filteredProjects.length === 0 && (

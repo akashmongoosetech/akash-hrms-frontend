@@ -3,6 +3,15 @@ import { Eye, Edit, Trash2, NotebookPen } from 'lucide-react';
 import { formatDate, sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
 interface Report {
   _id: string;
   employee: {
@@ -169,48 +178,48 @@ const ReportTable: React.FC<ReportTableProps> = ({
           {/* Desktop Table View Skeleton */}
           <div className="hidden sm:block">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <Table className="w-full">
+                <TableHeader className="bg-gray-50 border-b border-gray-200">
+                  <TableRow>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <BaseSkeleton className="h-4 w-4" />
-                    </th>
+                    </TableHead>
                     {role && role !== 'Employee' && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <BaseSkeleton className="h-4 w-16" />
-                      </th>
+                      </TableHead>
                     )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <BaseSkeleton className="h-4 w-8" />
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <BaseSkeleton className="h-4 w-16" />
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <BaseSkeleton className="h-4 w-12" />
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <BaseSkeleton className="h-4 w-16" />
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <BaseSkeleton className="h-4 w-20" />
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <BaseSkeleton className="h-4 w-16" />
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <BaseSkeleton className="h-4 w-14" />
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="bg-white divide-y divide-gray-200">
                   {Array.from({ length: 5 }, (_, rowIndex) => (
-                    <tr key={rowIndex} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <TableRow key={rowIndex} className="hover:bg-gray-50">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         <BaseSkeleton className="h-5 w-8" />
-                      </td>
+                      </TableCell>
                       {role && role !== 'Employee' && (
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <TableCell className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <UniversalSkeleton type="avatar" size={32} />
                             <div className="ml-3">
@@ -218,37 +227,37 @@ const ReportTable: React.FC<ReportTableProps> = ({
                               <BaseSkeleton className="h-3 w-24" />
                             </div>
                           </div>
-                        </td>
+                        </TableCell>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <BaseSkeleton className="h-5 w-16" />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <BaseSkeleton className="h-5 w-12" />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <BaseSkeleton className="h-5 w-12" />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <BaseSkeleton className="h-5 w-8" />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         <BaseSkeleton className="h-5 w-12" />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                         <BaseSkeleton className="h-5 w-12" />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <BaseSkeleton className="h-6 w-6 rounded" />
                           <BaseSkeleton className="h-6 w-6 rounded" />
                           <BaseSkeleton className="h-6 w-6 rounded" />
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         </>
@@ -342,48 +351,48 @@ const ReportTable: React.FC<ReportTableProps> = ({
           {/* Desktop Table View */}
           <div className="hidden sm:block">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <Table className="w-full">
+                <TableHeader className="bg-gray-50 border-b border-gray-200">
+                  <TableRow>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       #
-                    </th>
+                    </TableHead>
                     {role && role !== 'Employee' && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Employee
-                      </th>
+                      </TableHead>
                     )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Start Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       End Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Break (min)
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Working Hours
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total Hours
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="bg-white divide-y divide-gray-200">
                   {reports.map((report, index) => (
-                    <tr key={report._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <TableRow key={report._id} className="hover:bg-gray-50">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {index + 1}
-                      </td>
+                      </TableCell>
                       {role && role !== 'Employee' && (
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <TableCell className="px-6 py-4 whitespace-nowrap">
                           {report.employee ? (
                             <div className="flex items-center">
                               {report.employee.photo ? (
@@ -409,29 +418,29 @@ const ReportTable: React.FC<ReportTableProps> = ({
                           ) : (
                             <div className="text-sm text-gray-500">Employee not found</div>
                           )}
-                        </td>
+                        </TableCell>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatDate(report.date)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatTime(report.startTime)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatTime(report.endTime)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {report.breakDuration}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getWorkingHoursBadge(report.workingHours)}`}>
                           {report.workingHours}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                         {report.totalHours}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => onView(report)}
@@ -469,11 +478,11 @@ const ReportTable: React.FC<ReportTableProps> = ({
                             </>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         </>

@@ -53,7 +53,18 @@ export default function SignupPage() {
       navigate('/login');
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.response?.data?.message || 'Signup error');
+      const status = err?.response?.status;
+      const serverMessage = err?.response?.data?.message;
+      // A sleeping/unreachable backend (or a Render edge 502) arrives here with
+      // no response at all, and the browser reports it as a CORS failure. Say
+      // what is actually happening instead of showing a bare "Signup error".
+      if (!err?.response || status === 502 || status === 503 || status === 504) {
+        toast.error('Cannot reach the server right now. Please try again in a minute.');
+      } else if (status >= 500) {
+        toast.error(serverMessage || 'The server could not create your account. Please try again.');
+      } else {
+        toast.error(serverMessage || 'Signup error');
+      }
     } finally { setLoading(false); }
   };
 

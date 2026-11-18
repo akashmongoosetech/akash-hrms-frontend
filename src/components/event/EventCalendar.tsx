@@ -166,7 +166,8 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
       const token = localStorage.getItem('token');
       const role = localStorage.getItem('role');
 
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users`, {
+      // limit=1000: the API defaults to 10 rows, which truncated the dropdown.
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?limit=1000`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -175,8 +176,7 @@ export default function EventCalendar({ events, onEventClick, onEditEvent, onDel
 
       if (response.ok) {
         const data = await response.json();
-        const usersData = data.users;
-        setUsers(usersData);
+        setUsers(data.users || []);
       } else {
         const errorText = await response.text();
         console.error('Failed to fetch users, status:', response.status, 'error:', errorText);
