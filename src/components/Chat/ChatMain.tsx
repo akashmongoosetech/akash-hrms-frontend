@@ -30,6 +30,11 @@ import { Bubble, BubbleContent, BubbleGroup } from '../ui/bubble';
 import { Marker, MarkerContent } from '../ui/marker';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import toast from 'react-hot-toast';
+import MessageReactions from './MessageReactions';
+import ReactionToolbar from './ReactionToolbar';
+import { QUICK_REACTION_EMOJI } from './reactionTypes';
+import type { MessageReaction } from './reactionTypes';
+import { useLongPress } from '../../hooks/useLongPress';
 
 interface User {
   _id: string;
@@ -63,6 +68,7 @@ interface Message {
   read: boolean;
   file?: FileAttachment | null;
   isDeletedForEveryone?: boolean;
+  reactions?: MessageReaction[];
 }
 
 type IconType = 'audio' | 'code' | 'document' | 'empty' | 'folder' | 'image' | 'img' | 'spreadsheets' | 'video' | 'video-01' | 'video-02' | 'aep' | 'ai' | 'avi' | 'css' | 'csv' | 'dmg' | 'doc' | 'docx' | 'exe' | 'fig' | 'gif' | 'html' | 'java' | 'mp4' | 'mpeg' | 'pdf' | 'pdf-simple' | 'png' | 'ppt' | 'pptx' | 'psd' | 'sql' | 'svg' | 'txt' | 'webp' | 'xls' | 'xlsx' | 'xml' | 'zip';
@@ -150,6 +156,24 @@ const ChatMain: React.FC = () => {
     lastName?: string;
     photo?: string;
   } | null>(null);
+  const [reactionToolbar, setReactionToolbar] = useState<{
+    messageId: string;
+    isMine: boolean;
+    rect: DOMRect;
+  } | null>(null);
+
+  const pendingReactionsRef = useRef<Set<string>>(new Set());
+  const longPressTargetRef = useRef<HTMLElement | null>(null);
+  const fileOpenTimerRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (fileOpenTimerRef.current !== null) {
+        window.clearTimeout(fileOpenTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
@@ -280,7 +304,13 @@ const ChatMain: React.FC = () => {
         setMessages(prev =>
           prev.map(msg =>
             msg._id === data.messageId
-              ? { ...msg, message: 'Deleted by user', file: undefined, isDeletedForEveryone: true }
+              ? {
+                  ...msg,
+                  message: 'Deleted by user',
+                  file: undefined,
+                  reactions: [],
+                  isDeletedForEveryone: true,
+                }
               : msg,
           ),
         );
@@ -290,12 +320,30 @@ const ChatMain: React.FC = () => {
       fetchChatUsers();
     };
 
+    // Reactions are broadcast by the backend to both participants (and to the
+    // reacting user's other devices), so the list stays authoritative.
+    const handleReactionUpdated = (data: {
+      messageId: string;
+      reactions: MessageReaction[];
+    }) => {
+      if (!data?.messageId) return;
+      setMessages(prev =>
+        prev.map(msg =>
+          msg._id === data.messageId
+            ? { ...msg, reactions: Array.isArray(data.reactions) ? data.reactions : [] }
+            : msg,
+        ),
+      );
+    };
+
     socket.on('newMessage', handleNewMessage);
     socket.on('messageDeleted', handleMessageDeleted);
+    socket.on('messageReactionUpdated', handleReactionUpdated);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
       socket.off('messageDeleted', handleMessageDeleted);
+      socket.off('messageReactionUpdated', handleReactionUpdated);
     };
   }, [fetchChatUsers, markConversationAsRead]);
 
@@ -538,6 +586,150 @@ const ChatMain: React.FC = () => {
       photo: currentUserProfile?.photo,
     };
   }, [currentUserName, currentUserProfile]);
+
+  // -------------------------
+  // MESSAGE REACTIONS
+  // -------------------------
+  const openReactionToolbar = useCallback(
+    (messageId: string, isMine: boolean, rect: DOMRect) => {
+      setReactionToolbar({ messageId, isMine, rect });
+    },
+    [],
+  );
+
+  const handleLongPress = useCallback(() => {
+    const element = longPressTargetRef.current;
+    if (!element) return;
+    const messageId = element.dataset.messageId;
+    if (!messageId) return;
+
+    // Long pressing on mobile can leave a text selection behind; clear it so
+    // the toolbar is the only visible result of the gesture.
+    window.getSelection()?.removeAllRanges();
+    openReactionToolbar(
+      messageId,
+      element.dataset.mine === 'true',
+      element.getBoundingClientRect(),
+    );
+  }, [openReactionToolbar]);
+
+  const { longPressHandlers, consumeFired } = useLongPress({ onLongPress: handleLongPress });
+
+  // A long press also produces a click on release in some browsers; swallow it
+  // so it does not open an attachment or trigger the message selection.
+  const consumeFiredClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (consumeFired()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    [consumeFired],
+  );
+
+  // Attachments normally open on a single click. Opening is delayed slightly so
+  // the second click of a double-click (which adds a ❤️ reaction) can cancel it
+  // instead of opening the file twice.
+  const openAttachment = useCallback((path?: string | null) => {
+    if (!path) return;
+    if (fileOpenTimerRef.current !== null) window.clearTimeout(fileOpenTimerRef.current);
+    fileOpenTimerRef.current = window.setTimeout(() => {
+      fileOpenTimerRef.current = null;
+      window.open(path, '_blank', 'noopener,noreferrer');
+    }, 280);
+  }, []);
+
+  const cancelPendingAttachment = useCallback(() => {
+    if (fileOpenTimerRef.current !== null) {
+      window.clearTimeout(fileOpenTimerRef.current);
+      fileOpenTimerRef.current = null;
+    }
+  }, []);
+
+  const toggleReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      if (!currentUserId) return;
+
+      // Guard rapid repeat clicks while a request for this pair is in flight.
+      const requestKey = `${messageId}:${emoji}`;
+      if (pendingReactionsRef.current.has(requestKey)) return;
+      pendingReactionsRef.current.add(requestKey);
+
+      const target = messages.find(message => message._id === messageId);
+      const previousReactions = target?.reactions ?? [];
+
+      // Optimistic update so the reaction appears instantly for the sender.
+      setMessages(prev =>
+        prev.map(message => {
+          if (message._id !== messageId) return message;
+          const list = message.reactions ?? [];
+          const mine = list.some(
+            reaction => reaction.user?._id === currentUserId && reaction.emoji === emoji,
+          );
+
+          if (mine) {
+            return {
+              ...message,
+              reactions: list.filter(
+                reaction => !(reaction.user?._id === currentUserId && reaction.emoji === emoji),
+              ),
+            };
+          }
+
+          return {
+            ...message,
+            reactions: [
+              ...list,
+              {
+                emoji,
+                createdAt: new Date().toISOString(),
+                user: {
+                  _id: currentUserId,
+                  firstName: currentUser.firstName,
+                  lastName: currentUser.lastName,
+                  photo: currentUser.photo ?? null,
+                },
+              },
+            ],
+          };
+        }),
+      );
+
+      try {
+        const response = await API.post(`/chats/react/${messageId}`, { emoji });
+        const reactions = response.data?.reactions;
+        if (Array.isArray(reactions)) {
+          setMessages(prev =>
+            prev.map(message =>
+              message._id === messageId ? { ...message, reactions } : message,
+            ),
+          );
+        }
+      } catch (error) {
+        console.error('Error updating reaction:', error);
+        // Roll back to the state we captured before the optimistic update.
+        setMessages(prev =>
+          prev.map(message =>
+            message._id === messageId
+              ? { ...message, reactions: previousReactions }
+              : message,
+          ),
+        );
+        toast.error('Could not update your reaction');
+      } finally {
+        pendingReactionsRef.current.delete(requestKey);
+      }
+    },
+    [currentUser, currentUserId, messages],
+  );
+
+  const toolbarSelectedEmojis = useMemo(() => {
+    if (!reactionToolbar) return [] as string[];
+    const target = messages.find(message => message._id === reactionToolbar.messageId);
+    return (target?.reactions ?? [])
+      .filter(reaction => reaction.user?._id === currentUserId)
+      .map(reaction => reaction.emoji);
+  }, [messages, reactionToolbar, currentUserId]);
 
   const renderAvatar = (user: { firstName: string; lastName: string; photo?: string }, size = 'h-10 w-10') => (
     <Avatar className={`${size} border border-white shadow-sm`}>
@@ -884,20 +1076,76 @@ const ChatMain: React.FC = () => {
                               >
                                 {group.messages.map(message => {
                                   const isSelected = selectedMessages.includes(message._id);
+                                  const canReact =
+                                    !isSelectionMode && !message.isDeletedForEveryone;
+                                  const reactionHandlers = canReact
+                                    ? {
+                                        onPointerDown: (
+                                          event: React.PointerEvent<HTMLDivElement>,
+                                        ) => {
+                                          longPressTargetRef.current = event.currentTarget;
+                                          longPressHandlers.onPointerDown(event);
+                                        },
+                                        onPointerMove: longPressHandlers.onPointerMove,
+                                        onPointerUp: longPressHandlers.onPointerUp,
+                                        onPointerLeave: longPressHandlers.onPointerLeave,
+                                        onPointerCancel: longPressHandlers.onPointerCancel,
+                                      }
+                                    : {};
 
                                   return (
-                                    <Bubble
+                                    <div
                                       key={message._id}
-                                      variant={
-                                        message.isDeletedForEveryone
-                                          ? 'outline'
-                                          : group.isMine
-                                            ? 'default'
-                                            : 'muted'
-                                      }
-                                      className="max-w-[85%] sm:max-w-[75%]"
+                                      className={`flex w-full min-w-0 flex-col ${
+                                        group.isMine ? 'items-end' : 'items-start'
+                                      }`}
                                     >
+                                      <Bubble
+                                        variant={
+                                          message.isDeletedForEveryone
+                                            ? 'outline'
+                                            : group.isMine
+                                              ? 'default'
+                                              : 'muted'
+                                        }
+                                        className="max-w-[85%] sm:max-w-[75%]"
+                                      >
                                       <BubbleContent
+                                        data-message-id={message._id}
+                                        data-mine={group.isMine ? 'true' : 'false'}
+                                        {...reactionHandlers}
+                                        onClickCapture={
+                                          canReact ? consumeFiredClick : undefined
+                                        }
+                                        onDoubleClick={
+                                          canReact
+                                            ? () => {
+                                                cancelPendingAttachment();
+                                                toggleReaction(message._id, QUICK_REACTION_EMOJI);
+                                              }
+                                            : undefined
+                                        }
+                                        onContextMenu={
+                                          canReact
+                                            ? event => {
+                                                event.preventDefault();
+                                                openReactionToolbar(
+                                                  message._id,
+                                                  group.isMine,
+                                                  event.currentTarget.getBoundingClientRect(),
+                                                );
+                                              }
+                                            : undefined
+                                        }
+                                        onMouseDown={
+                                          canReact
+                                            ? event => {
+                                                // Stop the browser from selecting a word on
+                                                // the second click of a double-click.
+                                                if (event.detail > 1) event.preventDefault();
+                                              }
+                                            : undefined
+                                        }
                                         role={isSelectionMode ? 'button' : undefined}
                                         tabIndex={isSelectionMode ? 0 : undefined}
                                         onClick={
@@ -925,6 +1173,10 @@ const ChatMain: React.FC = () => {
                                           isSelected
                                             ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-50'
                                             : ''
+                                        } ${
+                                          canReact
+                                            ? '[-webkit-touch-callout:none] transition-shadow'
+                                            : ''
                                         }`}
                                       >
                                         {message.isDeletedForEveryone ? (
@@ -943,8 +1195,9 @@ const ChatMain: React.FC = () => {
                                                     className="max-h-64 w-auto cursor-pointer rounded-lg object-cover"
                                                     onClick={() => {
                                                       if (isSelectionMode) return;
-                                                      window.open(message.file!.path, '_blank');
+                                                      openAttachment(message.file!.path);
                                                     }}
+                                                    onDoubleClick={event => event.preventDefault()}
                                                   />
                                                 ) : message.file.type?.startsWith('video/') ? (
                                                   <video
@@ -964,7 +1217,20 @@ const ChatMain: React.FC = () => {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     onClick={event => {
-                                                      if (isSelectionMode) event.preventDefault();
+                                                      if (isSelectionMode) {
+                                                        event.preventDefault();
+                                                        return;
+                                                      }
+                                                      if (
+                                                        event.metaKey ||
+                                                        event.ctrlKey ||
+                                                        event.shiftKey ||
+                                                        event.button !== 0
+                                                      ) {
+                                                        return;
+                                                      }
+                                                      event.preventDefault();
+                                                      openAttachment(message.file!.path);
                                                     }}
                                                     className={`flex items-center gap-2.5 rounded-lg border px-2.5 py-2 transition ${
                                                       group.isMine
@@ -1007,6 +1273,20 @@ const ChatMain: React.FC = () => {
                                         )}
                                       </BubbleContent>
                                     </Bubble>
+
+                                    {canReact && (message.reactions?.length ?? 0) > 0 ? (
+                                      <MessageReactions
+                                        reactions={message.reactions ?? []}
+                                        currentUserId={currentUserId}
+                                        onToggle={emoji => toggleReaction(message._id, emoji)}
+                                        className={`mt-1 ${
+                                          group.isMine
+                                            ? 'justify-end pr-1'
+                                            : 'justify-start pl-1'
+                                        }`}
+                                      />
+                                    ) : null}
+                                  </div>
                                   );
                                 })}
                               </BubbleGroup>
@@ -1287,6 +1567,18 @@ const ChatMain: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ReactionToolbar
+        anchorRect={reactionToolbar?.rect ?? null}
+        selectedEmojis={toolbarSelectedEmojis}
+        onSelect={emoji => {
+          if (!reactionToolbar) return;
+          const messageId = reactionToolbar.messageId;
+          setReactionToolbar(null);
+          toggleReaction(messageId, emoji);
+        }}
+        onClose={() => setReactionToolbar(null)}
+      />
     </div>
   );
 };
