@@ -713,13 +713,13 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   </div>
                   <div className="p-2">
                     <button
-                      onClick={() => navigate(`/employees/view/${userId}`)}
+                      onClick={() => navigate('/profile')}
                       className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                       <Users className="h-4 w-4" />
                       <span>Profile</span>
                     </button>
-                     {role !== "Admin" && role !== "SuperAdmin" && (
+                     {(role === "Admin" || role === "SuperAdmin") && (
                     <button
                       onClick={() => navigate(`/employees/view/${userId}?tab=calendar`)}
                       className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -728,7 +728,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                       <span>Calendar</span>
                     </button>
                     )}
-                     {role !== "Admin" && role !== "SuperAdmin" && (
+                     {(role === "Admin" || role === "SuperAdmin") && (
                     <button
                       onClick={() => navigate(`/employees/view/${userId}?tab=timeline`)}
                       className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
