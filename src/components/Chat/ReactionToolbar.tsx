@@ -35,21 +35,20 @@ export default function ReactionToolbar({
   onClose,
 }: ReactionToolbarProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const activeAnchorRef = useRef<DOMRect | null>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const [view, setView] = useState<'quick' | 'picker'>('quick');
   const open = Boolean(anchorRect);
 
-  // Every new message starts on the quick bar.
-  useEffect(() => {
-    setView('quick');
-    setPosition(null);
-  }, [anchorRect]);
-
-  useLayoutEffect(() => {
-    if (!anchorRect) return;
-
+  /**
+   * Places the panel next to the message (or at the bottom of the viewport for
+   * the full picker on phones). Measuring happens in a layout effect, so the
+   * very first paint already has the final coordinates instead of flashing at
+   * the off-screen fallback.
+   */
+  const measure = useCallback(() => {
     const panel = panelRef.current;
-    if (!panel) return;
+    if (!panel || !anchorRect) return;
 
     const { width, height } = panel.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
@@ -74,8 +73,51 @@ export default function ReactionToolbar({
       top = Math.max(VIEWPORT_MARGIN, viewportHeight - height - VIEWPORT_MARGIN);
     }
 
-    setPosition({ top, left });
+    setPosition(previous => {
+      // Flooring keeps fractional panel widths from overflowing the viewport by
+      // a sub-pixel on narrow phones.
+      const next = { top: Math.floor(top), left: Math.floor(left) };
+      return previous && previous.top === next.top && previous.left === next.left
+        ? previous
+        : next;
+    });
   }, [anchorRect, view]);
+
+  useLayoutEffect(() => {
+    if (!anchorRect) {
+      activeAnchorRef.current = null;
+      return;
+    }
+
+    // A new message always opens on the quick bar. This must run in the layout
+    // phase: a passive effect here used to run *after* `measure()` and reset the
+    // position, parking the panel off-screen the instant it opened.
+    if (activeAnchorRef.current !== anchorRect) {
+      activeAnchorRef.current = anchorRect;
+      if (view !== 'quick') setView('quick');
+    }
+
+    measure();
+  }, [anchorRect, view, measure]);
+
+  // Re-anchor instead of closing when the viewport changes (mobile keyboards,
+  // URL-bar resizes and orientation changes must not dismiss the picker).
+  useEffect(() => {
+    if (!open) return;
+
+    const handleViewportChange = () => measure();
+    const viewport = window.visualViewport;
+
+    window.addEventListener('resize', handleViewportChange);
+    viewport?.addEventListener('resize', handleViewportChange);
+    viewport?.addEventListener('scroll', handleViewportChange);
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      viewport?.removeEventListener('resize', handleViewportChange);
+      viewport?.removeEventListener('scroll', handleViewportChange);
+    };
+  }, [open, measure]);
 
   // Outside click / Escape / scroll dismissal.
   useEffect(() => {
@@ -104,13 +146,11 @@ export default function ReactionToolbar({
     document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', onClose);
 
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', onClose);
     };
   }, [open, onClose, view]);
 

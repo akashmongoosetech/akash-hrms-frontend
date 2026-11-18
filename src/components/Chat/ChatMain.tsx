@@ -597,10 +597,23 @@ const ChatMain: React.FC = () => {
   // -------------------------
   const openReactionToolbar = useCallback(
     (messageId: string, isMine: boolean, rect: DOMRect) => {
-      setReactionToolbar({ messageId, isMine, rect });
+      setReactionToolbar(previous => {
+        // Both long-press and contextmenu can fire for one gesture; keep the
+        // existing anchor so a late event cannot reset the open picker.
+        if (previous && previous.messageId === messageId) return previous;
+        return { messageId, isMine, rect };
+      });
     },
     [],
   );
+
+  const closeReactionToolbar = useCallback(() => setReactionToolbar(null), []);
+
+  // Switching conversations dismisses the toolbar so it can never act on a
+  // message that is no longer on screen.
+  useEffect(() => {
+    closeReactionToolbar();
+  }, [selectedUser?._id, closeReactionToolbar]);
 
   const handleLongPress = useCallback(() => {
     const element = longPressTargetRef.current;
@@ -1649,7 +1662,7 @@ const ChatMain: React.FC = () => {
           setReactionToolbar(null);
           toggleReaction(messageId, emoji);
         }}
-        onClose={() => setReactionToolbar(null)}
+        onClose={closeReactionToolbar}
       />
     </div>
   );
