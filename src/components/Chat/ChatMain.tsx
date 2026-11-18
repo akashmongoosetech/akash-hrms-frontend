@@ -35,6 +35,7 @@ import ReactionToolbar from './ReactionToolbar';
 import { QUICK_REACTION_EMOJI } from './reactionTypes';
 import type { MessageReaction } from './reactionTypes';
 import { useLongPress } from '../../hooks/useLongPress';
+import { useRecentEmojis } from '../../hooks/useRecentEmojis';
 
 interface User {
   _id: string;
@@ -165,6 +166,9 @@ const ChatMain: React.FC = () => {
   const pendingReactionsRef = useRef<Set<string>>(new Set());
   const longPressTargetRef = useRef<HTMLElement | null>(null);
   const fileOpenTimerRef = useRef<number | null>(null);
+  const lastTapRef = useRef<{ messageId: string; at: number } | null>(null);
+  const suppressClickRef = useRef(0);
+  const doubleTapHandledAtRef = useRef(0);
 
   useEffect(
     () => () => {
@@ -183,6 +187,7 @@ const ChatMain: React.FC = () => {
 
   const currentUserId = localStorage.getItem('userId');
   const currentUserName = localStorage.getItem('userName') || 'You';
+  const { recents, remember } = useRecentEmojis(currentUserId);
 
   useEffect(() => {
     selectedUserIdRef.current = selectedUser?._id ?? null;
@@ -613,13 +618,18 @@ const ChatMain: React.FC = () => {
     );
   }, [openReactionToolbar]);
 
-  const { longPressHandlers, consumeFired } = useLongPress({ onLongPress: handleLongPress });
+  const { longPressHandlers, consumeFired, wasFired } = useLongPress({
+    onLongPress: handleLongPress,
+  });
 
-  // A long press also produces a click on release in some browsers; swallow it
-  // so it does not open an attachment or trigger the message selection.
-  const consumeFiredClick = useCallback(
+  // A long press or a double-tap also produces a click on release in some
+  // browsers; swallow it so it does not open an attachment or select a message.
+  const handleClickCapture = useCallback(
     (event: React.MouseEvent) => {
-      if (consumeFired()) {
+      const afterLongPress = consumeFired();
+      const afterDoubleTap = suppressClickRef.current > 0;
+      if (afterDoubleTap) suppressClickRef.current -= 1;
+      if (afterLongPress || afterDoubleTap) {
         event.preventDefault();
         event.stopPropagation();
       }
@@ -654,6 +664,9 @@ const ChatMain: React.FC = () => {
       const requestKey = `${messageId}:${emoji}`;
       if (pendingReactionsRef.current.has(requestKey)) return;
       pendingReactionsRef.current.add(requestKey);
+
+      // Remember the emoji for the "Frequently Used" section of the picker.
+      remember(emoji);
 
       const target = messages.find(message => message._id === messageId);
       const previousReactions = target?.reactions ?? [];
@@ -720,7 +733,7 @@ const ChatMain: React.FC = () => {
         pendingReactionsRef.current.delete(requestKey);
       }
     },
-    [currentUser, currentUserId, messages],
+    [currentUser, currentUserId, messages, remember],
   );
 
   const toolbarSelectedEmojis = useMemo(() => {
@@ -730,6 +743,63 @@ const ChatMain: React.FC = () => {
       .filter(reaction => reaction.user?._id === currentUserId)
       .map(reaction => reaction.emoji);
   }, [messages, reactionToolbar, currentUserId]);
+
+  // Double-click (desktop) and double-tap (touch) both toggle ❤️. The two
+  // paths share a timestamp guard so a browser that emits a synthetic dblclick
+  // after a touch double-tap cannot toggle the reaction twice.
+  const quickReact = useCallback(
+    (messageId: string) => {
+      doubleTapHandledAtRef.current = Date.now();
+      cancelPendingAttachment();
+      toggleReaction(messageId, QUICK_REACTION_EMOJI);
+    },
+    [cancelPendingAttachment, toggleReaction],
+  );
+
+  const handleMessageDoubleClick = useCallback(
+    (messageId: string) => {
+      if (Date.now() - doubleTapHandledAtRef.current < 600) return;
+      quickReact(messageId);
+    },
+    [quickReact],
+  );
+
+  const handleMessagePointerUp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      longPressHandlers.onPointerUp();
+
+      // Mouse users keep the native dblclick path below.
+      if (event.pointerType === 'mouse' || !event.isPrimary) return;
+
+      // A long press that just opened the toolbar must not count as the first
+      // tap of a double-tap (dismissing the toolbar would add a heart).
+      if (wasFired()) {
+        lastTapRef.current = null;
+        return;
+      }
+
+      const messageId = event.currentTarget.dataset.messageId;
+      if (!messageId) return;
+
+      const now = Date.now();
+      const last = lastTapRef.current;
+
+      if (last && last.messageId === messageId && now - last.at <= 320) {
+        lastTapRef.current = null;
+        // Swallow the click that follows the second tap (attachments would
+        // otherwise open while the reaction is being added).
+        suppressClickRef.current += 1;
+        window.setTimeout(() => {
+          suppressClickRef.current = 0;
+        }, 600);
+        quickReact(messageId);
+        return;
+      }
+
+      lastTapRef.current = { messageId, at: now };
+    },
+    [longPressHandlers, quickReact, wasFired],
+  );
 
   const renderAvatar = (user: { firstName: string; lastName: string; photo?: string }, size = 'h-10 w-10') => (
     <Avatar className={`${size} border border-white shadow-sm`}>
@@ -1084,10 +1154,14 @@ const ChatMain: React.FC = () => {
                                           event: React.PointerEvent<HTMLDivElement>,
                                         ) => {
                                           longPressTargetRef.current = event.currentTarget;
+                                          // Any new press supersedes a pending single-click
+                                          // attachment open, so a fast second tap opens the
+                                          // reaction instead of the file.
+                                          cancelPendingAttachment();
                                           longPressHandlers.onPointerDown(event);
                                         },
                                         onPointerMove: longPressHandlers.onPointerMove,
-                                        onPointerUp: longPressHandlers.onPointerUp,
+                                        onPointerUp: handleMessagePointerUp,
                                         onPointerLeave: longPressHandlers.onPointerLeave,
                                         onPointerCancel: longPressHandlers.onPointerCancel,
                                       }
@@ -1115,14 +1189,11 @@ const ChatMain: React.FC = () => {
                                         data-mine={group.isMine ? 'true' : 'false'}
                                         {...reactionHandlers}
                                         onClickCapture={
-                                          canReact ? consumeFiredClick : undefined
+                                          canReact ? handleClickCapture : undefined
                                         }
                                         onDoubleClick={
                                           canReact
-                                            ? () => {
-                                                cancelPendingAttachment();
-                                                toggleReaction(message._id, QUICK_REACTION_EMOJI);
-                                              }
+                                            ? () => handleMessageDoubleClick(message._id)
                                             : undefined
                                         }
                                         onContextMenu={
@@ -1175,7 +1246,7 @@ const ChatMain: React.FC = () => {
                                             : ''
                                         } ${
                                           canReact
-                                            ? '[-webkit-touch-callout:none] transition-shadow'
+                                            ? '[-webkit-touch-callout:none] [touch-action:manipulation] transition-shadow'
                                             : ''
                                         }`}
                                       >
@@ -1571,6 +1642,7 @@ const ChatMain: React.FC = () => {
       <ReactionToolbar
         anchorRect={reactionToolbar?.rect ?? null}
         selectedEmojis={toolbarSelectedEmojis}
+        recents={recents}
         onSelect={emoji => {
           if (!reactionToolbar) return;
           const messageId = reactionToolbar.messageId;

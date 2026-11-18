@@ -1,6 +1,6 @@
 // Shared types for the chat reaction system. Kept in one place so the message
-// list, the reaction pills and the floating toolbar all agree on the shape the
-// API returns.
+// list, the reaction pills, the quick toolbar and the full emoji picker all
+// agree on the shape the API returns.
 
 export interface ReactionUser {
   _id: string;
@@ -22,34 +22,19 @@ export interface ReactionGroup {
   users: ReactionUser[];
 }
 
-export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
+/** Quick bar shown directly above a message on long-press / right-click. */
+export const REACTION_EMOJIS = [
+  '👍',
+  '❤️',
+  '😂',
+  '😮',
+  '😢',
+  '🙏',
+  '🤝',
+  '🔥',
+  '👏',
+  '😍',
+] as const;
 
+/** Emoji used by the double-click / double-tap shortcut. */
 export const QUICK_REACTION_EMOJI = '❤️';
-
-// Extra emojis behind the "more" button. A curated grid keeps the picker fast
-// and avoids pulling a large emoji-picker dependency into the bundle.
-export const MORE_REACTION_EMOJIS = [
-  '😀', '😁', '😂', '🤣', '😊', '😇', '🙂', '😉',
-  '😍', '🥰', '😘', '😜', '🤪', '🤨', '🧐', '🤓',
-  '😎', '🥳', '😏', '😒', '😞', '😔', '😟', '😕',
-  '🙁', '😣', '😖', '😫', '😩', '🥺', '😢', '😭',
-  '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶',
-  '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🫡',
-  '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄',
-  '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤',
-  '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷',
-  '🤒', '🤕', '🤑', '🤠', '😈', '👿', '🤡', '💩',
-  '👻', '💀', '👽', '🤖', '😺', '😸', '😹', '😻',
-  '💋', '💌', '💘', '💝', '💖', '💗', '💓', '💕',
-  '💔', '❤️', '🧡', '💛', '💚', '💙', '💜', '🤎',
-  '🖤', '🤍', '💯', '💢', '💥', '💫', '💦', '💨',
-  '👋', '🤚', '✋', '🖖', '👌', '🤌', '🤏', '✌️',
-  '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇',
-  '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏',
-  '🙌', '🫶', '👐', '🤲', '🤝', '🙏', '✍️', '💪',
-  '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🔥', '⭐',
-  '🌟', '✨', '⚡', '☀️', '🌈', '☕', '🍕', '🍔',
-  '🍟', '🍰', '🎂', '🍺', '🍻', '🥂', '⚽', '🏀',
-  '🎮', '🎵', '🎧', '📌', '✅', '❌', '⚠️', '❗',
-  '❓', '💡', '🎯', '🚀', '👑', '💎',
-];

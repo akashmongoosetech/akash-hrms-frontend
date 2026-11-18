@@ -69,6 +69,9 @@ export function useLongPress({
     return fired;
   }, []);
 
+  /** Read the fired flag without clearing it (the click still needs swallowing). */
+  const wasFired = useCallback(() => firedRef.current, []);
+
   return {
     longPressHandlers: {
       onPointerDown: start,
@@ -79,5 +82,6 @@ export function useLongPress({
     },
     clearTimer,
     consumeFired,
+    wasFired,
   };
 }
