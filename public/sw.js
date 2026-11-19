@@ -74,9 +74,8 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Cache management (optional, for PWA features)
-self.addEventListener('fetch', (event) => {
-  // You can add caching logic here if needed
-  // For now, just pass through all requests
-  event.respondWith(fetch(event.request));
-});
+// NOTE: No pass-through `fetch` handler. Calling
+// `event.respondWith(fetch(event.request))` for every request can turn a
+// transient network blip into a hard navigation failure (seen in the console
+// as "The FetchEvent ... resulted in a network error response"). Push
+// notifications do not need a fetch handler.

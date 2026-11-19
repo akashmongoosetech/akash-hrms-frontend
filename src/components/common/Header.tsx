@@ -19,6 +19,8 @@ import { formatDate } from "../../Common/Commonfunction";
 import TextCKeditor from '../../components/common/TextCKeditor';
 import API from '../../utils/api';
 import toast from 'react-hot-toast';
+import AttendanceVerificationModal from '../Punch/AttendanceVerificationModal';
+import { getTodayAttendance } from '../../utils/attendanceApi';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -33,6 +35,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isPunchedIn, setIsPunchedIn] = useState(false);
+  const [punchStatus, setPunchStatus] = useState<'not-punched-in' | 'punched-in' | 'punched-out'>('not-punched-in');
   const [punchInTime, setPunchInTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [isOnBreak, setIsOnBreak] = useState(false);
@@ -46,6 +49,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     totalHours: '',
   });
   const [reportLoading, setReportLoading] = useState(false);
+  const [punchModalMode, setPunchModalMode] = useState<'in' | 'out' | null>(null);
   const userId = localStorage.getItem("userId");
   const notificationsRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -86,33 +90,26 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     }
   };
 
-  // Fetch punch status and break status on mount
-  useEffect(() => {
-    const fetchPunchStatus = async () => {
-      if (userId) {
-        try {
-          const response = await fetch(
-            `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-            }/punches/status`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-          if (response.ok) {
-            const data = await response.json();
-            setIsPunchedIn(data.isPunchedIn);
-            if (data.isPunchedIn && data.punchTime) {
-              setPunchInTime(new Date(data.punchTime.punchInTime));
-            }
-          }
-        } catch (error) {
-          console.error("Failed to fetch punch status:", error);
-        }
+  // Fetch today's attendance status (single source of truth for the header).
+  const refreshPunchStatus = async () => {
+    if (!userId) return;
+    try {
+      const data = await getTodayAttendance();
+      const active = data.status === "punched-in";
+      setPunchStatus(data.status);
+      setIsPunchedIn(active);
+      if (data.attendance?.punchInTime) {
+        setPunchInTime(new Date(data.attendance.punchInTime));
+      } else {
+        setPunchInTime(null);
+        setElapsedTime("00:00:00");
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch punch status:", error);
+    }
+  };
 
+  useEffect(() => {
     const fetchBreakStatus = async () => {
       if (userId) {
         try {
@@ -135,8 +132,19 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
       }
     };
 
-    fetchPunchStatus();
+    refreshPunchStatus();
     fetchBreakStatus();
+  }, [userId]);
+
+  // Keep the header pill in sync when attendance is recorded from any page.
+  useEffect(() => {
+    const refresh = () => refreshPunchStatus();
+    socket.on("punch-in", refresh);
+    socket.on("punch-out", refresh);
+    return () => {
+      socket.off("punch-in", refresh);
+      socket.off("punch-out", refresh);
+    };
   }, [userId]);
 
   // Update elapsed time every second when punched in
@@ -403,44 +411,15 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   };
 
   const handlePunch = async () => {
+    if (punchStatus === "punched-out") {
+      toast.error("Your attendance for today is already completed.");
+      return;
+    }
     if (isPunchedIn && isOnBreak) {
       toast.error("Need to Break Out first.");
       return;
     }
-
-    if (isPunchedIn) {
-      // Show report modal for punch out
-      setShowReportModal(true);
-      return;
-    }
-
-    try {
-      const endpoint = "/punches/in";
-      const response = await fetch(
-        `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-        }${endpoint}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setIsPunchedIn(true);
-        setPunchInTime(new Date(data.punchTime.punchInTime));
-      } else {
-        // Handle error messages from backend
-        const errorData = await response.json();
-        toast.error(errorData.message || "Failed to punch");
-        console.error("Failed to punch:", response.status, errorData);
-      }
-    } catch (error) {
-      console.error("Failed to punch:", error);
-      toast.error("An error occurred while punching");
-    }
+    setPunchModalMode(isPunchedIn ? "out" : "in");
   };
 
   const handleReportSubmit = async (e: React.FormEvent) => {
@@ -453,7 +432,8 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
     setReportLoading(true);
     try {
-      // Submit report
+      // Attendance was already recorded via the verification modal, so this
+      // only stores the daily report.
       await API.post('/reports', {
         description: reportFormData.description,
         startTime: reportFormData.startTime,
@@ -463,38 +443,18 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         totalHours: reportFormData.totalHours,
       });
 
-      // Then punch out
-      const response = await fetch(
-        `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"
-        }/punches/out`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        setIsPunchedIn(false);
-        setPunchInTime(null);
-        setElapsedTime("00:00:00");
-        setShowReportModal(false);
-        setReportFormData({
-          description: '',
-          startTime: '',
-          breakDuration: 0,
-          endTime: '',
-          workingHours: '',
-          totalHours: '',
-        });
-        toast.success('Punch out and report submitted successfully!');
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || "Failed to punch out");
-      }
+      setShowReportModal(false);
+      setReportFormData({
+        description: '',
+        startTime: '',
+        breakDuration: 0,
+        endTime: '',
+        workingHours: '',
+        totalHours: '',
+      });
+      toast.success('Daily report submitted successfully!');
     } catch (error: any) {
-      console.error("Failed to submit report or punch out:", error);
+      console.error("Failed to submit report:", error);
       if (error.response?.data?.message) {
         toast.error(error.response.data.message);
       } else {
@@ -568,18 +528,26 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           </div>
 
           <div className="flex min-w-0 items-center space-x-1 sm:space-x-4">
-            {/* Punch Button - Only for Employees */}
-            {role === "Employee" && (
+            {/* Punch Button - Employees and HR */}
+            {(role === "Employee" || role === "HR") && (
               <button
                 onClick={handlePunch}
-                className={`flex items-center sm:space-x-1 space-x-2 sm:px-2 px-4 sm:py-1 py-2 rounded-lg font-medium transition-colors ${isPunchedIn
-                    ? "bg-red-500 hover:bg-red-600 text-white"
-                    : "bg-green-500 hover:bg-green-600 text-white"
-                  }`}
+                disabled={punchStatus === "punched-out"}
+                className={`flex items-center sm:space-x-1 space-x-2 sm:px-2 px-4 sm:py-1 py-2 rounded-lg font-medium transition-colors ${
+                  punchStatus === "punched-out"
+                    ? "bg-gray-100 text-gray-500 cursor-default"
+                    : isPunchedIn
+                      ? "bg-red-500 hover:bg-red-600 text-white"
+                      : "bg-green-500 hover:bg-green-600 text-white"
+                }`}
               >
                 <Clock className="sm:h-4 sm:w-4 h-5 w-5" />
                 <span className="sm:text-sm">
-                  {isPunchedIn ? `Punch Out (${elapsedTime})` : "Punch In"}
+                  {punchStatus === "punched-out"
+                    ? "Punched Out"
+                    : isPunchedIn
+                      ? `Punch Out (${elapsedTime})`
+                      : "Punch In"}
                 </span>
               </button>
             )}
@@ -876,13 +844,25 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   disabled={reportLoading || !reportFormData.description.trim()}
                   className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {reportLoading ? 'Submitting...' : 'Submit & Punch Out'}
+                  {reportLoading ? 'Submitting...' : 'Submit Report'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      <AttendanceVerificationModal
+        isOpen={punchModalMode !== null}
+        mode={punchModalMode || "in"}
+        onClose={() => setPunchModalMode(null)}
+        onSuccess={() => {
+          const wasPunchOut = punchModalMode === "out";
+          setPunchModalMode(null);
+          refreshPunchStatus();
+          if (wasPunchOut) setShowReportModal(true);
+        }}
+      />
     </header>
   );
 }

@@ -199,7 +199,7 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/attendance" element={
-            <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute requiredRole="Employee">
               <AttendancePage/>
             </ProtectedRoute>
           } />
@@ -217,6 +217,11 @@ function AppRoutes() {
           <Route path="/punchtime" element={
             <ProtectedRoute requiredRole="Admin">
               <PunchTime/>
+            </ProtectedRoute>
+          } />
+          <Route path="/punch" element={
+            <ProtectedRoute requiredRole="Employee">
+                <PunchTime/>
             </ProtectedRoute>
           } />
           <Route path="/alternate-saturday" element={
