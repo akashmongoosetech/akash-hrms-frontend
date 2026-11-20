@@ -67,7 +67,7 @@ export default function EmployeeTodos({ todos }: Props) {
           {/* Employee Header */}
           <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-shrink-0">
             <img
-              src={employeeTodos[0]?.employeePhoto ? `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'}/${employeeTodos[0].employeePhoto}` : `https://ui-avatars.com/api/?name=${employeeName}`}
+              src={employeeTodos[0]?.employeePhoto ? employeeTodos[0].employeePhoto.startsWith('http') ? employeeTodos[0].employeePhoto : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'}/${employeeTodos[0].employeePhoto}` : `https://ui-avatars.com/api/?name=${employeeName}`}
               alt={employeeName}
               className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex-shrink-0"
             />
