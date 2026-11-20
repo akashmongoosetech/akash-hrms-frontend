@@ -99,6 +99,12 @@ export const getLiveLocations = async () => {
   return response.data;
 };
 
+// Get employees for tracking dropdown (for admin)
+export const getEmployeesForTracking = async () => {
+  const response = await API.get('/users?role=Employee&status=Active&limit=100');
+  return response.data;
+};
+
 // Get employee route history (for admin)
 export const getLocationHistory = async (employeeId: string, startDate?: string, endDate?: string) => {
   const params = new URLSearchParams();
