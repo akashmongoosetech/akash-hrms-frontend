@@ -54,7 +54,7 @@ const BlogAddEdit: React.FC = () => {
   const [blogData, setBlogData] = useState<any>(null);
 
   useEffect(() => {
-    API.get('/users').then(res => {
+    API.get('/users?limit=1000').then(res => {
       setUsers(res.data.users);
     }).catch(err => console.error(err));
   }, []);

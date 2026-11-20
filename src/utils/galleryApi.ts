@@ -31,6 +31,6 @@ export const deleteProfilePicture = async (userId: string, pictureUrl: string) =
 };
 
 export const getUsers = async () => {
-  const response = await API.get('/users');
+  const response = await API.get('/users?limit=1000');
   return response.data;
 };

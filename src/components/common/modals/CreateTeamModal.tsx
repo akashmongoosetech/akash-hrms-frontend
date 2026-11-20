@@ -44,7 +44,7 @@ const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ showModal, onClose, o
 
   const fetchEmployees = async () => {
     try {
-      const response = await API.get('/users');
+      const response = await API.get('/users?role=Employee&status=Active&limit=1000');
       const data = response.data;
       // Filter only active employees
       const employeesOnly = data.users.filter((user: any) => user.role === 'Employee' && user.status === 'Active');

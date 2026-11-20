@@ -89,7 +89,7 @@ export default function TicketTable() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?role=Employee&limit=1000`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

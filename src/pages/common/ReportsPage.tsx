@@ -136,8 +136,13 @@ export default function ReportsPage() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await API.get('/users');
-      setEmployees(response.data.users || []);
+      // `/users` is paginated (default 10), so request the full directory for
+      // the filter dropdown instead of silently showing only the first page.
+      const response = await API.get('/users?limit=1000');
+      // Show only employees (role = 'Employee') in the filter dropdown;
+      // exclude Admin and SuperAdmin so they never appear in report filters.
+      const allUsers = response.data.users || [];
+      setEmployees(allUsers.filter((user: any) => user.role === 'Employee'));
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast.error('Error loading employees');

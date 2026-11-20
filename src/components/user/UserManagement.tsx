@@ -42,7 +42,7 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const res = await API.get('/users');
+      const res = await API.get('/users?role=Admin,SuperAdmin&limit=1000');
       // Filter to show only Admin and SuperAdmin users
       const filteredData = res.data.users.filter((user: User) => user.role === 'Admin' || user.role === 'SuperAdmin');
       setUsers(filteredData);

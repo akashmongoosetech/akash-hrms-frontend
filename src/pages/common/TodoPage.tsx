@@ -157,7 +157,7 @@ export default function TodoPage() {
   const fetchEmployees = async () => {
     try {
       const response = await fetch(
-        `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/users`,
+        `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}/users?limit=1000`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

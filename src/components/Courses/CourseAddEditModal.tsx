@@ -138,7 +138,7 @@ export default function CourseAddEditModal({
       const token = localStorage.getItem('token');
       console.log('Token exists:', !!token);
 
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?limit=1000`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

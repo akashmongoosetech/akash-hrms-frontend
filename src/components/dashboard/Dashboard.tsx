@@ -71,7 +71,7 @@ export default function Dashboard() {
     // Fetch real user statistics
     const fetchUserStats = async () => {
       try {
-        const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users`, {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?limit=1000`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
