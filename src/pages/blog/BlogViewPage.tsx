@@ -9,6 +9,20 @@ import {
   Share2,
 } from "lucide-react";
 import API from "../../utils/api";
+
+// Helper: if the path is already an absolute URL (http:// or https://), return it as-is;
+// otherwise prepend the API URL so Cloudinary CDN links work without double-prefixing.
+const getImageUrl = (path?: string | null) => {
+  if (!path) return "/default-avatar.png";
+  try {
+    const parsed = new URL(path);
+    // Absolute URL (full CDN link) — return as-is
+    if (parsed.protocol && parsed.hostname) return path;
+  } catch {}
+  // Relative path — prepend API base
+  return `${(import.meta as any).env.VITE_API_URL || "http://localhost:5000"}${path}`;
+};
+
 import BlogCard from "../../components/AdminPanel/elements/BlogCard";
 
 interface Blog {
@@ -263,7 +277,7 @@ export default function BlogViewPage() {
         {blog.featuredImage && (
           <div className="relative overflow-hidden">
             <img
-              src={`${apiURL}/${blog.featuredImage}`}
+              src={getImageUrl(blog.featuredImage)}
               alt={blog.title}
               className="w-full h-80 object-cover transition-transform duration-300 hover:scale-105"
             />
@@ -278,7 +292,7 @@ export default function BlogViewPage() {
             <img
               src={
                 blog.author.photo
-                  ? `${apiURL}/${blog.author.photo}`
+                  ? getImageUrl(blog.author.photo)
                   : "/default-avatar.png"
               }
               className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
@@ -376,7 +390,7 @@ export default function BlogViewPage() {
                   {sec.image && (
                     <div className="mb-6 overflow-hidden rounded-xl shadow-lg">
                       <img
-                        src={`${apiURL}/${sec.image}`}
+                        src={getImageUrl(sec.image)}
                         className="w-full h-64 object-cover transition-transform duration-300 hover:scale-105"
                       />
                     </div>
@@ -424,11 +438,7 @@ export default function BlogViewPage() {
                 <div className="flex justify-items-center">
                   <div className="">
                     <img
-                      src={
-                        blog.author.photo
-                          ? `${apiURL}/${blog.author.photo}`
-                          : "/default-avatar.png"
-                      }
+                      src={getImageUrl(blog.author.photo)}
                       alt={blog.author.firstName}
                       className="w-14 h-14 rounded-full object-cover mt-3 border-2 border-white shadow-md"
                     />
@@ -449,7 +459,7 @@ export default function BlogViewPage() {
                 </p>
                 {currentUser && currentUser.photo && (
                   <img
-                    src={`${apiURL}/${currentUser.photo}`}
+                    src={getImageUrl(currentUser.photo)}
                     alt={currentUser.firstName}
                     className="w-14 h-14 rounded-full object-cover mt-3 border-2 border-white shadow-md"
                   />
@@ -473,7 +483,7 @@ export default function BlogViewPage() {
                     {relBlog.featuredImage && (
                       <div className="relative h-48 overflow-hidden">
                         <img
-                          src={`${apiURL}/${relBlog.featuredImage}`}
+                          src={getImageUrl(relBlog.featuredImage)}
                           alt={relBlog.title}
                           className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                         />
@@ -498,7 +508,7 @@ export default function BlogViewPage() {
                         <div className="flex items-center space-x-2">
                           {relBlog.author.photo ? (
                             <img
-                              src={`${apiURL}/${relBlog.author.photo}`}
+                              src={getImageUrl(relBlog.author.photo)}
                               alt={relBlog.author.firstName}
                               className="w-8 h-8 rounded-full object-cover border border-gray-200"
                             />

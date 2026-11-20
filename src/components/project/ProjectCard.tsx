@@ -30,39 +30,39 @@ interface Project {
 const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
 
 const photoUrl = (photo?: string) =>
-    photo ? (photo.startsWith('http') ? photo : `${API_URL}/${photo}`) : null;
+  photo ? (photo.startsWith('http') ? photo : `${API_URL}/${photo}`) : null;
 
 const initials = (m: { firstName?: string; lastName?: string }) =>
-    `${m.firstName?.[0] ?? ''}${m.lastName?.[0] ?? ''}`.toUpperCase() || '?';
+  `${m.firstName?.[0] ?? ''}${m.lastName?.[0] ?? ''}`.toUpperCase() || '?';
 
 const colorFor = (id: string) => {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i)) % 5;
-    const colors = ['bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-rose-100 text-rose-700', 'bg-violet-100 text-violet-700'];
-    return colors[hash];
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i)) % 5;
+  const colors = ['bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-rose-100 text-rose-700', 'bg-violet-100 text-violet-700'];
+  return colors[hash];
 };
 
 function Avatar({ member }: { member: { photo?: string; firstName?: string; lastName?: string } }) {
-    const src = photoUrl(member.photo);
-    if (!src) return null;
-    return (
-        <img
-            src={src}
-            alt={`${member.firstName} ${member.lastName}`}
-            title={`${member.firstName} ${member.lastName}`}
-            className="w-8 h-8 rounded-full object-cover"
-        />
-    );
+  const src = photoUrl(member.photo);
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={`${member.firstName} ${member.lastName}`}
+      title={`${member.firstName} ${member.lastName}`}
+      className="w-8 h-8 rounded-full object-cover"
+    />
+  );
 }
 
 function StatusBadge({ status }: { status: string }) {
-    return (
-        <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${status === 'Active' ? 'bg-emerald-100 text-emerald-700' : status === 'Rejected' ? 'bg-red-100 text-red-700' : status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}
-        >
-            {status}
-        </span>
-    );
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${status === 'Active' ? 'bg-emerald-100 text-emerald-700' : status === 'Rejected' ? 'bg-red-100 text-red-700' : status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}
+    >
+      {status}
+    </span>
+  );
 }
 
 interface ProjectCardProps {
@@ -92,7 +92,7 @@ export default function ProjectCard({
         <div className="flex-1">
           <div className="flex items-center gap-2">
             {project.teamMembers && project.teamMembers.length > 0 ? (
-                <Avatar member={project.teamMembers[0]} />
+              <Avatar member={project.teamMembers[0]} />
             ) : null}
             <h4 className="text-sm font-semibold text-gray-900">{project.name}</h4>
           </div>
@@ -139,25 +139,25 @@ export default function ProjectCard({
         <div className="flex flex-wrap gap-2">
           {project.teamMembers?.slice(0, 4).map((member) => (
             <div
-                key={member._id}
-                className="relative group"
-                title={`${member.firstName} ${member.lastName}`}
-                style={{ width: 32, height: 32 }}
+              key={member._id}
+              className="relative group"
+              title={`${member.firstName} ${member.lastName}`}
+              style={{ width: 32, height: 32 }}
             >
-                <img
-                    src={member.photo
-                        ? member.photo.startsWith('http')
-                            ? member.photo
-                            : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${member.photo}`
-                        : '/default-avatar.png'}
-                    alt={`${member.firstName} ${member.lastName}`}
-                    className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500 transition-shadow duration-200 hover:opacity-80 group-hover:opacity-100"
-                />
+              <img
+                src={member.photo
+                  ? member.photo.startsWith('http')
+                      ? member.photo
+                      : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${member.photo}`
+                  : '/default-avatar.png'}
+                alt={`${member.firstName} ${member.lastName}`}
+                className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500 transition-shadow duration-200 hover:opacity-80 group-hover:opacity-100"
+              />
             </div>
           ))}
           {project.teamMembers?.length > 4 && (
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600 ring-2 ring-white">
-                +{project.teamMembers.length - 4}
+              +{project.teamMembers.length - 4}
             </span>
           )}
         </div>
@@ -170,8 +170,8 @@ export default function ProjectCard({
                 <span key={member._id} className="bg-gray-100 px-1 py-0.5 rounded text-xs">
                   {member.firstName} {member.lastName}
                 </span>
-              ))
-            }
+              ))}
+            </div>
           </div>
         </div>
       </div>
