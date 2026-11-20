@@ -26,6 +26,61 @@ interface HeaderProps {
   onToggleSidebar?: () => void;
 }
 
+const NOTIFICATION_PAGE_SIZE = 50;
+
+const formatNotificationTime = (value?: string) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const notificationLink = (notification: any) => {
+  if (notification?.data?.link) return notification.data.link;
+
+  const type = String(notification?.type || '');
+  if (type.startsWith('holiday_')) return '/holidays';
+  if (type.startsWith('event_')) return '/events';
+  if (type.startsWith('todo_')) return '/todo';
+  if (type.startsWith('ticket_')) return '/tickets';
+  if (type.startsWith('team_')) return '/dashboard';
+  if (type === 'employee_profile_updated') return '/profile';
+  if (type.startsWith('leave_')) return '/reports';
+  return null;
+};
+
+const notificationVisual = (type: string) => {
+  if (type.startsWith('holiday_') || type.startsWith('event_')) {
+    return { Icon: CalendarDays, tone: 'bg-amber-100 text-amber-600' };
+  }
+  if (type.startsWith('team_')) {
+    return { Icon: Users, tone: 'bg-violet-100 text-violet-600' };
+  }
+  if (type === 'employee_profile_updated' || type.startsWith('leave_')) {
+    return { Icon: Users, tone: 'bg-emerald-100 text-emerald-600' };
+  }
+  if (type.startsWith('todo_') || type.startsWith('ticket_')) {
+    return { Icon: Clock, tone: 'bg-sky-100 text-sky-600' };
+  }
+  return { Icon: Mail, tone: 'bg-blue-100 text-blue-600' };
+};
+
 export default function Header({ onToggleSidebar }: HeaderProps) {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -34,6 +89,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationTotal, setNotificationTotal] = useState(0);
+  const [notificationPage, setNotificationPage] = useState(1);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [isPunchedIn, setIsPunchedIn] = useState(false);
   const [punchStatus, setPunchStatus] = useState<'not-punched-in' | 'punched-in' | 'punched-out'>('not-punched-in');
   const [punchInTime, setPunchInTime] = useState<Date | null>(null);
@@ -61,32 +119,46 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     }
   }, [userId]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (page = 1, append = false) => {
     if (!userId) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/notifications/user/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      setNotificationsLoading(true);
+      const response = await fetch(
+        `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/notifications/user/${userId}?page=${page}&limit=${NOTIFICATION_PAGE_SIZE}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
         }
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
-        const apiNotifications = data.notifications.map((n: any) => ({
+        const apiNotifications = (data.notifications || []).map((n: any) => ({
           ...n,
           id: n._id,
           read: n.read,
+          title: n.title,
           message: n.message,
           type: n.type,
+          data: n.data,
           createdAt: n.createdAt
         }));
 
-        setNotifications(apiNotifications);
+        setNotifications((previous) => {
+          if (!append) return apiNotifications;
+          const seen = new Set(previous.map((notification) => notification.id));
+          return [...previous, ...apiNotifications.filter((notification: any) => !seen.has(notification.id))];
+        });
         setUnreadCount(data.unreadCount || 0);
+        setNotificationTotal(data.pagination?.total ?? apiNotifications.length);
+        setNotificationPage(page);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+    } finally {
+      setNotificationsLoading(false);
     }
   };
 
@@ -321,7 +393,13 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     fetchUserProfile();
 
     // Socket.io listener for real-time notifications - refresh from API
+    // Re-sync after a reconnect so notifications received while offline are
+    // not missed.
+    const handleSocketReconnect = () => fetchNotifications();
+
     if (userId) {
+      socket.on('connect', handleSocketReconnect);
+
       socket.on(`todo-notification-${userId}`, (notification) => {
         // Real-time notification received, refresh from API to get updated list
         fetchNotifications();
@@ -352,6 +430,13 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         fetchNotifications();
       });
 
+      // Unified event emitted by the notification service for every module
+      // (holidays, teams, profile updates, ...). Refreshing from the API keeps
+      // the list and badge in sync and avoids duplicate entries.
+      socket.on(`notification-created-${userId}`, () => {
+        fetchNotifications();
+      });
+
       // Listen for break events to update break status
       socket.on('newBreak', (newBreak) => {
         if (newBreak.employee._id === userId) {
@@ -365,12 +450,14 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     }
 
     return () => {
+      socket.off('connect', handleSocketReconnect);
       socket.off(`todo-notification-${userId}`);
       socket.off(`ticket-notification-${userId}`);
       socket.off(`event-notification-${userId}`);
       socket.off(`holiday-notification-${userId}`);
       socket.off(`leave-notification-${userId}`);
       socket.off(`leave-status-notification-${userId}`);
+      socket.off(`notification-created-${userId}`);
       socket.off('newBreak');
     };
   }, [userId, navigate]);
@@ -476,6 +563,14 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   };
 
   const markNotificationAsRead = async (notificationId: string) => {
+    // Optimistic update so the badge and row change instantly.
+    setNotifications((previous) =>
+      previous.map((notification) =>
+        notification.id === notificationId ? { ...notification, read: true } : notification
+      )
+    );
+    setUnreadCount((previous) => Math.max(0, previous - 1));
+
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/notifications/${notificationId}/read`, {
         method: 'PUT',
@@ -486,14 +581,19 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
       if (!response.ok) {
         console.error('Failed to mark notification as read');
+        fetchNotifications(1, false);
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      fetchNotifications(1, false);
     }
   };
 
   const markAllNotificationsAsRead = async () => {
     if (!userId) return;
+
+    setNotifications((previous) => previous.map((notification) => ({ ...notification, read: true })));
+    setUnreadCount(0);
 
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/notifications/user/${userId}/read-all`, {
@@ -505,9 +605,23 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
       if (!response.ok) {
         console.error('Failed to mark all notifications as read');
+        fetchNotifications(1, false);
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+      fetchNotifications(1, false);
+    }
+  };
+
+  const handleNotificationClick = async (notification: any) => {
+    if (!notification.read && notification.id) {
+      await markNotificationAsRead(notification.id);
+    }
+
+    const link = notificationLink(notification);
+    if (link) {
+      setNotificationsOpen(false);
+      navigate(link);
     }
   };
 
@@ -583,19 +697,23 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   className="absolute right-0 mt-3 w-80 max-w-[90vw] sm:w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50 animate-slide-down"
                 >
                   {/* Header */}
-                  <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
-                      Notifications
-                    </h3>
+                  <div className="p-4 border-b border-gray-200 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
+                        Notifications
+                      </h3>
+                      {unreadCount > 0 && (
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
                     <button
-                      onClick={async () => {
-                        await markAllNotificationsAsRead();
-                        // Refresh notifications from API
-                        fetchNotifications();
-                      }}
-                      className="text-xs text-blue-600 hover:underline"
+                      onClick={markAllNotificationsAsRead}
+                      disabled={unreadCount === 0}
+                      className="text-xs font-medium text-blue-600 hover:underline disabled:cursor-default disabled:text-gray-400 disabled:no-underline"
                     >
-                      Clear all
+                      Mark all read
                     </button>
                   </div>
 
@@ -603,41 +721,57 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                     {notifications.length === 0 ? (
                       <div className="p-6 text-center text-gray-500 text-sm">
-                        No new notifications
+                        No notifications yet
                       </div>
                     ) : (
-                      notifications.map((notification, index) => (
-                        <div
-                          key={index}
-                          className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition"
-                          onClick={async () => {
-                            if (!notification.read && notification.id) {
-                              // Mark as read in database
-                              await markNotificationAsRead(notification.id);
-                              // Refresh notifications from API
-                              fetchNotifications();
-                            }
-                          }}
+                      notifications.map((notification) => {
+                        const visual = notificationVisual(String(notification.type || ''));
+                        const NotificationIcon = visual.Icon;
+                        return (
+                          <button
+                            type="button"
+                            key={notification.id}
+                            className={`w-full border-b border-gray-100 p-4 text-left transition hover:bg-gray-50 ${notification.read ? 'bg-white' : 'bg-blue-50/40'
+                              }`}
+                            onClick={() => handleNotificationClick(notification)}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className={`shrink-0 rounded-full p-2 ${visual.tone}`}>
+                                <NotificationIcon className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className={`text-sm ${notification.read ? 'font-medium text-gray-700' : 'font-semibold text-gray-900'}`}>
+                                    {notification.title || 'Notification'}
+                                  </p>
+                                  {!notification.read && (
+                                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                                  )}
+                                </div>
+                                <p className={`mt-1 text-xs leading-relaxed ${notification.read ? 'text-gray-500' : 'text-gray-700'}`}>
+                                  {notification.message}
+                                </p>
+                                <p className="mt-2 text-[11px] text-gray-400">
+                                  {formatNotificationTime(notification.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+
+                    {notifications.length > 0 && notifications.length < notificationTotal && (
+                      <div className="border-t border-gray-100 p-3">
+                        <button
+                          type="button"
+                          onClick={() => fetchNotifications(notificationPage + 1, true)}
+                          disabled={notificationsLoading}
+                          className="w-full text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
                         >
-                          <div className="flex items-start space-x-3">
-                            <div className="bg-blue-100 p-2 rounded-full shrink-0">
-                              <Mail className="h-4 w-4 text-blue-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`text-sm font-medium truncate ${notification.read ? "text-gray-600" : "text-gray-900"
-                                  }`}
-                              >
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-gray-500">Just now</p>
-                            </div>
-                            {!notification.read && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-                            )}
-                          </div>
-                        </div>
-                      ))
+                          {notificationsLoading ? 'Loading…' : 'Load older notifications'}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
