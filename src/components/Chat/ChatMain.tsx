@@ -417,9 +417,7 @@ const ChatMain: React.FC = () => {
       formData.append('message', newMessage.trim() || ' ');
       if (selectedFile) formData.append('file', selectedFile);
 
-      const response = await API.post('/chats/send', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await API.post('/chats/send', formData);
 
       const sentMessage: Message = {
         _id: response.data.data._id,
