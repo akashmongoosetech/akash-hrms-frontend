@@ -241,29 +241,40 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({ selectedEmployeeId, onEmploye
           const isSelected = employee.employeeId === selectedEmployeeId;
           const isOnline = employee.isOnline;
           
-          const iconUrl = isOnline
-            ? isSelected
-              ? 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#ffffff" stroke="#22c55e" stroke-width="3">
-                    <circle cx="12" cy="12" r="18"/>
-                    <circle cx="12" cy="12" r="6"/>
-                    <path d="M12 6v6l4 2" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M12 6v6l-4 2" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                `)
-              : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#22c55e" stroke="white" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <circle cx="12" cy="12" r="4"/>
-                  </svg>
-                `)
-            : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#6b7280" stroke="white" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <circle cx="12" cy="12" r="4"/>
-                  </svg>
-                `)};
-
+          // Build icon SVG strings separately to avoid nested template literal issues
+          const onlineSelectedSvg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#ffffff" stroke="#22c55e" stroke-width="3">
+              <circle cx="12" cy="12" r="18"/>
+              <circle cx="12" cy="12" r="6"/>
+              <path d="M12 6v6l4 2" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 6v6l-4 2" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          `;
+          
+          const onlineDefaultSvg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#22c55e" stroke="white" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+          `;
+          
+          const offlineSvg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#6b7280" stroke="white" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+          `;
+          
+          let iconUrl: string;
+          
+          if (isOnline) {
+            iconUrl = isSelected
+              ? 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(onlineSelectedSvg)
+              : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(onlineDefaultSvg);
+          } else {
+            iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(offlineSvg);
+          }
+          
           return (
             <Marker
               key={employee.employeeId}
