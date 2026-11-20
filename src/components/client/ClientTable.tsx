@@ -118,7 +118,7 @@ export default function ClientTable() {
         const data = await response.json();
         // Incorporate the saved/updated client into the clients list so the
         // profile image appears immediately on the card without waiting for the
-        // next fetchClients() cycle.
+        // next fetch cycle.
         setClients(prev => {
           const exists = prev.some(c => c._id === data.client._id);
           if (exists) {
@@ -126,7 +126,6 @@ export default function ClientTable() {
           }
           return [data.client, ...prev];
         });
-        fetchClients(); // refetch to ensure full list is consistent
         setShowModal(false);
         resetForm();
       } else {
@@ -307,7 +306,7 @@ export default function ClientTable() {
               <div className="flex items-center space-x-3">
                 {client.profile ? (
                   <img
-                    src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${client.profile}`}
+                    src={client.profile.startsWith('http') ? client.profile : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${client.profile}`}
                     alt="Profile"
                     className="w-12 h-12 rounded-full object-cover"
                   />
@@ -399,7 +398,7 @@ export default function ClientTable() {
       <div className="mt-3 flex items-center space-x-3">
         {viewClient.profile ? (
           <img
-            src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${viewClient.profile}`}
+            src={viewClient.profile.startsWith('http') ? viewClient.profile : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${viewClient.profile}`}
             alt="Profile"
             className="w-10 h-10 rounded-full object-cover"
           />
