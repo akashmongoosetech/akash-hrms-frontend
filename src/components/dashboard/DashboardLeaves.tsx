@@ -173,7 +173,9 @@ export default function DashboardLeaves() {
                       <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                         {leave.employee?.photo ? (
                           <img
-                            src={leave.employee.photo}
+                            src={leave.employee.photo.startsWith('http')
+                              ? leave.employee.photo
+                              : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${leave.employee.photo}`}
                             alt={`${leave.employee.firstName} ${leave.employee.lastName}`}
                             className="h-full w-full object-cover"
                           />
@@ -205,7 +207,7 @@ export default function DashboardLeaves() {
                     <div className="text-sm text-gray-900">{leave.daysRequested}</div>
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(leave.status)}`}>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : leave.status === 'Rejected' ? 'bg-red-100 text-red-700' : leave.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
                       {leave.status}
                     </span>
                   </TableCell>

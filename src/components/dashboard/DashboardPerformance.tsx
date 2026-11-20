@@ -3,6 +3,11 @@ import { Star, User, Calendar, TrendingUp } from 'lucide-react';
 import { formatDate } from '../../Common/Commonfunction';
 import { BaseSkeleton } from '../ui/skeleton';
 
+const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
+
+const photoUrl = (photo?: string) =>
+    photo ? (photo.startsWith('http') ? photo : `${API_URL}/${photo}`) : null;
+
 interface Employee {
   _id: string;
   firstName: string;
@@ -180,7 +185,7 @@ export default function DashboardPerformance() {
                 <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                   {appraisal.employee.photo ? (
                     <img
-                      src={appraisal.employee.photo.startsWith('http') ? appraisal.employee.photo : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/api/uploads/${appraisal.employee.photo}`}
+                      src={photoUrl(appraisal.employee.photo)}
                       alt={`${appraisal.employee.firstName} ${appraisal.employee.lastName}`}
                       className="h-full w-full object-cover"
                     />
@@ -218,7 +223,7 @@ export default function DashboardPerformance() {
 
               {/* Status */}
               <div className="flex justify-between items-center">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appraisal.status)}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${appraisal.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : appraisal.status === 'Rejected' ? 'bg-red-100 text-red-700' : appraisal.status === 'Under Review' ? 'bg-blue-100 text-blue-700' : appraisal.status === 'Submitted' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
                   {appraisal.status}
                 </span>
                 <span className="text-xs text-gray-400">

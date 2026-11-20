@@ -105,9 +105,8 @@ export default function EmployeeTodos({ todos }: Props) {
           {/* Footer */}
           <div className="mt-3 sm:mt-4 text-right flex-shrink-0">
             <Button
+              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-800 text-white font-medium hover:from-blue-500 hover:to-blue-700 transition-all"
               onClick={() => navigate(`/todo?employeeName=${encodeURIComponent(employeeName)}`)}
-              variant="link"
-              className="text-indigo-600 text-xs sm:text-sm font-medium"
             >
               View All
             </Button>

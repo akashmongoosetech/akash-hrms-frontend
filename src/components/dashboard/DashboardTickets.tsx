@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { formatDueDate } from "../../Common/Commonfunction";
 import { Button } from "../ui/button";
 
+const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
+
+const photoUrl = (photo?: string) =>
+    photo ? (photo.startsWith('http') ? photo : `${API_URL}/${photo}`) : null;
+
 interface Ticket {
   _id: string;
   employeeName: string;
@@ -66,7 +71,7 @@ export default function DashboardTickets({ tickets }: Props) {
           {/* Employee Header */}
           <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-shrink-0">
             <img
-              src={employeeTickets[0]?.employeePhoto || `https://ui-avatars.com/api/?name=${employeeName}`}
+              src={employeeTickets[0]?.employeePhoto ? photoUrl(employeeTickets[0].employeePhoto) : `https://ui-avatars.com/api/?name=${employeeName}`}
               alt={employeeName}
               className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border flex-shrink-0"
             />
@@ -105,9 +110,8 @@ export default function DashboardTickets({ tickets }: Props) {
           {/* Footer */}
           <div className="mt-3 sm:mt-4 text-right flex-shrink-0">
             <Button
+              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-800 text-white font-medium hover:from-blue-500 hover:to-blue-700 transition-all"
               onClick={() => navigate(`/ticket?employeeName=${encodeURIComponent(employeeName)}`)}
-              variant="link"
-              className="text-indigo-600 text-xs sm:text-sm font-medium"
             >
               View All
             </Button>
