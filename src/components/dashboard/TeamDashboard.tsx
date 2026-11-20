@@ -137,7 +137,7 @@ export default function TeamDashboard() {
                                     <h4 className="text-lg font-semibold text-gray-900">{team.name}</h4>
                                 <div>
                                 <Button
-                                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-800 text-white font-medium hover:from-blue-500 hover:to-blue-700 transition-all"
+                                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-800 text-white font-medium hover:from-blue-500 hover:to-blue-700 transition-all"
                                     onClick={() => {
                                         setSelectedTeam(team);
                                         setShowModal(true);
