@@ -137,13 +137,13 @@ export default function TeamDashboard() {
                                     <h4 className="text-lg font-semibold text-gray-900">{team.name}</h4>
                                 <div>
                                 <Button
-                                    variant='outline'
+                                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-800 text-white font-medium hover:from-blue-500 hover:to-blue-700 transition-all"
                                     onClick={() => {
                                         setSelectedTeam(team);
                                         setShowModal(true);
                                     }}
                                 >
-                                    <Eye/> View
+                                    <Eye className="mr-1 h-4 w-4"/> View
                                 </Button>
                                 </div>
                                 <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${team.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
