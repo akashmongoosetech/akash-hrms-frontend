@@ -137,8 +137,7 @@ export default function TeamDashboard() {
                                     <h4 className="text-lg font-semibold text-gray-900">{team.name}</h4>
                                 <div>
                                 <Button
-                                    className=''
-                                    variant='destructive'
+                                    variant='outline'
                                     onClick={() => {
                                         setSelectedTeam(team);
                                         setShowModal(true);
@@ -146,7 +145,6 @@ export default function TeamDashboard() {
                                 >
                                     <Eye/> View
                                 </Button>
-                            </div>
                                 </div>
                                 <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${team.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                     }`}>
@@ -169,7 +167,27 @@ export default function TeamDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="d-flex gap-4">
+                                {/* Team Member Photos with Hover Names */}
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {team.teamMembers.slice(0, 4).map((member) => (
+                                        <div
+                                            key={member._id}
+                                            className="relative group"
+                                            title={`${member.firstName} ${member.lastName}`}
+                                            style={{ width: 32, height: 32 }}
+                                        >
+                                            <img
+                                                src={member.photo
+                                                    ? member.photo.startsWith('http')
+                                                        ? member.photo
+                                                        : `${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${member.photo}`
+                                                    : '/default-avatar.png'}
+                                                alt={`${member.firstName} ${member.lastName}`}
+                                                className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500 transition-shadow duration-200 hover:opacity-80 group-hover:opacity-100"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
                                     <div>
                                         <div className="text-sm text-gray-500">Project</div>
                                         <div className="text-sm font-medium text-gray-900">
