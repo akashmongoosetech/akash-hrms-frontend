@@ -115,7 +115,18 @@ export default function ClientTable() {
       }
 
       if (response.ok) {
-        fetchClients();
+        const data = await response.json();
+        // Incorporate the saved/updated client into the clients list so the
+        // profile image appears immediately on the card without waiting for the
+        // next fetchClients() cycle.
+        setClients(prev => {
+          const exists = prev.some(c => c._id === data.client._id);
+          if (exists) {
+            return prev.map(c => c._id === data.client._id ? data.client : c);
+          }
+          return [data.client, ...prev];
+        });
+        fetchClients(); // refetch to ensure full list is consistent
         setShowModal(false);
         resetForm();
       } else {
