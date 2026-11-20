@@ -36,12 +36,7 @@ interface EmployeeMapProps {
   showGeoFences?: boolean;
 }
 
-const EmployeeMap: React.FC<EmployeeMapProps> = ({
-  selectedEmployeeId,
-  onEmployeeSelect,
-  showRoutes = true,
-  showGeoFences = true
-}) => {
+const EmployeeMap: React.FC<EmployeeMapProps> = ({ selectedEmployeeId, onEmployeeSelect, showRoutes = true, showGeoFences = true }) => {
   const [employees, setEmployees] = useState<EmployeeLocation[]>([]);
   const [geoFences, setGeoFences] = useState<GeoFenceData[]>([]);
   const [routeHistory, setRouteHistory] = useState<LocationHistory[]>([]);
@@ -68,9 +63,9 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({
       if (locationsResponse.success) {
         setEmployees(locationsResponse.data);
         
-        // Center map on first online employee if available
+        // Center map on first online employee if available and no selected employee
         const onlineEmployees = locationsResponse.data.filter((e: EmployeeLocation) => e.isOnline);
-        if (onlineEmployees.length > 0) {
+        if (onlineEmployees.length > 0 && !selectedEmployeeId) {
           setMapCenter({
             lat: onlineEmployees[0].latitude,
             lng: onlineEmployees[0].longitude
@@ -92,7 +87,7 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({
       setError(err.message || 'Failed to fetch data');
       setLoading(false);
     }
-  }, [showGeoFences]);
+  }, [showGeoFences, selectedEmployeeId]);
 
   // Fetch route history for selected employee
   const fetchRouteHistory = useCallback(async (employeeId: string) => {
@@ -119,9 +114,22 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({
           lng: employee.longitude
         });
         setZoom(15);
+      } else {
+        // Fallback to first online employee
+        const onlineEmployees = employees.filter((e: EmployeeLocation) => e.isOnline);
+        if (onlineEmployees.length > 0) {
+          setMapCenter({
+            lat: onlineEmployees[0].latitude,
+            lng: onlineEmployees[0].longitude
+          });
+          setZoom(12);
+        }
       }
     } else {
       setRouteHistory([]);
+      // Reset to default center when no employee selected
+      setMapCenter(defaultCenter);
+      setZoom(12);
     }
   }, [selectedEmployeeId, fetchRouteHistory, employees]);
 
@@ -228,34 +236,44 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({
         options={mapOptions}
       >
         {/* Employee Markers */}
-        {employees.map((employee) => (
-          <Marker
-            key={employee.employeeId}
-            position={{
-              lat: employee.latitude,
-              lng: employee.longitude
-            }}
-            onClick={() => onEmployeeSelect?.(employee.employeeId)}
-            icon={{
-              url: employee.isOnline 
-                ? 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#22c55e" stroke="white" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <circle cx="12" cy="12" r="4" fill="white"/>
+        {employees.map((employee) => {
+          // Determine marker icon based on online status and if selected
+          const isSelected = employee.employeeId === selectedEmployeeId;
+          const isOnline = employee.isOnline;
+          
+          const iconUrl = isOnline
+            ? isSelected
+              ? 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                  <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="#ffffff" stroke="#22c55e" stroke-width="3">
+                    <circle cx="12" cy="12" r="18"/>
+                    <circle cx="12" cy="12" r="6"/>
+                    <path d="M12 6v6l4 2" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 6v6l-4 2" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 `)
-                : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#22c55e" stroke="white" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <circle cx="12" cy="12" r="4"/>
+                  </svg>
+                `)
+            : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#6b7280" stroke="white" stroke-width="2">
                     <circle cx="12" cy="12" r="10"/>
-                    <circle cx="12" cy="12" r="4" fill="white"/>
+                    <circle cx="12" cy="12" r="4"/>
                   </svg>
-                `),
-              scaledSize: new google.maps.Size(32, 32),
-              anchor: new google.maps.Point(16, 16)
-            }}
-            title={employee.employeeName}
-          />
-        ))}
+                `)};
+
+          return (
+            <Marker
+              key={employee.employeeId}
+              position={{ lat: employee.latitude, lng: employee.longitude }}
+              onClick={() => onEmployeeSelect?.(employee.employeeId)}
+              icon={{ url: iconUrl, scaledSize: new google.maps.Size(isSelected ? 40 : 32, isSelected ? 40 : 32), anchor: new google.maps.Point(isSelected ? 20 : 16, isSelected ? 20 : 16) }}
+              title={employee.employeeName}
+            />
+          );
+        })}
 
         {/* Route History Polyline */}
         {showRoutes && routeHistory.length > 0 && (
@@ -274,10 +292,7 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({
           fence.isActive && (
             <Circle
               key={fence._id}
-              center={{
-                lat: fence.centerLatitude,
-                lng: fence.centerLongitude
-              }}
+              center={{ lat: fence.centerLatitude, lng: fence.centerLongitude }}
               radius={fence.radius}
               options={{
                 fillColor: fence.color,
@@ -316,6 +331,12 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({
           <span className="w-3 h-3 rounded-full bg-gray-500"></span>
           <span className="text-xs">Offline</span>
         </div>
+        {selectedEmployeeId && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className="w-3 h-3 rounded-full bg-white border border-blue-500"></span>
+            <span className="text-xs text-blue-600">Selected</span>
+          </div>
+        )}
       </div>
     </div>
   );
