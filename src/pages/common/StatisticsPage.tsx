@@ -5,6 +5,7 @@ import MonthSelector from '../../components/common/MonthSelector';
 import AttendanceTableSkeleton from '../../components/common/AttendanceTableSkeleton';
 import moment from 'moment';
 import { sortEmployeesAlphabetically } from '../../Common/Commonfunction';
+import ReportViewModal from '../../components/common/modals/ReportViewModal';
 import { Card, StatusBadge, Button } from '../../components/ui';
 import { useToast } from '../../components/ui/toast';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +18,15 @@ interface Employee {
   email: string;
   role: string;
   status: string;
+  // Profile picture fields (match backend User model)
+  photo?: string;
+  profilePictures?: string[];
+  // Optional profile picture fields (legacy/fallback)
+  profilePicture?: string;
+  profileImage?: string;
+  profilePic?: string;
+  avatar?: string;
+  image?: string;
 }
 
 interface StatisticsProps {
@@ -28,6 +38,8 @@ interface Report {
   employee: Employee | null;
   date: string;
   workingHours: string;
+  livePic?: string;
+  location?: string;
 }
 
 interface Saturday {
@@ -59,10 +71,13 @@ interface DayCell {
 const PAGE_SIZE = 200;
 const MAX_PAGES = 100;
 
-const STYLE_FULL_DAY = '!bg-green-500 !text-white';
-const STYLE_HALF_DAY = '!bg-cyan-400 !text-black';
-const STYLE_ABSENT = '!bg-red-500 !text-white';
-const STYLE_WEEKEND = '!bg-yellow-200';
+/* ---------- Cell styles (visual only) ---------- */
+const STYLE_FULL_DAY =
+  '!bg-emerald-500 !text-white font-semibold hover:!bg-emerald-600 hover:ring-2 hover:ring-inset hover:ring-emerald-700/30';
+const STYLE_HALF_DAY =
+  '!bg-sky-400 !text-white font-semibold hover:!bg-sky-500 hover:ring-2 hover:ring-inset hover:ring-sky-700/30';
+const STYLE_ABSENT = '!bg-rose-500 !text-white font-semibold';
+const STYLE_WEEKEND = '!bg-amber-100';
 
 const normalizeDate = (value?: string | null) => (value ? String(value).slice(0, 10) : '');
 
@@ -85,6 +100,73 @@ const parseLocalDate = (key: string) => {
   return new Date(year || 1970, (month || 1) - 1, day || 1);
 };
 
+/* ---------- Presentation helpers (visual only) ---------- */
+const AVATAR_TONES = [
+  'bg-indigo-100 text-indigo-700',
+  'bg-violet-100 text-violet-700',
+  'bg-sky-100 text-sky-700',
+  'bg-teal-100 text-teal-700',
+  'bg-amber-100 text-amber-700',
+  'bg-rose-100 text-rose-700'
+];
+
+const initialsOf = (employee: Employee) =>
+  `${(employee.firstName || '').charAt(0)}${(employee.lastName || '').charAt(0)}`.toUpperCase() ||
+  '?';
+
+/** Picks the first profile image field the API provides and makes it an absolute URL. */
+const getProfileImageUrl = (employee: Employee, apiBase: string) => {
+  // Backend User model uses 'photo' (single) or 'profilePictures' (array)
+  const raw =
+    employee.photo ||
+    (employee.profilePictures && employee.profilePictures[0]) ||
+    employee.profilePicture ||
+    employee.profileImage ||
+    employee.profilePic ||
+    employee.avatar ||
+    employee.image ||
+    '';
+  if (!raw) return '';
+  if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
+  return `${apiBase.replace(/\/$/, '')}/${raw.replace(/^\//, '')}`;
+};
+
+/** Profile photo with an initials fallback when there is no image or it fails to load. */
+const EmployeeAvatar: React.FC<{ employee: Employee; tone: string; apiBase: string }> = ({
+  employee,
+  tone,
+  apiBase
+}) => {
+  const [failed, setFailed] = useState(false);
+  const src = getProfileImageUrl(employee, apiBase);
+
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={`${employee.firstName} ${employee.lastName}`.trim()}
+        onError={() => setFailed(true)}
+        className="h-11 w-11 rounded-full object-cover ring-2 ring-white shadow-sm"
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold ring-2 ring-white shadow-sm ${tone}`}
+    >
+      {initialsOf(employee)}
+    </span>
+  );
+};
+
+const LEGEND = [
+  { label: 'Full day', swatch: 'bg-emerald-500' },
+  { label: 'Half day', swatch: 'bg-sky-400' },
+  { label: 'Leave / absent / holiday', swatch: 'bg-rose-500' },
+  { label: 'Weekly off', swatch: 'bg-amber-200' }
+];
+
 const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -98,6 +180,7 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
   const [alternateSaturdayData, setAlternateSaturdayData] = useState<string[]>([]);
   const [holidaysData, setHolidaysData] = useState<Holiday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   const { notify } = useToast();
   const navigate = useNavigate();
@@ -483,6 +566,49 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     });
   };
 
+  /* ---------- Presentation-only data for the stat cards ---------- */
+  const statCards = [
+    {
+      label: 'Total employees',
+      value: totalEmployees,
+      icon: Users,
+      badge: 'online' as const,
+      iconTone: 'bg-indigo-50 text-indigo-600',
+      bar: 'bg-indigo-500'
+    },
+    {
+      label: 'Active employees',
+      value: activeEmployees,
+      icon: Shield,
+      badge: 'success' as const,
+      iconTone: 'bg-emerald-50 text-emerald-600',
+      bar: 'bg-emerald-500'
+    },
+    {
+      label: 'On leave',
+      value: onLeaveEmployees,
+      icon: CalendarX,
+      badge: 'info' as const,
+      iconTone: 'bg-sky-50 text-sky-600',
+      bar: 'bg-sky-500'
+    },
+    {
+      label: 'Offline',
+      value: offlineEmployees,
+      icon: Calendar,
+      badge: 'critical' as const,
+      iconTone: 'bg-rose-50 text-rose-600',
+      bar: 'bg-rose-500'
+    }
+  ];
+
+  const monthTitle = moment({ year: selectedYear, month: selectedMonth - 1 }).format('MMMM YYYY');
+
+  /** Summary rows share one layout: a label cell plus one value per employee. */
+  const labelCell =
+    'sticky left-0 z-10 min-w-[220px] px-4 py-3 text-left text-sm font-semibold border-r border-slate-200';
+  const valueCell = 'px-2 py-3 text-sm font-semibold tabular-nums';
+
   return (
     <>
       <AlertMessages
@@ -496,215 +622,283 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
 
       <div className="section-body mt-3">
         <div className="container-fluid">
-          {/* Filters */}
-          <div className="flex flex-wrap items-center mb-3">
-            <div className="flex items-center mr-3 mb-2">
-              <YearSelector
-                selectedYear={selectedYear}
-                handleYearChange={handleYearChange}
-                labelClass="mr-2 mb-0"
-                selectClass="custom-select w-auto"
-              />
+          {/* Page header + filters */}
+          <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                Attendance statistics
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                {monthTitle} &middot; {monthDays.length} days &middot; {employeesData.length}{' '}
+                employees
+              </p>
             </div>
-            <div className="flex items-center mr-3 mb-2">
-              <MonthSelector
-                selectedMonth={selectedMonth}
-                handleMonthChange={handleMonthChange}
-                labelClass="mr-2 mb-0"
-                selectClass="custom-select w-auto"
-              />
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <YearSelector
+                  selectedYear={selectedYear}
+                  handleYearChange={handleYearChange}
+                  labelClass="mr-2 mb-0 text-sm font-medium text-slate-600"
+                  selectClass="custom-select w-auto"
+                />
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <MonthSelector
+                  selectedMonth={selectedMonth}
+                  handleMonthChange={handleMonthChange}
+                  labelClass="mr-2 mb-0 text-sm font-medium text-slate-600"
+                  selectClass="custom-select w-auto"
+                />
+              </div>
+              <button
+                onClick={handleRefresh}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh data
+              </button>
             </div>
-            <div className="mb-2 mr-3 text-sm text-gray-600">
-              {moment({ year: selectedYear, month: selectedMonth - 1 }).format('MMMM YYYY')} ·{' '}
-              {monthDays.length} days
-            </div>
-            <button
-              onClick={handleRefresh}
-              className="ml-2 text-sm text-blue-600 hover underline"
-            >
-              <RefreshCw className="mr-1 h-4 w-4" /> Refresh Data
-            </button>
           </div>
 
           {/* Statistics Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {/* Total Employees Card */}
-            <Card className="p-6 bg-white rounded-2xl shadow-soft transition-all hover:shadow-medium">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Total Employees
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">{totalEmployees}</p>
-                </div>
-                <StatusBadge status="online" size="sm" />
-              </div>
-            </Card>
-
-            {/* Active Employees Card */}
-            <Card className="p-6 bg-white rounded-2xl shadow-soft transition-all hover:shadow-medium">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Active Employees
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">{activeEmployees}</p>
-                </div>
-                <StatusBadge status="success" size="sm" />
-              </div>
-            </Card>
-
-            {/* On Leave Card */}
-            <Card className="p-6 bg-white rounded-2xl shadow-soft transition-all hover:shadow-medium">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    On Leave
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">{onLeaveEmployees}</p>
-                </div>
-                <StatusBadge status="info" size="sm" />
-              </div>
-            </Card>
-
-            {/* Offline Card */}
-            <Card className="p-6 bg-white rounded-2xl shadow-soft transition-all hover:shadow-medium">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Offline
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">{offlineEmployees}</p>
-                </div>
-                <StatusBadge status="critical" size="sm" />
-              </div>
-            </Card>
+          {/* <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {statCards.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <Card
+                  key={stat.label}
+                  className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                >
+                  <span className={`absolute inset-y-0 left-0 w-1 ${stat.bar}`} aria-hidden="true" />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.iconTone}`}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+                        <p className="text-3xl font-bold tabular-nums text-slate-900">
+                          {stat.value}
+                        </p>
+                      </div>
+                    </div>
+                    <StatusBadge status={stat.badge} size="sm" />
+                  </div>
+                </Card>
+              );
+            })}
           </div>
 
+
           {/* Attendance Table */}
-          {isLoading ? (
-            <AttendanceTableSkeleton
-              employeeCount={employeesData.length || 5}
-              dayCount={monthDays.length || 10}
-            />
-          ) : (
-            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-              <table className="table table-bordered table-sm text-center min-w-full">
-                <thead className="bg-gray-400">
-                  <tr>
-                    <th className="px-4 py-3 !bg-gray-300">Date</th>
-                    {employeesData.map((employee) => (
-                      <th className="px-4 py-3 !bg-gray-300" key={employee._id}>
-                        {employee.firstName}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {monthDays.map((day) => {
-                    const dayCells = cellsByDate[day.key] || {};
-                    const isAlternateSaturday = alternateSaturdayData.includes(day.key);
-                    const isSunday = parseLocalDate(day.key).getDay() === 0;
-                    const isHoliday = holidaysData.some(
-                      (holiday) => normalizeDate(holiday.date) === day.key
-                    );
-
-                    return (
-                      <tr
-                        key={day.key}
-                        className={
-                          isHoliday
-                            ? '!bg-red-200'
-                            : isAlternateSaturday || isSunday
-                              ? '!bg-yellow-200'
-                              : ''
-                        }
-                      >
-                        <td className="!bg-green-200 px-4 py-2 min-w-48">{day.display}</td>
-                        {employeesData.map((employee) => {
-                          const cell = dayCells[employee._id] || { display: '', style: '' };
-                          return (
-                            <td key={employee._id} className={`px-2 py-1 ${cell.style}`}>
-                              {cell.display}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-
-                  {/* Summary Row 1: Leave Taken */}
-                  <tr className="font-bold">
-                    <td className="!bg-gray-400 !text-black px-4 py-2">Leave Taken(-)</td>
-                    {employeesData.map((emp) => {
-                      const fullLeaves = leaveCounts[emp._id] || 0;
-                      const total = Math.round(fullLeaves * 10) / 10; // Round to 1 decimal
-                      return (
-                        <td key={emp._id} className="px-2 py-1">
-                          {total}
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {/* Summary Row 2: Extra Working Days */}
-                  <tr className="font-bold">
-                    <td className="!bg-green-400 px-4 py-2">Extra Working Days(+)</td>
-                    {employeesData.map((emp) => (
-                      <td key={emp._id} className="px-2 py-1">
-                        {extraWorkingCounts[emp._id] || 0}
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* Summary Row 3: Paid Leaves */}
-                  <tr className="font-bold">
-                    <td className="!bg-green-400 px-4 py-2">Paid Leave(+)</td>
-                    {employeesData.map((emp) => (
-                      <td key={emp._id} className="px-2 py-1">
-                        1
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* Summary Row 4: Deduction/Paid */}
-                  <tr className="font-bold">
-                    <td className="px-4 py-2 !bg-blue-400 !text-white">Deduction/Paid</td>
-                    {employeesData.map((emp) => {
-                      const fullLeaves = leaveCounts[emp._id] || 0;
-                      const extraWorkCounts = extraWorkingCounts[emp._id] || 0;
-                      const totalDeduction = extraWorkCounts + 1 - fullLeaves; // Subtract 1 paid leave
-                      return (
-                        <td key={emp._id} className="px-2 py-1">
-                          {totalDeduction}
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {/* Summary Row 5: No Of Days Salary To Be Credited */}
-                  <tr className="font-bold">
-                    <td className="px-4 py-2 !bg-red-400 !text-white">
-                      No Of Days Salary To Be Credited
-                    </td>
-                    {employeesData.map((emp) => {
-                      const fullLeaves = leaveCounts[emp._id] || 0;
-                      const extraWorkCounts = extraWorkingCounts[emp._id] || 0;
-                      const deduction = extraWorkCounts + 1 - fullLeaves;
-                      const salaryDays = deduction + 30;
-                      return (
-                        <td key={emp._id} className="px-2 py-1">
-                          {salaryDays}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                </tbody>
-              </table>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Monthly register</h2>
+                <p className="text-sm text-slate-500">
+                  Select a coloured cell to open that day&apos;s report.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {LEGEND.map((item) => (
+                  <span
+                    key={item.label}
+                    className="inline-flex items-center gap-2 text-xs font-medium text-slate-600"
+                  >
+                    <span className={`h-3 w-3 rounded ${item.swatch}`} />
+                    {item.label}
+                  </span>
+                ))}
+              </div>
             </div>
-          )}
+
+            {isLoading ? (
+              <div className="p-4">
+                <AttendanceTableSkeleton
+                  employeeCount={employeesData.length || 5}
+                  dayCount={monthDays.length || 10}
+                />
+              </div>
+            ) : (
+              <div className="max-h-[75vh] overflow-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                <table className="min-w-full border-separate border-spacing-0 text-center">
+                  <thead>
+                    <tr>
+                      <th className="sticky left-0 top-0 z-30 min-w-[220px] border-b border-r border-slate-200 bg-slate-100 px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                        Date
+                      </th>
+                      {employeesData.map((employee, index) => (
+                        <th
+                          key={employee._id}
+                          className="sticky top-0 z-20 min-w-[120px] border-b border-slate-200 bg-slate-100 px-3 py-3 text-sm font-semibold text-slate-700"
+                        >
+                          <div className="flex flex-col items-center gap-2">
+                            <EmployeeAvatar
+                              employee={employee}
+                              tone={AVATAR_TONES[index % AVATAR_TONES.length]}
+                              apiBase={API_BASE_URL}
+                            />
+                            <span
+                              className="max-w-[120px] truncate leading-tight"
+                              title={`${employee.firstName} ${employee.lastName}`.trim()}
+                            >
+                              {employee.firstName}
+                              {employee.lastName ? ` ${employee.lastName}` : ''}
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthDays.map((day) => {
+                      const dayCells = cellsByDate[day.key] || {};
+                      const isAlternateSaturday = alternateSaturdayData.includes(day.key);
+                      const isSunday = parseLocalDate(day.key).getDay() === 0;
+                      const isHoliday = holidaysData.some(
+                        (holiday) => normalizeDate(holiday.date) === day.key
+                      );
+
+                      const rowTone = isHoliday
+                        ? 'bg-rose-50'
+                        : isAlternateSaturday || isSunday
+                          ? 'bg-amber-50'
+                          : 'bg-white';
+                      const dateTone = isHoliday
+                        ? 'bg-rose-100 text-rose-800'
+                        : isAlternateSaturday || isSunday
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-slate-50 text-slate-700';
+
+                      return (
+                        <tr key={day.key} className={rowTone}>
+                          <td
+                            className={`sticky left-0 z-10 min-w-[220px] border-b border-r border-slate-200 px-4 py-2.5 text-left text-sm font-medium ${dateTone}`}
+                          >
+                            {day.display}
+                          </td>
+                          {employeesData.map((employee) => {
+                            const cell = dayCells[employee._id] || { display: '', style: '' };
+                            const report = reportsData.find(
+                              (r) =>
+                                r.employee?._id === employee._id &&
+                                normalizeDate(r.date) === day.key
+                            );
+                            const clickable = !!(cell.display && report);
+                            return (
+                              <td
+                                key={employee._id}
+                                className={`border-b border-r border-white/60 px-2 py-2 text-sm tabular-nums transition-colors ${
+                                  clickable ? 'cursor-pointer' : ''
+                                } ${cell.style}`}
+                                onClick={() => {
+                                  if (cell.display && report) {
+                                    setSelectedReport(report);
+                                  }
+                                }}
+                              >
+                                {cell.display}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+
+                  <tfoot>
+                    {/* Summary Row 1: Leave Taken */}
+                    <tr>
+                      <td className={`${labelCell} border-t-2 border-t-slate-300 bg-slate-900 text-white`}>
+                        Leave taken (&minus;)
+                      </td>
+                      {employeesData.map((emp) => {
+                        const fullLeaves = leaveCounts[emp._id] || 0;
+                        const total = Math.round(fullLeaves * 10) / 10; // Round to 1 decimal
+                        return (
+                          <td
+                            key={emp._id}
+                            className={`${valueCell} border-t-2 border-t-slate-300 bg-slate-50 text-rose-600`}
+                          >
+                            {total}
+                          </td>
+                        );
+                      })}
+                    </tr>
+
+                    {/* Summary Row 2: Extra Working Days */}
+                    <tr>
+                      <td className={`${labelCell} bg-emerald-600 text-white`}>
+                        Extra working days (+)
+                      </td>
+                      {employeesData.map((emp) => (
+                        <td key={emp._id} className={`${valueCell} bg-emerald-50 text-emerald-700`}>
+                          {extraWorkingCounts[emp._id] || 0}
+                        </td>
+                      ))}
+                    </tr>
+
+                    {/* Summary Row 3: Paid Leaves */}
+                    <tr>
+                      <td className={`${labelCell} bg-teal-500 text-white`}>Paid leave (+)</td>
+                      {employeesData.map((emp) => (
+                        <td key={emp._id} className={`${valueCell} bg-teal-50 text-teal-700`}>
+                          1
+                        </td>
+                      ))}
+                    </tr>
+
+                    {/* Summary Row 4: Deduction/Paid */}
+                    <tr>
+                      <td className={`${labelCell} bg-indigo-600 text-white`}>Deduction / paid</td>
+                      {employeesData.map((emp) => {
+                        const fullLeaves = leaveCounts[emp._id] || 0;
+                        const extraWorkCounts = extraWorkingCounts[emp._id] || 0;
+                        const totalDeduction = extraWorkCounts + 1 - fullLeaves; // Subtract 1 paid leave
+                        return (
+                          <td key={emp._id} className={`${valueCell} bg-indigo-50 text-indigo-700`}>
+                            {totalDeduction}
+                          </td>
+                        );
+                      })}
+                    </tr>
+
+                    {/* Summary Row 5: No Of Days Salary To Be Credited */}
+                    <tr>
+                      <td className={`${labelCell} bg-rose-600 text-white`}>
+                        No. of days salary to be credited
+                      </td>
+                      {employeesData.map((emp) => {
+                        const fullLeaves = leaveCounts[emp._id] || 0;
+                        const extraWorkCounts = extraWorkingCounts[emp._id] || 0;
+                        const deduction = extraWorkCounts + 1 - fullLeaves;
+                        const salaryDays = deduction + 30;
+                        return (
+                          <td
+                            key={emp._id}
+                            className={`${valueCell} bg-rose-50 text-base font-bold text-rose-700`}
+                          >
+                            {salaryDays}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      <ReportViewModal
+        showModal={!!selectedReport}
+        onClose={() => setSelectedReport(null)}
+        selectedReport={selectedReport}
+      />
     </>
   );
 };
