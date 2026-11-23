@@ -6,10 +6,20 @@ import AttendanceTableSkeleton from '../../components/common/AttendanceTableSkel
 import moment from 'moment';
 import { sortEmployeesAlphabetically } from '../../Common/Commonfunction';
 import ReportViewModal from '../../components/common/modals/ReportViewModal';
-import { Card, StatusBadge, Button } from '../../components/ui';
 import { useToast } from '../../components/ui/toast';
-import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, Shield, CalendarX, RefreshCw, Settings } from 'lucide-react';
+import {
+  Users,
+  Shield,
+  Calendar,
+  CalendarX,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Gift,
+  Calculator,
+  Wallet,
+  CalendarDays,
+} from 'lucide-react';
 
 interface Employee {
   _id: string;
@@ -18,10 +28,8 @@ interface Employee {
   email: string;
   role: string;
   status: string;
-  // Profile picture fields (match backend User model)
   photo?: string;
   profilePictures?: string[];
-  // Optional profile picture fields (legacy/fallback)
   profilePicture?: string;
   profileImage?: string;
   profilePic?: string;
@@ -73,11 +81,11 @@ const MAX_PAGES = 100;
 
 /* ---------- Cell styles (visual only) ---------- */
 const STYLE_FULL_DAY =
-  '!bg-emerald-500 !text-white font-semibold hover:!bg-emerald-600 hover:ring-2 hover:ring-inset hover:ring-emerald-700/30';
+  'bg-emerald-500 text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-600 transition-colors';
 const STYLE_HALF_DAY =
-  '!bg-sky-400 !text-white font-semibold hover:!bg-sky-500 hover:ring-2 hover:ring-inset hover:ring-sky-700/30';
-const STYLE_ABSENT = '!bg-rose-500 !text-white font-semibold';
-const STYLE_WEEKEND = '!bg-amber-100';
+  'bg-sky-500 text-white shadow-sm shadow-sky-600/20 hover:bg-sky-600 transition-colors';
+const STYLE_ABSENT = 'bg-rose-500 text-white shadow-sm shadow-rose-600/20';
+const STYLE_WEEKEND = 'bg-amber-50';
 
 const normalizeDate = (value?: string | null) => (value ? String(value).slice(0, 10) : '');
 
@@ -100,23 +108,21 @@ const parseLocalDate = (key: string) => {
   return new Date(year || 1970, (month || 1) - 1, day || 1);
 };
 
-/* ---------- Presentation helpers (visual only) ---------- */
+/* ---------- Presentation helpers ---------- */
 const AVATAR_TONES = [
-  'bg-indigo-100 text-indigo-700',
-  'bg-violet-100 text-violet-700',
-  'bg-sky-100 text-sky-700',
-  'bg-teal-100 text-teal-700',
-  'bg-amber-100 text-amber-700',
-  'bg-rose-100 text-rose-700'
+  'bg-indigo-500',
+  'bg-violet-500',
+  'bg-sky-500',
+  'bg-teal-500',
+  'bg-amber-500',
+  'bg-rose-500',
 ];
 
 const initialsOf = (employee: Employee) =>
   `${(employee.firstName || '').charAt(0)}${(employee.lastName || '').charAt(0)}`.toUpperCase() ||
   '?';
 
-/** Picks the first profile image field the API provides and makes it an absolute URL. */
 const getProfileImageUrl = (employee: Employee, apiBase: string) => {
-  // Backend User model uses 'photo' (single) or 'profilePictures' (array)
   const raw =
     employee.photo ||
     (employee.profilePictures && employee.profilePictures[0]) ||
@@ -131,11 +137,10 @@ const getProfileImageUrl = (employee: Employee, apiBase: string) => {
   return `${apiBase.replace(/\/$/, '')}/${raw.replace(/^\//, '')}`;
 };
 
-/** Profile photo with an initials fallback when there is no image or it fails to load. */
 const EmployeeAvatar: React.FC<{ employee: Employee; tone: string; apiBase: string }> = ({
   employee,
   tone,
-  apiBase
+  apiBase,
 }) => {
   const [failed, setFailed] = useState(false);
   const src = getProfileImageUrl(employee, apiBase);
@@ -146,14 +151,14 @@ const EmployeeAvatar: React.FC<{ employee: Employee; tone: string; apiBase: stri
         src={src}
         alt={`${employee.firstName} ${employee.lastName}`.trim()}
         onError={() => setFailed(true)}
-        className="h-11 w-11 rounded-full object-cover ring-2 ring-white shadow-sm"
+        className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
       />
     );
   }
 
   return (
     <span
-      className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold ring-2 ring-white shadow-sm ${tone}`}
+      className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white ring-2 ring-white shadow-sm ${tone}`}
     >
       {initialsOf(employee)}
     </span>
@@ -162,9 +167,9 @@ const EmployeeAvatar: React.FC<{ employee: Employee; tone: string; apiBase: stri
 
 const LEGEND = [
   { label: 'Full day', swatch: 'bg-emerald-500' },
-  { label: 'Half day', swatch: 'bg-sky-400' },
+  { label: 'Half day', swatch: 'bg-sky-500' },
   { label: 'Leave / absent / holiday', swatch: 'bg-rose-500' },
-  { label: 'Weekly off', swatch: 'bg-amber-200' }
+  { label: 'Weekly off', swatch: 'bg-amber-200' },
 ];
 
 const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
@@ -183,12 +188,9 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   const { notify } = useToast();
-  const navigate = useNavigate();
 
   const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
 
-  // Several requests run in parallel; keep the skeleton up until the last one
-  // settles instead of hiding it as soon as the fastest one finishes.
   const pendingFetches = useRef(0);
   const reportsRequestId = useRef(0);
 
@@ -202,11 +204,6 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     if (pendingFetches.current === 0) setIsLoading(false);
   };
 
-  /**
-   * The API paginates every list endpoint (default limit 10). The statistics
-   * table needs the whole month and every active employee, so walk the pages
-   * instead of silently showing only the first ten records.
-   */
   const fetchAllPages = async <T,>(
     buildUrl: (page: number) => string,
     pick: (payload: any) => T[] | undefined
@@ -218,8 +215,8 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     do {
       const response = await fetch(buildUrl(page), {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
       if (response.status === 401) {
@@ -245,6 +242,7 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     fetchLeaves();
     fetchAlternateSaturdays();
     fetchHolidays();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchEmployees = async () => {
@@ -278,8 +276,6 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
         (payload) => payload.reports
       );
 
-      // A report whose employee was removed or deactivated comes back with
-      // employee: null, which has no column to render into.
       const usable = reports.filter((report) => report && report.employee && report.employee._id);
 
       if (requestId === reportsRequestId.current) {
@@ -301,8 +297,8 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/leaves?status=approved`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
       if (response.status === 401) {
@@ -324,7 +320,7 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
           from_date: normalizeDate(leave.startDate),
           to_date: normalizeDate(leave.endDate),
           is_half_day:
-            leave.is_half_day === '1' || leave.is_half_day === 1 || leave.is_half_day === true
+            leave.is_half_day === '1' || leave.is_half_day === 1 || leave.is_half_day === true,
         }))
         .filter((leave: LeaveRow) => leave.employee_id && leave.from_date && leave.to_date);
 
@@ -346,8 +342,8 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/saturdays?year=${year}&month=${month - 1}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
       if (response.status === 401) {
@@ -364,7 +360,6 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
         const alternateSaturdays = data
           .filter((s: Saturday) => s.isWeekend)
           .map((s: Saturday) => {
-            // Normalize date to UTC to avoid timezone issues
             const date = new Date(s.date);
             return date.toISOString().split('T')[0];
           });
@@ -385,8 +380,8 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/holidays`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
       if (response.status === 401) {
@@ -424,7 +419,6 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     fetchReports(selectedYear, month);
   };
 
-  /** Every date of the selected month, in display order. */
   const getAllDatesOfMonth = (year: number, month: number) => {
     const daysInMonth = new Date(year, month, 0).getDate();
     const days: Array<{ display: string; key: string }> = [];
@@ -436,7 +430,7 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
 
       days.push({
         display: `${weekday}, ${day} ${monthName}`,
-        key: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        key: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
       });
     }
 
@@ -449,7 +443,6 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     } else if (hours >= 8) {
       return 1;
     }
-
     return 0;
   };
 
@@ -471,12 +464,6 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     return byDate;
   }, [reportsData]);
 
-  /**
-   * Builds the whole month grid in one pass, so summary counts and cell colours
-   * always come from the same data. Only saved records produce a filled cell:
-   * a report, an approved leave or a holiday. Dates with none of those stay
-   * blank.
-   */
   const { cellsByDate, leaveCounts, extraWorkingCounts } = useMemo(() => {
     const cellsByDate: { [date: string]: { [employeeId: string]: DayCell } } = {};
     const leaveCounts: { [employeeId: string]: number } = {};
@@ -514,7 +501,6 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
 
         if (hasReport) {
           if (isWeekend || holiday) {
-            // Working on a default day off counts as extra working.
             style = STYLE_FULL_DAY;
             extraWorkingCounts[employee._id] += hours >= 8 ? 1 : 0.5;
           } else if (workedDays === 1) {
@@ -549,10 +535,9 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     alternateSaturdayData,
     holidaysData,
     leavesData,
-    employeesData
+    employeesData,
   ]);
 
-  // Calculate statistics from employeeData prop
   const totalEmployees = employeeData?.length || 0;
   const activeEmployees = (employeeData?.filter((e) => e.status === 'Active') || []).length;
   const onLeaveEmployees = (employeeData?.filter((e) => e.status === 'On Leave') || []).length;
@@ -566,48 +551,44 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
     });
   };
 
-  /* ---------- Presentation-only data for the stat cards ---------- */
   const statCards = [
     {
       label: 'Total employees',
       value: totalEmployees,
       icon: Users,
-      badge: 'online' as const,
-      iconTone: 'bg-indigo-50 text-indigo-600',
-      bar: 'bg-indigo-500'
+      iconTone: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
+      bar: 'bg-indigo-500',
     },
     {
-      label: 'Active employees',
+      label: 'Active',
       value: activeEmployees,
       icon: Shield,
-      badge: 'success' as const,
-      iconTone: 'bg-emerald-50 text-emerald-600',
-      bar: 'bg-emerald-500'
+      iconTone: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+      bar: 'bg-emerald-500',
     },
     {
       label: 'On leave',
       value: onLeaveEmployees,
       icon: CalendarX,
-      badge: 'info' as const,
-      iconTone: 'bg-sky-50 text-sky-600',
-      bar: 'bg-sky-500'
+      iconTone: 'bg-sky-50 text-sky-600 ring-sky-100',
+      bar: 'bg-sky-500',
     },
     {
       label: 'Offline',
       value: offlineEmployees,
       icon: Calendar,
-      badge: 'critical' as const,
-      iconTone: 'bg-rose-50 text-rose-600',
-      bar: 'bg-rose-500'
-    }
+      iconTone: 'bg-rose-50 text-rose-600 ring-rose-100',
+      bar: 'bg-rose-500',
+    },
   ];
 
   const monthTitle = moment({ year: selectedYear, month: selectedMonth - 1 }).format('MMMM YYYY');
 
-  /** Summary rows share one layout: a label cell plus one value per employee. */
   const labelCell =
-    'sticky left-0 z-10 min-w-[220px] px-4 py-3 text-left text-sm font-semibold border-r border-slate-200';
-  const valueCell = 'px-2 py-3 text-sm font-semibold tabular-nums';
+    'sticky left-0 z-10 min-w-[240px] px-4 py-3 text-left text-sm font-semibold border-r border-slate-200';
+  const valueCell = 'px-2 py-2.5 text-sm font-semibold tabular-nums';
+
+  const labelIcon = 'flex h-7 w-7 items-center justify-center rounded-lg';
 
   return (
     <>
@@ -620,95 +601,108 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
         setShowError={setShowError}
       />
 
-      <div className="section-body mt-3">
-        <div className="container-fluid">
-          {/* Page header + filters */}
-          <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                Attendance statistics
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                {monthTitle} &middot; {monthDays.length} days &middot; {employeesData.length}{' '}
-                employees
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <YearSelector
-                  selectedYear={selectedYear}
-                  handleYearChange={handleYearChange}
-                  labelClass="mr-2 mb-0 text-sm font-medium text-slate-600"
-                  selectClass="custom-select w-auto"
-                />
+      <div className="min-h-screen bg-slate-100/70 py-6">
+        <div className="mx-auto max-w-[1600px] px-3 sm:px-6">
+          {/* ============ HEADER ============ */}
+          <header className="mb-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg shadow-slate-900/20">
+                  <CalendarDays className="h-6 w-6" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    Attendance statistics
+                  </h1>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                    <span className="rounded-full bg-indigo-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                      {monthTitle}
+                    </span>
+                    <span>{monthDays.length} days</span>
+                    <span className="text-slate-300">/</span>
+                    <span>{employeesData.length} employees</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <MonthSelector
-                  selectedMonth={selectedMonth}
-                  handleMonthChange={handleMonthChange}
-                  labelClass="mr-2 mb-0 text-sm font-medium text-slate-600"
-                  selectClass="custom-select w-auto"
-                />
-              </div>
-              <button
-                onClick={handleRefresh}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Refresh data
-              </button>
-            </div>
-          </div>
 
-          {/* Statistics Grid */}
-          {/* <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {statCards.map((stat) => {
-              const Icon = stat.icon;
-              return (
-                <Card
-                  key={stat.label}
-                  className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm transition-colors focus-within:border-indigo-300">
+                  <YearSelector
+                    selectedYear={selectedYear}
+                    handleYearChange={handleYearChange}
+                    labelClass="mr-2 mb-0 text-sm font-medium text-slate-500"
+                    selectClass="custom-select w-auto"
+                  />
+                </div>
+                <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm transition-colors focus-within:border-indigo-300">
+                  <MonthSelector
+                    selectedMonth={selectedMonth}
+                    handleMonthChange={handleMonthChange}
+                    labelClass="mr-2 mb-0 text-sm font-medium text-slate-500"
+                    selectClass="custom-select w-auto"
+                  />
+                </div>
+                <button
+                  onClick={handleRefresh}
+                  className="group inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
-                  <span className={`absolute inset-y-0 left-0 w-1 ${stat.bar}`} aria-hidden="true" />
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.iconTone}`}
-                      >
-                        <Icon className="h-6 w-6" />
-                      </div>
+                  <RefreshCw className="h-4 w-4 transition-transform duration-500 group-hover:rotate-180" />
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Stat cards */}
+            <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {statCards.map((stat) => {
+                const Icon = stat.icon;
+                const share = totalEmployees > 0 ? (stat.value / totalEmployees) * 100 : 0;
+                return (
+                  <div
+                    key={stat.label}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-                        <p className="text-3xl font-bold tabular-nums text-slate-900">
+                        <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-slate-900">
                           {stat.value}
                         </p>
                       </div>
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl ring-1 ${stat.iconTone}`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
                     </div>
-                    <StatusBadge status={stat.badge} size="sm" />
+                    <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={`h-full rounded-full ${stat.bar}`}
+                        style={{ width: `${share}%` }}
+                      />
+                    </div>
                   </div>
-                </Card>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </header>
 
-
-          {/* Attendance Table */}
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {/* ============ TABLE ============ */}
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Monthly register</h2>
                 <p className="text-sm text-slate-500">
-                  Select a coloured cell to open that day&apos;s report.
+                  Click any colored cell to open that day&apos;s report
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {LEGEND.map((item) => (
                   <span
                     key={item.label}
-                    className="inline-flex items-center gap-2 text-xs font-medium text-slate-600"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200"
                   >
-                    <span className={`h-3 w-3 rounded ${item.swatch}`} />
+                    <span className={`h-2.5 w-2.5 rounded-full ${item.swatch}`} />
                     {item.label}
                   </span>
                 ))}
@@ -727,13 +721,13 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
                 <table className="min-w-full border-separate border-spacing-0 text-center">
                   <thead>
                     <tr>
-                      <th className="sticky left-0 top-0 z-30 min-w-[220px] border-b border-r border-slate-200 bg-slate-100 px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                      <th className="sticky left-0 top-0 z-30 min-w-[240px] border-b border-r border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-500">
                         Date
                       </th>
                       {employeesData.map((employee, index) => (
                         <th
                           key={employee._id}
-                          className="sticky top-0 z-20 min-w-[120px] border-b border-slate-200 bg-slate-100 px-3 py-3 text-sm font-semibold text-slate-700"
+                          className="sticky top-0 z-20 min-w-[120px] border-b border-slate-200 bg-white px-2 py-3 text-sm font-semibold text-slate-700"
                         >
                           <div className="flex flex-col items-center gap-2">
                             <EmployeeAvatar
@@ -742,7 +736,7 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
                               apiBase={API_BASE_URL}
                             />
                             <span
-                              className="max-w-[120px] truncate leading-tight"
+                              className="max-w-[110px] truncate text-xs font-semibold leading-tight text-slate-700"
                               title={`${employee.firstName} ${employee.lastName}`.trim()}
                             >
                               {employee.firstName}
@@ -763,22 +757,38 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
                       );
 
                       const rowTone = isHoliday
-                        ? 'bg-rose-50'
+                        ? 'bg-rose-50/40'
                         : isAlternateSaturday || isSunday
-                          ? 'bg-amber-50'
-                          : 'bg-white';
+                        ? 'bg-amber-50/50'
+                        : 'bg-white hover:bg-slate-50';
+
                       const dateTone = isHoliday
-                        ? 'bg-rose-100 text-rose-800'
+                        ? 'bg-rose-50 text-rose-700'
                         : isAlternateSaturday || isSunday
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-slate-50 text-slate-700';
+                        ? 'bg-amber-50 text-amber-800'
+                        : 'bg-white text-slate-700';
+
+                      const accent = isHoliday
+                        ? 'bg-rose-400'
+                        : isAlternateSaturday || isSunday
+                        ? 'bg-amber-400'
+                        : 'bg-transparent';
 
                       return (
-                        <tr key={day.key} className={rowTone}>
+                        <tr key={day.key} className={`${rowTone} transition-colors`}>
                           <td
-                            className={`sticky left-0 z-10 min-w-[220px] border-b border-r border-slate-200 px-4 py-2.5 text-left text-sm font-medium ${dateTone}`}
+                            className={`sticky left-0 z-10 min-w-[240px] border-b border-r border-slate-200 px-4 py-2 text-left text-sm font-medium ${dateTone}`}
                           >
-                            {day.display}
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={`h-5 w-1 shrink-0 rounded-full ${accent}`}
+                                aria-hidden="true"
+                              />
+                              {isHoliday && (
+                                <Gift className="h-3.5 w-3.5 text-rose-600" aria-hidden="true" />
+                              )}
+                              <span>{day.display}</span>
+                            </div>
                           </td>
                           {employeesData.map((employee) => {
                             const cell = dayCells[employee._id] || { display: '', style: '' };
@@ -788,19 +798,30 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
                                 normalizeDate(r.date) === day.key
                             );
                             const clickable = !!(cell.display && report);
+                            const hasContent = !!cell.display;
                             return (
                               <td
                                 key={employee._id}
-                                className={`border-b border-r border-white/60 px-2 py-2 text-sm tabular-nums transition-colors ${
+                                className={`border-b border-r border-slate-100 p-1.5 text-center text-sm tabular-nums transition-colors ${
                                   clickable ? 'cursor-pointer' : ''
-                                } ${cell.style}`}
+                                } ${hasContent ? '' : cell.style}`}
                                 onClick={() => {
                                   if (cell.display && report) {
                                     setSelectedReport(report);
                                   }
                                 }}
                               >
-                                {cell.display}
+                                {hasContent && (
+                                  <span
+                                    className={`inline-flex min-w-[52px] items-center justify-center rounded-full px-3 py-1.5 text-xs font-semibold ${cell.style} ${
+                                      clickable
+                                        ? 'cursor-pointer hover:-translate-y-0.5 transform'
+                                        : ''
+                                    }`}
+                                  >
+                                    {cell.display}
+                                  </span>
+                                )}
                               </td>
                             );
                           })}
@@ -812,18 +833,27 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
                   <tfoot>
                     {/* Summary Row 1: Leave Taken */}
                     <tr>
-                      <td className={`${labelCell} border-t-2 border-t-slate-300 bg-slate-900 text-white`}>
-                        Leave taken (&minus;)
+                      <td
+                        className={`${labelCell} border-t-2 border-t-slate-300 bg-slate-50 text-slate-800`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`${labelIcon} bg-rose-100 text-rose-600`}>
+                            <TrendingDown className="h-4 w-4" />
+                          </span>
+                          <span>Leave taken (&minus;)</span>
+                        </div>
                       </td>
                       {employeesData.map((emp) => {
                         const fullLeaves = leaveCounts[emp._id] || 0;
-                        const total = Math.round(fullLeaves * 10) / 10; // Round to 1 decimal
+                        const total = Math.round(fullLeaves * 10) / 10;
                         return (
                           <td
                             key={emp._id}
-                            className={`${valueCell} border-t-2 border-t-slate-300 bg-slate-50 text-rose-600`}
+                            className={`${valueCell} border-t-2 border-t-slate-300 bg-slate-50`}
                           >
-                            {total}
+                            <span className="inline-flex min-w-[40px] items-center justify-center rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-700">
+                              {total}
+                            </span>
                           </td>
                         );
                       })}
@@ -831,36 +861,61 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
 
                     {/* Summary Row 2: Extra Working Days */}
                     <tr>
-                      <td className={`${labelCell} bg-emerald-600 text-white`}>
-                        Extra working days (+)
+                      <td className={`${labelCell} border-t border-t-slate-200 bg-slate-50 text-slate-800`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`${labelIcon} bg-emerald-100 text-emerald-600`}>
+                            <TrendingUp className="h-4 w-4" />
+                          </span>
+                          <span>Extra working days (+)</span>
+                        </div>
                       </td>
                       {employeesData.map((emp) => (
-                        <td key={emp._id} className={`${valueCell} bg-emerald-50 text-emerald-700`}>
-                          {extraWorkingCounts[emp._id] || 0}
+                        <td key={emp._id} className={`${valueCell} border-t border-t-slate-200 bg-slate-50`}>
+                          <span className="inline-flex min-w-[40px] items-center justify-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
+                            {extraWorkingCounts[emp._id] || 0}
+                          </span>
                         </td>
                       ))}
                     </tr>
 
                     {/* Summary Row 3: Paid Leaves */}
                     <tr>
-                      <td className={`${labelCell} bg-teal-500 text-white`}>Paid leave (+)</td>
+                      <td className={`${labelCell} border-t border-t-slate-200 bg-slate-50 text-slate-800`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`${labelIcon} bg-teal-100 text-teal-600`}>
+                            <Gift className="h-4 w-4" />
+                          </span>
+                          <span>Paid leave (+)</span>
+                        </div>
+                      </td>
                       {employeesData.map((emp) => (
-                        <td key={emp._id} className={`${valueCell} bg-teal-50 text-teal-700`}>
-                          1
+                        <td key={emp._id} className={`${valueCell} border-t border-t-slate-200 bg-slate-50`}>
+                          <span className="inline-flex min-w-[40px] items-center justify-center rounded-full bg-teal-100 px-3 py-1 text-sm font-semibold text-teal-700">
+                            1
+                          </span>
                         </td>
                       ))}
                     </tr>
 
-                    {/* Summary Row 4: Deduction/Paid */}
+                    {/* Summary Row 4: Deduction / paid */}
                     <tr>
-                      <td className={`${labelCell} bg-indigo-600 text-white`}>Deduction / paid</td>
+                      <td className={`${labelCell} border-t border-t-slate-200 bg-slate-50 text-slate-800`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`${labelIcon} bg-indigo-100 text-indigo-600`}>
+                            <Calculator className="h-4 w-4" />
+                          </span>
+                          <span>Deduction / paid</span>
+                        </div>
+                      </td>
                       {employeesData.map((emp) => {
                         const fullLeaves = leaveCounts[emp._id] || 0;
                         const extraWorkCounts = extraWorkingCounts[emp._id] || 0;
-                        const totalDeduction = extraWorkCounts + 1 - fullLeaves; // Subtract 1 paid leave
+                        const totalDeduction = extraWorkCounts + 1 - fullLeaves;
                         return (
-                          <td key={emp._id} className={`${valueCell} bg-indigo-50 text-indigo-700`}>
-                            {totalDeduction}
+                          <td key={emp._id} className={`${valueCell} border-t border-t-slate-200 bg-slate-50`}>
+                            <span className="inline-flex min-w-[40px] items-center justify-center rounded-full bg-indigo-100 px-3 py-1 text-sm font-semibold text-indigo-700">
+                              {totalDeduction}
+                            </span>
                           </td>
                         );
                       })}
@@ -868,8 +923,13 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
 
                     {/* Summary Row 5: No Of Days Salary To Be Credited */}
                     <tr>
-                      <td className={`${labelCell} bg-rose-600 text-white`}>
-                        No. of days salary to be credited
+                      <td className={`${labelCell} bg-slate-900 text-white`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`${labelIcon} bg-white/10 text-white`}>
+                            <Wallet className="h-4 w-4" />
+                          </span>
+                          <span>Salary days to be credited</span>
+                        </div>
                       </td>
                       {employeesData.map((emp) => {
                         const fullLeaves = leaveCounts[emp._id] || 0;
@@ -877,11 +937,10 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
                         const deduction = extraWorkCounts + 1 - fullLeaves;
                         const salaryDays = deduction + 30;
                         return (
-                          <td
-                            key={emp._id}
-                            className={`${valueCell} bg-rose-50 text-base font-bold text-rose-700`}
-                          >
-                            {salaryDays}
+                          <td key={emp._id} className={`${valueCell} bg-slate-900`}>
+                            <span className="inline-flex min-w-[44px] items-center justify-center rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-900">
+                              {salaryDays}
+                            </span>
                           </td>
                         );
                       })}
@@ -890,7 +949,7 @@ const Statistics: React.FC<StatisticsProps> = ({ employeeData }) => {
                 </table>
               </div>
             )}
-          </div>
+          </section>
         </div>
       </div>
 
