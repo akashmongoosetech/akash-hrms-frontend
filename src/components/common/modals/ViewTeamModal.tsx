@@ -1,210 +1,160 @@
-import React from 'react';
-import { formatDateTime } from '../../../Common/Commonfunction';
+import * as React from 'react';
+import { useToast } from '../../ui/toast';
+import { StatusBadge } from '../../ui/status-badge';
+import { Users, CheckCircle, Clock, MapPin, Building, Shield, Calendar } from 'lucide-react';
 
-interface Team {
+interface Employee {
   _id: string;
-  name: string;
-  manager?: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    photo?: string;
-  };
-  teamMembers: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    photo?: string;
-  }[];
-  project: {
-    _id: string;
-    name: string;
-    client?: {
-      _id: string;
-      name: string;
-      profile?: string;
-    };
-  };
-  status: string;
-  createdAt: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  department: string;
+  status: 'online' | 'offline' | 'away';
+  joinDate: string;
 }
 
 interface ViewTeamModalProps {
-  showModal: boolean;
+  isOpen: boolean;
   onClose: () => void;
-  team: Team | null;
+  employee: Employee;
 }
 
-const ViewTeamModal: React.FC<ViewTeamModalProps> = ({ showModal, onClose, team }) => {
-  if (!showModal || !team) return null;
+export const ViewTeamModal: React.FC<ViewTeamModalProps> = ({
+  isOpen,
+  onClose,
+  employee,
+}) => {
+  const { notify } = useToast();
+
+  if (!employee) return null;
+
+  const handleClose = () => {
+    onClose();
+  };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50 animate-fadeIn">
-      <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto hide-scrollbar relative transition-all duration-300">
-        
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4 border-b border-gray-200 pb-3">
-          <h3 className="text-2xl font-semibold text-gray-800">Team Details</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-red-500 transition-colors text-xl"
-          >
-            ✕
-          </button>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md transform scale-95 opacity-0 transition-all duration-300">
+        {/* Modal Header */}
+        <div className="p-5 border-b border-border opacity-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-medium text-gray-900">Employee Details</h2>
+            </div>
+            <button
+              onClick={handleClose}
+              className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+              aria-label="Close modal"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
-        {/* Body */}
-        <div className="space-y-6">
+        {/* Employee Profile Header */}
+        <div className="p-4 mb-6 rounded-t-2xl border-b border-border">
+          <div className="flex items-center justify-center h-32">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+            <div className="ml-4">
+              <p className="font-medium text-gray-900">{employee.firstName} {employee.lastName}</p>
+              <p className="text-sm text-gray-500">{employee.role}</p>
+              <StatusBadge status={employee.status} size="sm" />
+            </div>
+          </div>
+        </div>
+
+        {/* Employee Information Sections */}
+        <div className="p-4 space-y-4">
           
-          {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-gray-500 text-sm">Team Name</div>
-              <div className="text-lg font-semibold text-gray-800">{team.name}</div>
-            </div>
-            <div>
-              <div className="text-gray-500 text-sm">Status</div>
-              <span
-                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                  team.status === 'Active'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
-                }`}
-              >
-                {team.status}
-              </span>
+          {/* Contact Information */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Contact Information</h3>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-4 w-4 text-gray-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Email</p>
+                  <p className="text-sm text-gray-500">{employee.email}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="h-4 w-4 text-gray-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Joined</p>
+                  <p className="text-sm text-gray-500">{employee.joinDate}</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Project */}
-          <section>
-            <h4 className="text-gray-600 text-sm mb-2 font-medium">Project</h4>
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 flex items-center space-x-4 hover:shadow-md transition-all">
-              {team.project.client?.profile && (
-                <img
-                  src={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/${team.project.client.profile}`}
-                  alt={team.project.client.name}
-                  className="w-14 h-14 rounded-full ring-2 ring-blue-100 object-cover"
-                  onError={(e) => ((e.target as HTMLImageElement).src = '/default-avatar.png')}
-                />
-              )}
-              <div>
-                <p className="font-semibold text-gray-800">{team.project.name}</p>
-                {team.project.client && (
-                  <p className="text-sm text-gray-600">Client: {team.project.client.name}</p>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* Manager */}
-          {team.manager ? (
-            <section>
-              <h4 className="text-gray-600 text-sm mb-2 font-medium">Manager</h4>
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 flex items-center space-x-4 hover:shadow-md transition-all">
-                <img
-                  src={
-                    team.manager.photo
-                      ? team.manager.photo
-                      : '/default-avatar.png'
-                  }
-                  alt={`${team.manager.firstName} ${team.manager.lastName}`}
-                  className="w-14 h-14 rounded-full ring-2 ring-blue-100 object-cover"
-                  onError={(e) => ((e.target as HTMLImageElement).src = '/default-avatar.png')}
-                />
+          {/* Employment Details */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Employment Details</h3>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <Building className="h-4 w-4 text-gray-400" />
+                </div>
                 <div>
-                  <p className="font-semibold text-gray-800">
-                    {team.manager.firstName} {team.manager.lastName}
-                  </p>
-                  <p className="text-sm text-gray-600">{team.manager.email}</p>
+                  <p className="font-medium text-gray-900">Department</p>
+                  <p className="text-sm text-gray-500">{employee.department}</p>
                 </div>
               </div>
-            </section>
-          ) : (
-            <section>
-              <h4 className="text-gray-600 text-sm mb-2 font-medium">Manager</h4>
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4">
-                <p className="text-gray-500">No Manager Assigned</p>
-              </div>
-            </section>
-          )}
-
-          {/* Team Members */}
-          <section>
-            <h4 className="text-gray-600 text-sm mb-2 font-medium">
-              Team Members ({team.teamMembers.length})
-            </h4>
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4">
-              {team.teamMembers.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {team.teamMembers.map((member) => (
-                    <div
-                      key={member._id}
-                      className="bg-white rounded-xl shadow-sm p-3 flex flex-col items-center text-center hover:shadow-lg transition-all"
-                    >
-                      <img
-                        src={
-                          member.photo
-                            ? member.photo
-                            : '/default-avatar.png'
-                        }
-                        alt={`${member.firstName} ${member.lastName}`}
-                        className="w-12 h-12 rounded-full ring-2 ring-blue-50 object-cover mb-2"
-                        onError={(e) => ((e.target as HTMLImageElement).src = '/default-avatar.png')}
-                      />
-                      <div className="font-medium text-gray-800">
-                        {member.firstName} {member.lastName}
-                      </div>
-                      <div className="text-xs text-gray-500">{member.email}</div>
-                    </div>
-                  ))}
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <Clock className="h-4 w-4 text-gray-400" />
                 </div>
-              ) : (
-                <div className="text-gray-500 text-sm">No team members</div>
-              )}
+                <div>
+                  <p className="font-medium text-gray-900">Role</p>
+                  <p className="text-sm text-gray-500">{employee.role}</p>
+                </div>
+              </div>
             </div>
-          </section>
+          </div>
 
-          {/* Footer Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-gray-500 text-sm">Created Date</div>
-              <div className="text-gray-800 font-medium">{formatDateTime(team.createdAt)}</div>
+          {/* Account Status */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Account Status</h3>
+            <div className="flex items-center gap-3">
+              <StatusBadge status={employee.status} size="sm" />
+              <span className="text-sm text-gray-500">{employee.status.charAt(0).toUpperCase() + employee.status.slice(1)}</span>
+            </div>
+          </div>
+
+          {/* Additional Metadata */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Additional Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500">Employee ID</p>
+                <p className="font-medium text-gray-400">EMP-00123</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">User Type</p>
+                <p className="font-medium text-gray-400">Regular</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Footer Buttons */}
-        <div className="flex justify-end mt-8">
+        {/* Modal Footer */}
+        <div className="p-5 border-t border-border">
           <button
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 font-medium hover:from-gray-300 hover:to-gray-400 transition-all"
+            onClick={handleClose}
+            className="w-full flex items-center justify-center py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
           >
             Close
           </button>
         </div>
       </div>
-
-      {/* CSS for fade and hidden scrollbar */}
-      <style>{`
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .hide-scrollbar::-webkit-scrollbar {
-          width: 0;
-          height: 0;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 };

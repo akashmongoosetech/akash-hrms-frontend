@@ -1,163 +1,146 @@
-import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import CoursesAddEdit from "../../components/Courses/CoursesAddEdit";
-import CourseAddEditModal from "../../components/Courses/CourseAddEditModal";
-import CategoriesAddEdit from "../../components/Categories/CategoriesAddEdit";
-import CategoryAddEditModal from "../../components/Categories/CategoryAddEditModal";
+import React from 'react';
+import { Card, StatusBadge, Button } from '../../components/ui';
+import { useToast } from '../../components/ui/toast';
+import { Users, GraduationCap, Calendar, BarChart2, Shield, BookOpen, Search, Clock } from 'lucide-react';
 
 interface Course {
-  _id?: string;
+  _id: string;
   title: string;
-  description: string;
+  instructor: string;
+  students: number;
+  progress: number;
+  level: 'beginner' | 'intermediate' | 'advanced';
+  status: 'published' | 'draft' | 'archived';
   duration: string;
-  status: 'Published' | 'Draft';
-  category: string;
-  categoryDetails?: { _id: string; name: string };
-  createdBy: string;
-  createdByDetails?: { _id: string; firstName: string; lastName: string; email: string };
-  courseVideo?: string;
-  thumbnailImage?: string;
-  createdAt?: string;
+  rating: number;
 }
 
-interface Category {
-  _id?: string;
-  name: string;
-  description: string;
-  status: 'Active' | 'Inactive';
-  createdBy: string;
-  createdByDetails?: { _id: string; firstName: string; lastName: string; email: string };
-  createdAt?: string;
+interface LearningStats {
+  label: string;
+  value: number | string;
+  variant: 'primary' | 'secondary' | 'critical' | 'success' | 'info';
+  icon: React.ComponentType;
 }
 
-export default function LearningPage() {
-  const [activeTab, setActiveTab] = useState("courses");
+const learningStats: LearningStats[] = [
+  { label: 'Total Courses', value: 28, variant: 'primary', icon: BookOpen },
+  { label: 'Active Learners', value: 156, variant: 'success', icon: Users },
+  { label: 'Average Completion', value: '73%', variant: 'info', icon: GraduationCap },
+  { label: 'Total Hours', value: 487, variant: 'info', icon: Clock },
+];
 
-  // Course states
-  const [showAddCourseModal, setShowAddCourseModal] = useState(false);
-  const [showEditCourseModal, setShowEditCourseModal] = useState(false);
-  const [showViewCourseModal, setShowViewCourseModal] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [refreshCoursesTrigger, setRefreshCoursesTrigger] = useState(0);
+const LearningPage: React.FC = () => {
+  const { notify } = useToast();
 
-  // Category states
-  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
-  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [refreshCategoriesTrigger, setRefreshCategoriesTrigger] = useState(0);
-
-  // Course handlers
-  const handleAddCourse = () => {
-    setSelectedCourse(null);
-    setShowAddCourseModal(true);
+  const handleEnroll = () => {
+    notify({
+      title: 'Enrolled',
+      description: 'Successfully enrolled in the course',
+      variant: 'success',
+    });
   };
 
-  const handleEditCourse = (course: Course) => {
-    setSelectedCourse(course);
-    setShowEditCourseModal(true);
-  };
-
-  const handleViewCourse = (course: Course) => {
-    setSelectedCourse(course);
-    setShowViewCourseModal(true);
-  };
-
-  const handleCourseModalSuccess = () => {
-    setRefreshCoursesTrigger(prev => prev + 1);
-  };
-
-  const closeCourseModals = () => {
-    setShowAddCourseModal(false);
-    setShowEditCourseModal(false);
-    setShowViewCourseModal(false);
-    setSelectedCourse(null);
-  };
-
-  // Category handlers
-  const handleAddCategory = () => {
-    setSelectedCategory(null);
-    setShowAddCategoryModal(true);
-  };
-
-  const handleEditCategory = (category: Category) => {
-    setSelectedCategory(category);
-    setShowEditCategoryModal(true);
-  };
-
-  const handleCategoryModalSuccess = () => {
-    setRefreshCategoriesTrigger(prev => prev + 1);
-  };
-
-  const closeCategoryModals = () => {
-    setShowAddCategoryModal(false);
-    setShowEditCategoryModal(false);
-    setSelectedCategory(null);
-  };
+  const filterOptions = ['All Courses', 'Beginner', 'Intermediate', 'Advanced', 'Completed'];
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
       <div className="mb-6">
+        <Card className="p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Learning Management</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Employee training and course management
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="text-sm text-gray-500">Create Course</span>
+            </div>
+          </div>
+          </Card>
+        </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="courses">Courses</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="courses" className="mt-6">
-            <CoursesAddEdit
-              onAdd={handleAddCourse}
-              onEdit={handleEditCourse}
-              onView={handleViewCourse}
-              key={`courses-${refreshCoursesTrigger}`}
-            />
-          </TabsContent>
-
-          <TabsContent value="categories" className="mt-6">
-            <CategoriesAddEdit
-              onAdd={handleAddCategory}
-              onEdit={handleEditCategory}
-              key={`categories-${refreshCategoriesTrigger}`}
-            />
-          </TabsContent>
-        </Tabs>
+      {/* Learning Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {learningStats.map((stat, index) => (
+          <Card
+            key={index}
+            className="p-5 rounded-xl shadow-soft transition-all hover:shadow-medium"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              {(() => { const Icon = stat.icon as React.FC<{ className?: string }>; return <Icon className="h-5 w-5" />; })()}
+              <div>
+                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
+                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              </div>
+            </div>
+            <StatusBadge status={stat.variant} size="sm" />
+          </Card>
+        ))}
       </div>
 
-      {/* Course Modals */}
-      <CourseAddEditModal
-        isOpen={showAddCourseModal}
-        onClose={closeCourseModals}
-        onSuccess={handleCourseModalSuccess}
-      />
+      {/* Filter and Search */}
+      <div className="bg-white rounded-xl shadow-soft mb-6 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <select className="w-full rounded-md border input p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <option>All Courses</option>
+            <option>Beginner</option>
+            <option>Intermediate</option>
+            <option>Advanced</option>
+          </select>
+          <select className="w-full rounded-md border input p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <option>All Levels</option>
+            <option>Published</option>
+            <option>Draft</option>
+            <option>Archived</option>
+          </select>
+          <input
+            type="text"
+            placeholder="Search courses..."
+            className="w-full rounded-md border input p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          />
+          <Button variant="primary" size="sm">
+            <Search className="mr-2 h-4 w-4" /> Enroll
+          </Button>
+        </div>
+      </div>
 
-      <CourseAddEditModal
-        isOpen={showEditCourseModal}
-        onClose={closeCourseModals}
-        onSuccess={handleCourseModalSuccess}
-        editingCourse={selectedCourse}
-      />
-
-      {/* Course View Modal - TODO: Create CourseViewModal */}
-      {/* <CourseViewModal
-        isOpen={showViewCourseModal}
-        onClose={closeCourseModals}
-        onEdit={handleEditCourse}
-        course={selectedCourse}
-      /> */}
-
-      {/* Category Modals */}
-      <CategoryAddEditModal
-        isOpen={showAddCategoryModal}
-        onClose={closeCategoryModals}
-        onSuccess={handleCategoryModalSuccess}
-      />
-
-      <CategoryAddEditModal
-        isOpen={showEditCategoryModal}
-        onClose={closeCategoryModals}
-        onSuccess={handleCategoryModalSuccess}
-        editingCategory={selectedCategory}
-      />
+      {/* Courses Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28].map(
+          (num) => (
+            <Card
+              key={num}
+              className="bg-white rounded-xl shadow-soft overflow-hidden hover:shadow-medium transition-all duration-300"
+            >
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Course {num}
+                  </h3>
+                  <StatusBadge status="info" size="sm" />
+                </div>
+                <p className="text-sm text-gray-500 mb-2">Instructor: John Doe</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <GraduationCap className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-gray-500">128 students</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <BarChart2 className="h-3 w-3 text-primary" />
+                    <span className="text-xs text-gray-500">73% complete</span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">4.5 ★</p>
+                </div>
+              </div>
+            </Card>
+          )
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default LearningPage;

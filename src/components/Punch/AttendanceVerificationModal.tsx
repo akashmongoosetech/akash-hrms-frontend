@@ -753,7 +753,7 @@ export default function AttendanceVerificationModal({ isOpen, mode, onClose, onS
                       ) : (
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="secondary"
                           onClick={handleRetake}
                           className="h-11 flex-1"
                         >
@@ -879,7 +879,7 @@ export default function AttendanceVerificationModal({ isOpen, mode, onClose, onS
 
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="secondary"
                           onClick={requestLocation}
                           disabled={locating}
                           className="h-10 w-full sm:w-auto"
@@ -1010,7 +1010,7 @@ export default function AttendanceVerificationModal({ isOpen, mode, onClose, onS
                 {step > 0 && (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => setStep((current) => Math.max(0, current - 1))}
                     disabled={submitting}
                     className="h-10"

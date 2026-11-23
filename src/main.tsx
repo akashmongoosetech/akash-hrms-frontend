@@ -49,6 +49,7 @@ import CourseLearn from './components/Courses/CourseLearn';
 import CourseLearnPage from './pages/courses/CourseLearnPage';
 import PerformancePage from './pages/performance/PerformancePage';
 import AdminTracking from './pages/tracking/AdminTracking';
+import TrackingPage from './pages/tracking/TrackingPage';
 import OnboardingPage from './pages/onboarding/OnboardingPage';
 import QuizAdminPage from './pages/quiz/QuizAdminPage';
 import EmployeeQuizPage from './pages/quiz/EmployeeQuizPage';
@@ -263,6 +264,11 @@ function AppRoutes() {
           <Route path="/employee-tracking" element={
             <ProtectedRoute requiredRole="Admin">
               <AdminTracking />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-tracking" element={
+            <ProtectedRoute requiredRole="Employee">
+              <TrackingPage />
             </ProtectedRoute>
           } />
           <Route path="/onboarding" element={

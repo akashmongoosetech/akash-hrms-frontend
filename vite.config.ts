@@ -6,6 +6,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@reduxjs/toolkit': path.resolve(
+        __dirname,
+        './node_modules/@reduxjs/toolkit/dist/cjs/index.js'
+      ),
     },
   },
 });

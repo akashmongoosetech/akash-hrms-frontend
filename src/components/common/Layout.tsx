@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import LeftSidebar from "./RightSidebar";
 import Header from "./Header";
 import Toaster from "./Toaster";
@@ -35,6 +35,7 @@ export const useLayout = () => {
 export default function Layout() {
   usePushNotifications();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [dashboardPreferences, setDashboardPreferences] = useState<DashboardPreferences>({
     projects: true,
@@ -75,9 +76,55 @@ export default function Layout() {
     connectSocket();
   }, []);
 
+  // Report the current application section to the server so chat notifications
+  // can be suppressed only while the recipient is actively viewing the exact
+  // conversation. The Chat page reports its own (more specific) presence.
+  //
+  // The heartbeat deliberately does NOT include a section/conversation. That
+  // lets the Chat page own the conversation id while this global timer only
+  // keeps the session alive and reports tab visibility.
+  useEffect(() => {
+    const section = location.pathname.split('/')[1] || 'dashboard';
+    const isChatSection = section === 'chat';
+
+    const reportSection = () => {
+      if (isChatSection) return;
+      socket.emit('user:section:update', {
+        section,
+        conversationId: null,
+        visible: document.visibilityState === 'visible',
+      });
+    };
+
+    const sendHeartbeat = () => {
+      if (!socket.connected) return;
+      socket.emit('user:heartbeat', {
+        visible: document.visibilityState === 'visible',
+      });
+    };
+
+    reportSection();
+    sendHeartbeat();
+    socket.on('connect', reportSection);
+    socket.on('connect', sendHeartbeat);
+    document.addEventListener('visibilitychange', reportSection);
+    document.addEventListener('visibilitychange', sendHeartbeat);
+
+    const interval = window.setInterval(sendHeartbeat, 25 * 1000);
+
+    return () => {
+      socket.off('connect', reportSection);
+      socket.off('connect', sendHeartbeat);
+      document.removeEventListener('visibilitychange', reportSection);
+      document.removeEventListener('visibilitychange', sendHeartbeat);
+      window.clearInterval(interval);
+    };
+  }, [location.pathname]);
+
   // Socket listener for logout
   useEffect(() => {
     socket.on('logout', (data) => {
+      socket.emit('user:presence:offline');
       disconnectSocket();
       localStorage.removeItem('token');
       localStorage.removeItem('role');

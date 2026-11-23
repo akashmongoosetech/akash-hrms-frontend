@@ -264,8 +264,8 @@ export default function TeamTable() {
                 <div>
                   <div className="text-sm text-gray-500">Project</div>
                   <div className="text-sm font-medium text-gray-900">
-                    {team.project.name}
-                    {team.project.client && (
+                    {team.project?.name}
+                    {team.project?.client && (
                       <span className="text-gray-500"> ({team.project.client.name})</span>
                     )}
                   </div>

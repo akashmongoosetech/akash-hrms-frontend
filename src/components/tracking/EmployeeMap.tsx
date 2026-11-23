@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, Polyline, Circle } from '@react-google-maps/api';
 import { getLiveLocations, getGeoFences, getLocationHistory, EmployeeLocation, GeoFenceData, LocationHistory } from '../../utils/locationApi';
-import socket from '../../utils/socket';
+import socket, { connectSocket } from '../../utils/socket';
 
 // Google Maps configuration
 const mapContainerStyle = {
@@ -36,7 +36,7 @@ interface EmployeeMapProps {
   showGeoFences?: boolean;
 }
 
-const EmployeeMap: React.FC<EmployeeMapProps> = ({ selectedEmployeeId, onEmployeeSelect, showRoutes = true, showGeoFences = true }) => {
+const EmployeeMap: React.FC<EmployeeMapProps> = ({ selectedEmployeeId, onEmployeeSelect, showRoutes = true, showGeoFences = true, showEmployeeInfo = true }) => {
   const [employees, setEmployees] = useState<EmployeeLocation[]>([]);
   const [geoFences, setGeoFences] = useState<GeoFenceData[]>([]);
   const [routeHistory, setRouteHistory] = useState<LocationHistory[]>([]);
@@ -63,13 +63,34 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({ selectedEmployeeId, onEmploye
       if (locationsResponse.success) {
         setEmployees(locationsResponse.data);
         
-        // Center map on first online employee if available and no selected employee
-        const onlineEmployees = locationsResponse.data.filter((e: EmployeeLocation) => e.isOnline);
-        if (onlineEmployees.length > 0 && !selectedEmployeeId) {
-          setMapCenter({
-            lat: onlineEmployees[0].latitude,
-            lng: onlineEmployees[0].longitude
-          });
+        // Center map on selected employee if available, otherwise first online employee
+        if (selectedEmployeeId) {
+          const selectedEmployee = locationsResponse.data.find((e: EmployeeLocation) => e.employeeId === selectedEmployeeId);
+          if (selectedEmployee) {
+            setMapCenter({
+              lat: selectedEmployee.latitude,
+              lng: selectedEmployee.longitude
+            });
+            setZoom(15);
+          } else if (!selectedEmployeeId) {
+            // Center map on first online employee if no selected employee
+            const onlineEmployees = locationsResponse.data.filter((e: EmployeeLocation) => e.isOnline);
+            if (onlineEmployees.length > 0) {
+              setMapCenter({
+                lat: onlineEmployees[0].latitude,
+                lng: onlineEmployees[0].longitude
+              });
+            }
+          }
+        } else if (!selectedEmployeeId) {
+          // Center map on first online employee if no selected employee
+          const onlineEmployees = locationsResponse.data.filter((e: EmployeeLocation) => e.isOnline);
+          if (onlineEmployees.length > 0) {
+            setMapCenter({
+              lat: onlineEmployees[0].latitude,
+              lng: onlineEmployees[0].longitude
+            });
+          }
         }
       }
 
@@ -133,6 +154,14 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({ selectedEmployeeId, onEmploye
     }
   }, [selectedEmployeeId, fetchRouteHistory, employees]);
 
+  // Connect socket on mount
+  useEffect(() => {
+    connectSocket();
+    return () => {
+      // Don't disconnect on unmount - shared socket instance
+    };
+  }, []);
+
   // Initial data fetch
   useEffect(() => {
     fetchData();
@@ -183,10 +212,10 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({ selectedEmployeeId, onEmploye
       }
     };
 
-    socket.on('locationUpdate', handleLocationUpdate);
+    socket.on('tracking:location:update', handleLocationUpdate);
 
     return () => {
-      socket.off('locationUpdate', handleLocationUpdate);
+      socket.off('tracking:location:update', handleLocationUpdate);
     };
   }, [isLoaded]);
 
@@ -240,6 +269,7 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({ selectedEmployeeId, onEmploye
           // Determine marker icon based on online status and if selected
           const isSelected = employee.employeeId === selectedEmployeeId;
           const isOnline = employee.isOnline;
+          const accuracy = employee.accuracy || 0;
           
           // Build icon SVG strings separately to avoid nested template literal issues
           const onlineSelectedSvg = `
@@ -272,6 +302,7 @@ const EmployeeMap: React.FC<EmployeeMapProps> = ({ selectedEmployeeId, onEmploye
               ? 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(onlineSelectedSvg)
               : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(onlineDefaultSvg);
           } else {
+            // For offline employees, show last known location with reduced opacity
             iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(offlineSvg);
           }
           

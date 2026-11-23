@@ -317,7 +317,7 @@ export default function TeamDashboard() {
                 </div>
             </section>
 
-            <ViewTeamModal showModal={showModal} onClose={() => setShowModal(false)} team={selectedTeam} />
+            <ViewTeamModal isOpen={showModal} onClose={() => setShowModal(false)} employee={selectedTeam ?? undefined} />
         </>
     );
 }

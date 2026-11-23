@@ -63,6 +63,11 @@ export default function QuizAdminTable() {
   const [errorAssignments, setErrorAssignments] = useState<string | null>(null);
   const [modules, setModules] = useState<string[]>([]);
   const [selectedModule, setSelectedModule] = useState<string>('all');
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+  const [editingDueDate, setEditingDueDate] = useState('');
+  const [savingAssignment, setSavingAssignment] = useState(false);
+  const [deleteAssignmentId, setDeleteAssignmentId] = useState<string | null>(null);
+  const [showDeleteAssignmentModal, setShowDeleteAssignmentModal] = useState(false);
 
   useEffect(() => {
     fetchQuestions();
@@ -147,6 +152,64 @@ export default function QuizAdminTable() {
 
   const handleEdit = (id: string) => {
     navigate(`/quiz-admin/edit/${id}`);
+  };
+
+  const startEditingAssignment = (assignment: Assignment) => {
+    setEditingAssignmentId(assignment._id);
+    setEditingDueDate(assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 10) : '');
+  };
+
+  const saveAssignmentDueDate = async (assignmentId: string) => {
+    setSavingAssignment(true);
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/admin/assignment/${assignmentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ due_date: editingDueDate || null })
+      });
+
+      if (response.ok) {
+        toast.success('Assignment updated successfully!');
+        setEditingAssignmentId(null);
+        setEditingDueDate('');
+        fetchAssignments();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to update assignment');
+      }
+    } catch (err) {
+      toast.error('Error updating assignment');
+    } finally {
+      setSavingAssignment(false);
+    }
+  };
+
+  const confirmDeleteAssignment = async () => {
+    if (!deleteAssignmentId) return;
+
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/quiz/admin/assignment/${deleteAssignmentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        toast.success('Assignment deleted successfully!');
+        setShowDeleteAssignmentModal(false);
+        setDeleteAssignmentId(null);
+        fetchAssignments();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to delete assignment');
+      }
+    } catch (err) {
+      toast.error('Error deleting assignment');
+    }
   };
 
   return (
@@ -422,6 +485,7 @@ export default function QuizAdminTable() {
                       <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Date</TableHead>
                       <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</TableHead>
                       <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="bg-white divide-y divide-gray-200">
@@ -454,7 +518,16 @@ export default function QuizAdminTable() {
                           {formatDate(assignment.assigned_on)}
                         </TableCell>
                         <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {assignment.due_date ? formatDate(assignment.due_date) : 'N/A'}
+                          {editingAssignmentId === assignment._id ? (
+                            <input
+                              type="date"
+                              value={editingDueDate}
+                              onChange={(event) => setEditingDueDate(event.target.value)}
+                              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+                            />
+                          ) : (
+                            assignment.due_date ? formatDate(assignment.due_date) : 'N/A'
+                          )}
                         </TableCell>
                         <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -462,6 +535,54 @@ export default function QuizAdminTable() {
                           }`}>
                             {assignment.completed ? 'Completed' : 'Pending'}
                           </span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex items-center gap-2">
+                            {editingAssignmentId === assignment._id ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => saveAssignmentDueDate(assignment._id)}
+                                  disabled={savingAssignment}
+                                  className="rounded px-2 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                  {savingAssignment ? 'Saving…' : 'Save'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingAssignmentId(null);
+                                    setEditingDueDate('');
+                                  }}
+                                  className="rounded px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => startEditingAssignment(assignment)}
+                                  title="Edit due date"
+                                  className="rounded p-1 text-blue-600 hover:bg-blue-50"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDeleteAssignmentId(assignment._id);
+                                    setShowDeleteAssignmentModal(true);
+                                  }}
+                                  title="Delete assignment"
+                                  className="rounded p-1 text-red-600 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -483,6 +604,17 @@ export default function QuizAdminTable() {
         onConfirm={confirmDelete}
         title="Delete Question"
         message="Are you sure you want to delete this question? This action cannot be undone."
+      />
+
+      <DeleteModal
+        isOpen={showDeleteAssignmentModal}
+        onClose={() => {
+          setShowDeleteAssignmentModal(false);
+          setDeleteAssignmentId(null);
+        }}
+        onConfirm={confirmDeleteAssignment}
+        title="Delete Assignment"
+        message="Are you sure you want to delete this quiz assignment? The employee will be notified."
       />
     </div>
   );

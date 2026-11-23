@@ -1,29 +1,41 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
+import * as React from 'react';
 
-import { cn } from "../../lib/utils";
-
-const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-  {
-    variants: {
-      variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
-);
-
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
-
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+export interface BadgeProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'critical' | 'success' | 'info';
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export { Badge, badgeVariants };
+const badgeVariants = {
+  primary:
+    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary',
+  secondary:
+    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary/10 text-secondary',
+  critical:
+    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-destructive/10 text-destructive',
+  success:
+    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-success/10 text-success',
+  info:
+    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-info/10 text-info-foreground',
+};
+
+export const Badge = ({
+  variant = 'primary',
+  size = 'md',
+  children,
+  className,
+}: BadgeProps) => {
+  const variantClass = badgeVariants[variant] || badgeVariants.primary;
+
+  return (
+    <span
+      className={className}
+      style={{
+        fontSize: size === 'sm' ? '0.65em' : size === 'lg' ? '0.85em' : '0.75em',
+      }}
+    >
+      {children}
+    </span>
+  );
+};
+
+Badge.displayName = 'Badge';

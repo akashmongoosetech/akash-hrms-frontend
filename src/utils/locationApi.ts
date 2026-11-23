@@ -100,8 +100,14 @@ export const getLiveLocations = async () => {
 };
 
 // Get employees for tracking dropdown (for admin)
-export const getEmployeesForTracking = async () => {
-  const response = await API.get('/users?role=Employee&status=Active&limit=100');
+// Uses the dedicated /api/location/employees endpoint which returns { success, data, pagination }
+export const getEmployeesForTracking = async (params?: { search?: string; page?: number; limit?: number }) => {
+  const queryParams = new URLSearchParams();
+  if (params?.search) queryParams.append('search', params.search);
+  if (params?.page) queryParams.append('page', String(params.page));
+  if (params?.limit) queryParams.append('limit', String(params.limit));
+  
+  const response = await API.get(`/location/employees?${queryParams.toString()}`);
   return response.data;
 };
 

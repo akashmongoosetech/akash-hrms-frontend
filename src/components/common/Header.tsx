@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -10,8 +10,10 @@ import {
   Clock,
   X,
   CalendarDays,
+  GraduationCap,
   History,
-  Menu
+  Menu,
+  MessageCircle,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import socket, { disconnectSocket } from "../../utils/socket";
@@ -55,6 +57,10 @@ const notificationLink = (notification: any) => {
   if (notification?.data?.link) return notification.data.link;
 
   const type = String(notification?.type || '');
+  if (type === 'chat_message') {
+    const senderId = notification?.data?.senderId;
+    return senderId ? `/chat?userId=${senderId}` : '/chat';
+  }
   if (type.startsWith('holiday_')) return '/holidays';
   if (type.startsWith('event_')) return '/events';
   if (type.startsWith('todo_')) return '/todo';
@@ -62,11 +68,17 @@ const notificationLink = (notification: any) => {
   if (type.startsWith('team_')) return '/dashboard';
   if (type === 'employee_profile_updated') return '/profile';
   if (type.startsWith('leave_')) return '/reports';
+  if (type.startsWith('quiz_')) return '/quiz';
+  if (type.startsWith('course_')) return '/courses';
+  if (type.startsWith('blog_')) return '/blogs';
   return null;
 };
 
 const notificationVisual = (type: string) => {
-  if (type.startsWith('holiday_') || type.startsWith('event_')) {
+  if (type === 'chat_message') {
+    return { Icon: MessageCircle, tone: 'bg-blue-100 text-blue-600' };
+  }
+  if (type.startsWith('holiday_') || type.startsWith('event_') || type.startsWith('course_') || type.startsWith('blog_')) {
     return { Icon: CalendarDays, tone: 'bg-amber-100 text-amber-600' };
   }
   if (type.startsWith('team_')) {
@@ -77,6 +89,9 @@ const notificationVisual = (type: string) => {
   }
   if (type.startsWith('todo_') || type.startsWith('ticket_')) {
     return { Icon: Clock, tone: 'bg-sky-100 text-sky-600' };
+  }
+  if (type.startsWith('quiz_')) {
+    return { Icon: GraduationCap, tone: 'bg-indigo-100 text-indigo-600' };
   }
   return { Icon: Mail, tone: 'bg-blue-100 text-blue-600' };
 };
@@ -111,6 +126,10 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const userId = localStorage.getItem("userId");
   const notificationsRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // Chat toasts and notification events can arrive through more than one event
+  // name (unified + legacy). These sets make both paths idempotent.
+  const toastedChatMessagesRef = useRef<Set<string>>(new Set());
+  const processedNotificationIdsRef = useRef<Set<string>>(new Set());
 
   // Load notifications from API only (fully dynamic)
   useEffect(() => {
@@ -119,7 +138,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     }
   }, [userId]);
 
-  const fetchNotifications = async (page = 1, append = false) => {
+  const fetchNotifications = useCallback(async (page = 1, append = false) => {
     if (!userId) return;
 
     try {
@@ -160,7 +179,97 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     } finally {
       setNotificationsLoading(false);
     }
-  };
+  }, [userId]);
+
+  // Non-intrusive chat toast. Clicking it opens the exact conversation.
+  const showChatToast = useCallback(
+    (notification: any) => {
+      const key = String(
+        notification?.data?.messageId ||
+          notification?.data?.notificationId ||
+          notification?._id ||
+          '',
+      );
+      if (!key || toastedChatMessagesRef.current.has(key)) return;
+      toastedChatMessagesRef.current.add(key);
+
+      const senderName =
+        notification?.data?.senderName ||
+        notification?.actorName ||
+        'A teammate';
+      const preview =
+        notification?.data?.preview ||
+        String(notification?.message || 'New message').replace(/^[^:]+:\s*/, '');
+      const link =
+        notification?.data?.link ||
+        (notification?.data?.senderId
+          ? `/chat?userId=${notification.data.senderId}`
+          : '/chat');
+
+      toast.custom(
+        (toastInstance) => (
+          <button
+            type="button"
+            onClick={() => {
+              toast.dismiss(toastInstance.id);
+              setNotificationsOpen(false);
+              navigate(link);
+            }}
+            className="flex w-[320px] max-w-[90vw] items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg transition hover:border-blue-200 hover:shadow-xl"
+          >
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+              <MessageCircle className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-slate-900">
+                New message from {senderName}
+              </span>
+              <span className="mt-0.5 block line-clamp-2 text-xs text-slate-600">
+                {preview}
+              </span>
+              <span className="mt-1 block text-[10px] font-medium text-blue-600">
+                Open conversation
+              </span>
+            </span>
+          </button>
+        ),
+        { duration: 6000, position: 'top-right' },
+      );
+    },
+    [navigate],
+  );
+
+  const addIncomingNotification = useCallback(
+    (notification: any, unreadCount?: number) => {
+      if (!notification?._id) return;
+      const id = String(notification._id);
+      if (processedNotificationIdsRef.current.has(id)) return;
+      processedNotificationIdsRef.current.add(id);
+
+      const normalized = {
+        ...notification,
+        id,
+        read: !!notification.read,
+      };
+
+      setNotifications((previous) => [
+        normalized,
+        ...previous.filter((item) => item.id !== id),
+      ]);
+      setNotificationTotal((previous) => previous + 1);
+
+      if (typeof unreadCount === 'number') {
+        setUnreadCount(unreadCount);
+      } else if (!normalized.read) {
+        setUnreadCount((previous) => previous + 1);
+      }
+
+      if (normalized.type === 'chat_message') {
+        showChatToast(normalized);
+      }
+    },
+    [showChatToast],
+  );
 
   // Fetch today's attendance status (single source of truth for the header).
   const refreshPunchStatus = async () => {
@@ -392,75 +501,71 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
     fetchUserProfile();
 
-    // Socket.io listener for real-time notifications - refresh from API
     // Re-sync after a reconnect so notifications received while offline are
     // not missed.
-    const handleSocketReconnect = () => fetchNotifications();
+    const handleSocketReconnect = () => {
+      fetchNotifications(1, false);
+    };
+
+    // Unified event emitted by the notification service for every module
+    // (chat, holidays, teams, profile updates, ...).
+    const handleNotificationNew = (payload: any) => {
+      const notification = payload?.notification || payload;
+      addIncomingNotification(notification, payload?.unreadCount);
+    };
+
+    // Legacy event name kept for older backend instances / other clients.
+    const handleLegacyNotification = (notification: any) => {
+      addIncomingNotification(notification);
+    };
+
+    // Ephemeral toast sent only to sessions that are NOT viewing the exact
+    // conversation (used for the multi-tab case where a persistent record is
+    // intentionally suppressed).
+    const handleChatToast = (payload: any) => {
+      showChatToast({
+        _id: payload?.messageId,
+        type: 'chat_message',
+        message: `${payload?.senderName || 'A teammate'}: ${payload?.preview || ''}`,
+        data: payload,
+      });
+    };
+
+    const handleNotificationCount = (payload: any) => {
+      if (typeof payload?.unreadCount === 'number') {
+        setUnreadCount(payload.unreadCount);
+      }
+    };
+
+    // Listen for break events to update break status
+    const handleNewBreak = (newBreak: any) => {
+      if (newBreak?.employee?._id === userId) {
+        if (newBreak.action === 'Break In') {
+          setIsOnBreak(true);
+        } else if (newBreak.action === 'Break Out') {
+          setIsOnBreak(false);
+        }
+      }
+    };
 
     if (userId) {
       socket.on('connect', handleSocketReconnect);
-
-      socket.on(`todo-notification-${userId}`, (notification) => {
-        // Real-time notification received, refresh from API to get updated list
-        fetchNotifications();
-      });
-
-      socket.on(`ticket-notification-${userId}`, (notification) => {
-        // Real-time notification received, refresh from API to get updated list
-        fetchNotifications();
-      });
-
-      socket.on(`event-notification-${userId}`, (notification) => {
-        // Real-time notification received, refresh from API to get updated list
-        fetchNotifications();
-      });
-
-      socket.on(`holiday-notification-${userId}`, (notification) => {
-        // Real-time notification received, refresh from API to get updated list
-        fetchNotifications();
-      });
-
-      socket.on(`leave-notification-${userId}`, (notification) => {
-        // Real-time notification received, refresh from API to get updated list
-        fetchNotifications();
-      });
-
-      socket.on(`leave-status-notification-${userId}`, (notification) => {
-        // Real-time notification received, refresh from API to get updated list
-        fetchNotifications();
-      });
-
-      // Unified event emitted by the notification service for every module
-      // (holidays, teams, profile updates, ...). Refreshing from the API keeps
-      // the list and badge in sync and avoids duplicate entries.
-      socket.on(`notification-created-${userId}`, () => {
-        fetchNotifications();
-      });
-
-      // Listen for break events to update break status
-      socket.on('newBreak', (newBreak) => {
-        if (newBreak.employee._id === userId) {
-          if (newBreak.action === 'Break In') {
-            setIsOnBreak(true);
-          } else if (newBreak.action === 'Break Out') {
-            setIsOnBreak(false);
-          }
-        }
-      });
+      socket.on('notification:new', handleNotificationNew);
+      socket.on(`notification-created-${userId}`, handleLegacyNotification);
+      socket.on('chat:notification:toast', handleChatToast);
+      socket.on('notification:count:update', handleNotificationCount);
+      socket.on('newBreak', handleNewBreak);
     }
 
     return () => {
       socket.off('connect', handleSocketReconnect);
-      socket.off(`todo-notification-${userId}`);
-      socket.off(`ticket-notification-${userId}`);
-      socket.off(`event-notification-${userId}`);
-      socket.off(`holiday-notification-${userId}`);
-      socket.off(`leave-notification-${userId}`);
-      socket.off(`leave-status-notification-${userId}`);
-      socket.off(`notification-created-${userId}`);
-      socket.off('newBreak');
+      socket.off('notification:new', handleNotificationNew);
+      socket.off(`notification-created-${userId}`, handleLegacyNotification);
+      socket.off('chat:notification:toast', handleChatToast);
+      socket.off('notification:count:update', handleNotificationCount);
+      socket.off('newBreak', handleNewBreak);
     };
-  }, [userId, navigate]);
+  }, [userId, navigate, fetchNotifications, addIncomingNotification, showChatToast]);
 
   // Handle outside clicks to close dropdowns
   useEffect(() => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import API from '../../utils/api';
 import socket, { connectSocket } from '../../utils/socket';
 import {
@@ -46,6 +47,7 @@ interface User {
   role?: string;
   lastMessage?: string;
   lastMessageTime?: string;
+  unreadCount?: number;
 }
 
 interface FileAttachment {
@@ -137,6 +139,8 @@ const formatBytes = (bytes: number) => {
 };
 
 const ChatMain: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const requestedChatUserId = searchParams.get('userId');
   const [chatUsers, setChatUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -164,6 +168,8 @@ const ChatMain: React.FC = () => {
   } | null>(null);
 
   const pendingReactionsRef = useRef<Set<string>>(new Set());
+  const handledChatRequestRef = useRef<string | null>(null);
+  const requestedFallbackRef = useRef<string | null>(null);
   const longPressTargetRef = useRef<HTMLElement | null>(null);
   const fileOpenTimerRef = useRef<number | null>(null);
   const lastTapRef = useRef<{ messageId: string; at: number } | null>(null);
@@ -220,7 +226,8 @@ const ChatMain: React.FC = () => {
   const fetchChatUsers = useCallback(async () => {
     try {
       const response = await API.get('/chats/users');
-      setChatUsers(response.data.chatUsers);
+      const users = Array.isArray(response.data.chatUsers) ? response.data.chatUsers : [];
+      setChatUsers(users);
     } catch (error) {
       console.error('Error fetching chat users:', error);
     } finally {
@@ -229,6 +236,12 @@ const ChatMain: React.FC = () => {
   }, []);
 
   const markConversationAsRead = useCallback(async (userId: string) => {
+    // Optimistic local badge reset; the server emits the authoritative total.
+    setChatUsers(previous =>
+      previous.map(user =>
+        user._id === userId ? { ...user, unreadCount: 0 } : user,
+      ),
+    );
     try {
       await API.put(`/chats/read/${userId}`);
     } catch (error) {
@@ -246,9 +259,108 @@ const ChatMain: React.FC = () => {
     connectSocket();
   }, []);
 
+  // Report chat presence to the server: the recipient is only considered to be
+  // "actively viewing" a conversation when this socket reports the Chat section
+  // together with the exact conversation id.
+  const selectedUserId = selectedUser?._id ?? null;
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const isVisible = () => document.visibilityState === 'visible';
+
+    const reportPresence = () => {
+      // A hidden tab is not "actively viewing" the conversation, so the server
+      // must still create a notification for it.
+      socket.emit('user:section:update', {
+        section: 'chat',
+        conversationId: isVisible() ? selectedUserId : null,
+        visible: isVisible(),
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (isVisible()) {
+        reportPresence();
+      } else {
+        // Only clear the conversation. The section stays `chat`, and the
+        // global heartbeat continues to mark the session as online.
+        socket.emit('chat:conversation:close');
+      }
+    };
+
+    reportPresence();
+    socket.on('connect', reportPresence);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      socket.off('connect', reportPresence);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // Leaving the Chat page must not leave a stale "viewing" state behind.
+      // Only the conversation is cleared; Layout reports the new section.
+      socket.emit('chat:conversation:close');
+    };
+  }, [currentUserId, selectedUserId]);
+
   useEffect(() => {
     fetchChatUsers();
   }, [fetchChatUsers]);
+
+  // Opening a chat notification links to /chat?userId=<sender>. Select that
+  // conversation automatically once the conversation list is available. The
+  // last handled id is remembered so manually switching conversations is not
+  // overridden on every render.
+  useEffect(() => {
+    if (!requestedChatUserId) {
+      handledChatRequestRef.current = null;
+      requestedFallbackRef.current = null;
+      return;
+    }
+    if (handledChatRequestRef.current === requestedChatUserId) return;
+
+    const selectTarget = (target: User) => {
+      handledChatRequestRef.current = requestedChatUserId;
+      setSelectedUser(target);
+      setSelectedMessages([]);
+      setIsSelectionMode(false);
+      setSearchQuery('');
+    };
+
+    const target = chatUsers.find(user => user._id === requestedChatUserId);
+    if (target) {
+      selectTarget(target);
+      return;
+    }
+
+    // The sender may never have been part of this user's conversation list
+    // (first ever message). Resolve the participant so the notification
+    // deep-link still opens the correct conversation.
+    if (usersLoading || requestedFallbackRef.current === requestedChatUserId) return;
+    requestedFallbackRef.current = requestedChatUserId;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await API.get(`/chats/user/${requestedChatUserId}`);
+        if (cancelled) return;
+        const user = response.data?.user as User | undefined;
+        if (!user) return;
+        setChatUsers(previous =>
+          previous.some(item => item._id === user._id) ? previous : [user, ...previous],
+        );
+        selectTarget(user);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error opening requested conversation:', error);
+          toast.error('Could not open that conversation');
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chatUsers, requestedChatUserId, usersLoading]);
 
   // Fetch messages whenever a conversation is opened
   useEffect(() => {
@@ -266,7 +378,9 @@ const ChatMain: React.FC = () => {
         const response = await API.get(`/chats/messages/${selectedUser._id}`);
         if (cancelled) return;
         setMessages(response.data.messages);
-        markConversationAsRead(selectedUser._id);
+        if (document.visibilityState === 'visible') {
+          markConversationAsRead(selectedUser._id);
+        }
       } catch (error) {
         console.error('Error fetching messages:', error);
         toast.error('Could not load this conversation');
@@ -292,16 +406,63 @@ const ChatMain: React.FC = () => {
       const activeUserId = selectedUserIdRef.current;
       const isActiveConversation =
         !!activeUserId && (message.sender._id === activeUserId || message.receiver === activeUserId);
+      const isIncomingFromPartner =
+        !!activeUserId &&
+        message.sender._id === activeUserId &&
+        document.visibilityState === 'visible';
 
       if (isActiveConversation) {
         setMessages(prev => {
           if (prev.some(item => item._id === message._id)) return prev;
           return [...prev, message];
         });
-        if (activeUserId) markConversationAsRead(activeUserId);
       }
 
+      if (isIncomingFromPartner && activeUserId) {
+        // Only mark read when the tab is actually visible. A hidden Chat tab
+        // must not swallow the notification/unread state.
+        void markConversationAsRead(activeUserId).finally(fetchChatUsers);
+      } else {
+        fetchChatUsers();
+      }
+    };
+
+    const handleMessageRead = (data: {
+      messageIds?: string[];
+      readerId?: string;
+      senderId?: string;
+    }) => {
+      if (!Array.isArray(data?.messageIds) || data.messageIds.length === 0) return;
+      const readIds = new Set(data.messageIds);
+      setMessages(prev =>
+        prev.map(message =>
+          readIds.has(message._id) ? { ...message, read: true } : message,
+        ),
+      );
+
+      // If this user is the reader, their local conversation badge is clear.
+      if (data.readerId && data.senderId && data.readerId === currentUserId) {
+        setChatUsers(previous =>
+          previous.map(user =>
+            user._id === data.senderId ? { ...user, unreadCount: 0 } : user,
+          ),
+        );
+      }
+    };
+
+    const handleUnreadUpdate = () => {
+      // The server owns the counters; re-fetch the conversation list so each
+      // row's badge and the total stay consistent.
       fetchChatUsers();
+    };
+
+    const handleNotificationsRead = (data: { senderId?: string }) => {
+      if (!data?.senderId) return;
+      setChatUsers(previous =>
+        previous.map(user =>
+          user._id === data.senderId ? { ...user, unreadCount: 0 } : user,
+        ),
+      );
     };
 
     const handleMessageDeleted = (data: { messageId: string; isDeletedForEveryone: boolean }) => {
@@ -342,15 +503,21 @@ const ChatMain: React.FC = () => {
     };
 
     socket.on('newMessage', handleNewMessage);
+    socket.on('chat:message:read', handleMessageRead);
+    socket.on('chat:unread:update', handleUnreadUpdate);
+    socket.on('chat:notifications:read', handleNotificationsRead);
     socket.on('messageDeleted', handleMessageDeleted);
     socket.on('messageReactionUpdated', handleReactionUpdated);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
+      socket.off('chat:message:read', handleMessageRead);
+      socket.off('chat:unread:update', handleUnreadUpdate);
+      socket.off('chat:notifications:read', handleNotificationsRead);
       socket.off('messageDeleted', handleMessageDeleted);
       socket.off('messageReactionUpdated', handleReactionUpdated);
     };
-  }, [fetchChatUsers, markConversationAsRead]);
+  }, [currentUserId, fetchChatUsers, markConversationAsRead]);
 
   // Debounced user search
   useEffect(() => {
@@ -589,6 +756,11 @@ const ChatMain: React.FC = () => {
       photo: currentUserProfile?.photo,
     };
   }, [currentUserName, currentUserProfile]);
+
+  const totalUnread = useMemo(
+    () => chatUsers.reduce((sum, user) => sum + (user.unreadCount || 0), 0),
+    [chatUsers],
+  );
 
   // -------------------------
   // MESSAGE REACTIONS
@@ -835,7 +1007,14 @@ const ChatMain: React.FC = () => {
           <div className="border-b border-slate-100 px-4 pb-3 pt-4 sm:px-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h1 className="text-lg font-semibold tracking-tight text-slate-900">Messages</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-semibold tracking-tight text-slate-900">Messages</h1>
+                  {totalUnread > 0 && (
+                    <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      {totalUnread > 99 ? '99+' : totalUnread} unread
+                    </span>
+                  )}
+                </div>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {chatUsers.length > 0
                     ? `${chatUsers.length} conversation${chatUsers.length === 1 ? '' : 's'}`
@@ -977,13 +1156,26 @@ const ChatMain: React.FC = () => {
                           >
                             {user.firstName} {user.lastName}
                           </p>
-                          {user.lastMessageTime && (
-                            <span className="shrink-0 text-[10px] font-medium text-slate-400">
-                              {formatListTime(user.lastMessageTime)}
-                            </span>
-                          )}
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            {user.lastMessageTime && (
+                              <span className="text-[10px] font-medium text-slate-400">
+                                {formatListTime(user.lastMessageTime)}
+                              </span>
+                            )}
+                            {(user.unreadCount || 0) > 0 && (
+                              <span className="min-w-[18px] rounded-full bg-blue-600 px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-white">
+                                {(user.unreadCount || 0) > 99 ? '99+' : user.unreadCount}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <p className="truncate text-xs text-slate-500">
+                        <p
+                          className={`truncate text-xs ${
+                            (user.unreadCount || 0) > 0
+                              ? 'font-semibold text-slate-700'
+                              : 'text-slate-500'
+                          }`}
+                        >
                           {user.lastMessage?.trim() || 'Say hello 👋'}
                         </p>
                       </div>

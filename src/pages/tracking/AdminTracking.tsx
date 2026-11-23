@@ -9,6 +9,8 @@ import {
   EmployeeLocation,
   GeoFenceData
 } from '../../utils/locationApi';
+import { connectSocket, disconnectSocket } from '../../utils/socket';
+import socket from '../../utils/socket';
 import { MapPin, Users, AlertTriangle, Settings, Search, RefreshCw } from 'lucide-react';
 
 interface DropdownEmployee {
@@ -86,6 +88,16 @@ const AdminTracking: React.FC = () => {
   };
 
   useEffect(() => {
+    // Connect to Socket.IO and join tracking room
+    connectSocket();
+    if (socket.connected) {
+      socket.emit('tracking:join');
+    } else {
+      socket.on('connect', () => {
+        socket.emit('tracking:join');
+      });
+    }
+
     fetchLiveLocations();
     fetchEmployees();
     
@@ -102,11 +114,81 @@ const AdminTracking: React.FC = () => {
     return () => {
       if (locationInterval) clearInterval(locationInterval);
       if (employeeInterval) clearInterval(employeeInterval);
+      socket.off('tracking:location:update');
+      socket.off('connect');
+      disconnectSocket();
+    };
+  }, []);
+
+  // Handle real-time location updates via Socket.IO
+  useEffect(() => {
+    const handleLocationUpdate = (data: any) => {
+      console.log('Real-time location update received:', data.employeeId);
+      
+      // Update the live locations array
+      setLiveLocations(prev => {
+        const existingIndex = prev.findIndex(e => e.employeeId === data.employeeId);
+        
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            latitude: data.location.latitude,
+            longitude: data.location.longitude,
+            accuracy: data.location.accuracy,
+            timestamp: data.location.timestamp,
+            isOnline: true
+          };
+          return updated;
+        } else {
+          // Add new employee to live locations
+          return [...prev, {
+            _id: data.employeeId,
+            employeeId: data.employeeId,
+            employeeName: data.employee?.firstName 
+              ? `${data.employee.firstName} ${data.employee.lastName || ''}`.trim()
+              : 'Unknown Employee',
+            employeeEmail: data.employee?.email || '',
+            employeePhoto: data.employee?.photo,
+            latitude: data.location.latitude,
+            longitude: data.location.longitude,
+            accuracy: data.location.accuracy,
+            timestamp: data.location.timestamp,
+            isOnline: true
+          }];
+        }
+      });
+      
+      // Also update the employees dropdown if this employee is in the list
+      setEmployees(prev => {
+        const existingIndex = prev.findIndex(e => e.employeeId === data.employeeId);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            isOnline: true,
+            accuracy: data.location.accuracy,
+            timestamp: data.location.timestamp
+          };
+          return updated;
+        }
+        return prev;
+      });
+    };
+
+    socket.on('tracking:location:update', handleLocationUpdate);
+
+    return () => {
+      socket.off('tracking:location:update', handleLocationUpdate);
     };
   }, []);
 
   const handleEmployeeSelect = (employeeId: string) => {
-    setSelectedEmployee(employeeId === selectedEmployee ? null : employeeId);
+    const wasSelected = selectedEmployee === employeeId;
+    
+    // If clicking the same employee, don't deselect - keep them selected
+    // This allows viewing offline employees' last known location
+    setSelectedEmployee(wasSelected ? employeeId : employeeId);
   };
 
   // Filter employees based on search term
@@ -204,26 +286,13 @@ const AdminTracking: React.FC = () => {
                     key={emp.employeeId}
                     value={emp.employeeId}
                   >
-                    <div className="flex items-center gap-2">
-                      {emp.employeePhoto ? (
-                        <img
-                          src={emp.employeePhoto}
-                          alt={emp.employeeName}
-                          className="w-5 h-5 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="w-5 h-5 rounded-full bg-gray-300 text-gray-400 flex items-center justify-center text-xs font-semibold"
-                        >
-                          {emp.employeeName.charAt(0)}
-                        </div>
-                      )}
-                      <span className="font-medium text-gray-900">{emp.employeeName}</span>
-                      <span className="text-xs text-gray-500">({emp.employeeEmail})</span>
-                      {emp.isOnline && (
-                        <span className="ml-2 text-green-500 text-xs">● Online</span>
-                      )}
-                    </div>
+                    <span className="font-medium text-gray-900">
+                      {emp.employeeName}
+                    </span>
+                    <span className="text-xs text-gray-500"> ({emp.employeeEmail})</span>
+                    {emp.isOnline && (
+                      <span className="ml-2 text-green-500 text-xs">● Online</span>
+                    )}
                   </option>
                 ))}
               </select>
@@ -236,6 +305,39 @@ const AdminTracking: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         {activeTab === 'map' ? (
           <>
+            {/* Selected Employee Info Card */}
+            {selectedEmployee && (
+              <div className="p-4 mb-4 bg-white rounded-lg shadow-md border-l-4 border-blue-500">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                    {liveLocations.some(e => e.employeeId === selectedEmployee) ? (
+                      <MapPin size={20} className="text-blue-500" />
+                    ) : (
+                      <div className="flex items-center justify-center">
+                        <MapPin size={20} className="text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-gray-900">Selected Employee</h3>
+                    <p className="text-sm text-gray-500">
+                      {employees.find(e => e.employeeId === selectedEmployee)?.employeeName || 
+                       liveLocations.find(e => e.employeeId === selectedEmployee)?.employeeName || 
+                       'Unknown Employee'}
+                    </p>
+                  </div>
+                </div>
+                {/* Show status info */}
+                <div className="mt-2 text-xs">
+                  {liveLocations.find(e => e.employeeId === selectedEmployee)?.isOnline 
+                    ? 'Online' 
+                    : liveLocations.find(e => e.employeeId === selectedEmployee)?.timestamp 
+                      ? 'Last seen: ' + formatTime(liveLocations.find(e => e.employeeId === selectedEmployee)?.timestamp) 
+                      : 'Location not available'}
+                </div>
+              </div>
+            )}
+
             {/* Employee List Sidebar */}
             <div className="w-80 bg-white border-r flex flex-col">
               {/* Employee Search Section */}
@@ -298,11 +400,21 @@ const AdminTracking: React.FC = () => {
                       </div>
 
                       {/* Online/Offline Status */}
-                      {employee.isOnline && (
+                      {employee.isOnline || employee.timestamp ? (
                         <div className="mt-2 flex items-center justify-between">
-                          <span className="text-xs text-gray-500">
-                            Accuracy: ±{Math.round(employee.accuracy || 0)}m
-                          </span>
+                          {employee.isOnline ? (
+                            <span className="text-xs text-gray-500">
+                              Accuracy: ±{Math.round(employee.accuracy || 0)}m
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Last update: {formatTime(employee.timestamp)}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-xs text-gray-400">Location not available</span>
                         </div>
                       )}
                     </div>

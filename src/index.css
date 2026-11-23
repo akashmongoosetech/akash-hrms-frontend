@@ -1,96 +1,370 @@
-@import 'bootstrap/dist/css/bootstrap.min.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
+/* ==========================================
+   HRMS DESIGN SYSTEM v2.0
+   Premium Enterprise HR SaaS Theme
+   ========================================== */
+
+/* Color Palette - Professional HRMS Blue Theme */
+:root {
+  /* Light Mode Colors */
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  
+  --primary: 221 83% 53%;        /* HRMS Blue */
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 215 25% 27%;      /* Darker blue-gray */
+  --secondary-foreground: 0 0% 100%;
+  
+  --muted: 210 40% 96%;          /* Light gray background */
+  --muted-foreground: 215 16% 47%;
+  
+  --accent: 210 40% 96%;         /* Very light gray */
+  --accent-foreground: 222 47% 11%;
+  
+  --destructive: 0 84% 60%;      /* Red for errors/destructive */
+  --destructive-foreground: 0 0% 100%;
+  
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 221 83% 53%;
+  
+  --radius: 0.5rem;
+  
+  --sidebar-background: 0 0% 98%;
+  --sidebar-foreground: 240 5.3% 26.1%;
+  --sidebar-primary: 240 5.9% 10%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-primary-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+  
+  --chart-1: 221 83% 53%;
+  --chart-2: 215 25% 27%;
+  --chart-3: 210 40% 96%;
+  --chart-4: 222 47% 11%;
+  --chart-5: 217 33% 17%;
+}
+
+/* Dark Mode Colors */
+.dark {
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 11%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
+  
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 11%;
+  
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
+  
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
+  
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+  
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 212 27% 84%;
+  
+  --sidebar-background: 240 5.9% 10%;
+  --sidebar-foreground: 240 4.8% 95.9%;
+  --sidebar-primary: 224.3 76.3% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 240 4.8% 95.9%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+/* Base Styles */
+* {
+  border-radius: var(--radius);
+}
+
+.bg-primary {
+  background-color: hsl(var(--primary));
+}
+
+.bg-primary-foreground {
+  background-color: hsl(var(--primary-foreground));
+}
+
+.bg-secondary {
+  background-color: hsl(var(--secondary));
+}
+
+.bg-secondary-foreground {
+  background-color: hsl(var(--secondary-foreground));
+}
+
+.bg-muted {
+  background-color: hsl(var(--muted));
+}
+
+.bg-accent {
+  background-color: hsl(var(--accent));
+}
+
+.bg-destructive {
+  background-color: hsl(var(--destructive));
+}
+
+.text-primary {
+  color: hsl(var(--primary));
+}
+
+.text-primary-foreground {
+  color: hsl(var(--primary-foreground));
+}
+
+.text-secondary {
+  color: hsl(var(--secondary));
+}
+
+.text-secondary-foreground {
+  color: hsl(var(--secondary-foreground));
+}
+
+.text-muted {
+  color: hsl(var(--muted));
+}
+
+.text-muted-foreground {
+  color: hsl(var(--muted-foreground));
+}
+
+.text-accent {
+  color: hsl(var(--accent));
+}
+
+.text-accent-foreground {
+  color: hsl(var(--accent-foreground));
+}
+
+.text-destructive {
+  color: hsl(var(--destructive));
+}
+
+.text-destructive-foreground {
+  color: hsl(var(--destructive-foreground));
+}
+
+.border-primary {
+  border-color: hsl(var(--primary));
+}
+
+.border-secondary {
+  border-color: hsl(var(--secondary));
+}
+
+.border-muted {
+  border-color: hsl(var(--muted));
+}
+
+.border-accent {
+  border-color: hsl(var(--accent));
+}
+
+/* ==========================================
+   Shared Component Styles
+   ========================================== */
+
+/* Cards */
+.card {
+  @apply bg-card p-6 shadow-sm transition-colors hover:shadow-medium;
+}
+
+.card:hover {
+  @apply shadow-medium;
+}
+
+/* Buttons */
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium 
+    gap-2 bg-primary px-4 py-2.5 text-primary-foreground 
+    shadow-sm hover:bg-primary/90 focus-visible:outline-none 
+    focus-visible:ring-2 focus-visible:ring-primary 
+    active:active:scale-[0.99] transition-colors;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium 
+    gap-2 bg-secondary px-4 py-2.5 text-secondary-foreground 
+    shadow-sm hover:bg-secondary/80 focus-visible:outline-none 
+    focus-visible:ring-2 focus-visible:ring-secondary 
+    active:active:scale-[0.99] transition-colors;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium 
+    gap-2 bg-transparent px-4 py-2.5 text-primary 
+    hover:bg-primary/5 focus-visible:outline-none 
+    focus-visible:ring-2 focus-visible:ring-primary/20 
+    transition-colors;
+}
+
+/* Form Inputs */
+.input {
+  @apply w-full rounded-md border focus-visible:outline-none 
+    focus-visible:ring-2 focus-visible:ring-primary 
+    transition-colors placeholder:text-muted-foreground 
+    disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.textarea {
+  @apply w-full rounded-md border input p-3 resize-y min-h-[80px] 
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary 
+    transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+/* Status Badges */
+.badge-primary {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium 
+    text-primary-foreground bg-primary/10;
+}
+
+.badge-secondary {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium 
+    text-secondary-foreground bg-secondary/10;
+}
+
+.badge-muted {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium 
+    text-muted-foreground bg-muted/10;
+}
+
+/* Tables */
+.table th {
+  @apply text-xs font-medium text-muted-foreground uppercase tracking-wider 
+    border-b border-border border-b opacity-50 pb-3;
+}
+
+.table td {
+  @apply whitespace-nowrap text-sm font-normal text-foreground 
+    border-b border-border opacity-30;
+}
+
+.table tbody tr {
+  @apply hover:bg-muted/50 transition-colors;
+}
+
+/* Modals */
+.modal-overlay {
+  @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center;
+}
+
+.modal-content {
+  @apply bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl 
+    max-w-full max-h-[90vh] w-full p-6 transition-all duration-300;
+}
+
+.modal-sm { @apply max-w-sm; }
+.modal-md { @apply max-w-md; }
+.modal-lg { @apply max-w-lg; }
+
+/* Dividers */
+.divider {
+  @apply my-6 border-y border-border opacity-30;
+}
+
+/* Shadows */
+.shadow-soft {
+  @apply shadow-[0_2px_8px_rgba(15,23,42,0.06)];
+}
+
+.shadow-medium {
+  @apply shadow-[0_4px_16px_rgba(15,23,42,0.10)];
+}
+
+.shadow-large {
+  @apply shadow-[0_8px_24px_rgba(15,23,42,0.14)];
+}
+
+/* Responsive Containers */
+.container {
+  @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Focus States */
+.focus-visible:focus-visible {
+  @apply outline-none ring-2 ring-primary;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================
+   Reduced Preferences
+   ========================================== */
+@media (prefers-contrast: more) {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 215 25% 27%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 212 27% 84%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
+    --contrast: 100%;
   }
 }
 
-.input { @apply border p-2 rounded-md w-full; }
-
-/* Hide scrollbar */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
-}
-
-/* FIX FullCalendar background event light color issue */
-.fc .fc-bg-event {
-  opacity: 1 !important;
-}
-
-.fc .fc-bg-event .fc-event-title {
-  opacity: 1 !important;
+/* ==========================================
+   Print Styles
+   ========================================== */
+@media print {
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  a[href]:after {
+    content: " (" attr(href) ")";
+  }
+  
+  pre,
+  blockquote {
+    border: 1px solid #999;
+    page-break-inside: avoid;
+  }
+  
+  thead {
+    display: table-header-group;
+  }
+  
+  tr,
+  img {
+    page-break-inside: avoid;
+  }
+  
+  p,
+  h2,
+  h3 {
+    orphans: 3;
+    widows: 3;
+  }
+  
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
 }

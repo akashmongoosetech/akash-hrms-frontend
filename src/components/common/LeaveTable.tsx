@@ -548,7 +548,7 @@ export default function LeaveTable() {
                     : leave.reason}
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin') ? (
+                  {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'SuperAdmin' || currentUser.role === 'Manager') ? (
                     editingStatusId === leave._id ? (
                       <select
                         value={leave.status}
