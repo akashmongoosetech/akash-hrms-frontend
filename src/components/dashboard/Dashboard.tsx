@@ -6,6 +6,9 @@ import {
   BarChart3,
   Clock,
   CheckCircle2,
+  TrendingUp,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import DashboardTable from "./DashboardTable";
 import EmployeeTodos from "./EmployeeTodos";
@@ -16,6 +19,7 @@ import DashboardActivities from "./Dashboard Activities";
 import DashboardPerformance from "./DashboardPerformance";
 import { useLayout } from "../common/Layout";
 import { UniversalSkeleton, BaseSkeleton } from "../ui/skeleton";
+import { useToast } from "../../hooks/use-toast";
 
 interface Todo {
   _id: string;
@@ -40,14 +44,18 @@ interface Ticket {
 export default function Dashboard() {
   const role = localStorage.getItem("role") || "Employee";
   const { dashboardPreferences } = useLayout();
+  const { toast } = useToast();
 
-  const gridClass = (role === 'Admin' || role === 'SuperAdmin') ? 'grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 gap-4' : 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4';
+  const isAdmin = role === 'Admin' || role === 'SuperAdmin';
+
+  const gridClass = isAdmin ? 'grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 gap-6' : 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6';
 
   const [todos, setTodos] = useState<Todo[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [holidays, setHolidays] = useState([]);
   const [events, setEvents] = useState([]);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   // Mock data for dashboard
   const [stats, setStats] = useState({
@@ -66,6 +74,50 @@ export default function Dashboard() {
     totalSuperAdmins: 0
   });
 
+  const handleRefreshStats = async () => {
+    setSyncLoading(true);
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/users?limit=1000`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const users = data.users;
+        const totalEmployees = users.filter((user: any) => user.role === 'Employee' && user.status === 'Active').length;
+        const totalAdmins = users.filter((user: any) => user.role === 'Admin').length;
+        const totalSuperAdmins = users.filter((user: any) => user.role === 'SuperAdmin').length;
+
+        setRealStats({
+          totalEmployees,
+          totalAdmins,
+          totalSuperAdmins
+        });
+
+        setStats(prevStats => ({
+          ...prevStats,
+          totalEmployees: totalEmployees
+        }));
+
+        toast({
+          title: 'Data Refreshed',
+          description: 'Dashboard statistics have been updated successfully',
+          variant: 'success',
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing stats:', error);
+      toast({
+        title: 'Refresh Failed',
+        description: 'Unable to refresh dashboard statistics',
+        variant: 'destructive',
+      });
+    } finally {
+      setSyncLoading(false);
+      setStatsLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Fetch real user statistics
@@ -99,6 +151,7 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error('Error fetching user stats:', error);
+        setStatsLoading(false);
       }
     };
 
@@ -242,31 +295,31 @@ export default function Dashboard() {
       pendingRequests: 12
     }));
 
-
   }, []);
 
-
-  const getStatCardColor = (index) => {
+  const getStatCardColor = (index: number) => {
     const colors = [
-      "bg-blue-500",
-      "bg-green-500",
+      "bg-indigo-500",
+      "bg-emerald-500",
       "bg-purple-500",
       "bg-orange-500",
+      "bg-rose-500",
     ];
     return colors[index % colors.length];
   };
 
-  const getBorderColor = (index) => {
+  const getBorderColor = (index: number) => {
     const colors = [
-      "border-blue-500",
-      "border-green-500",
+      "border-indigo-500",
+      "border-emerald-500",
       "border-purple-500",
       "border-orange-500",
+      "border-rose-500",
     ];
     return colors[index % colors.length];
   };
 
-  const getActivityIcon = (type) => {
+  const getActivityIcon = (type: string) => {
     const icons = {
       leave: <Clock className="h-4 w-4 text-blue-500" />,
       profile: <Users className="h-4 w-4 text-green-500" />,
@@ -278,200 +331,237 @@ export default function Dashboard() {
 
   const statCards = [
     {
-      title: "Employees",
+      title: "Total Employees",
       value: stats.totalEmployees,
       icon: <Users className="h-6 w-6 text-white" />,
       change: "+2%",
+      changeType: "positive",
     },
     {
       title: "Users",
       value: realStats.totalAdmins + realStats.totalSuperAdmins,
       icon: <Users className="h-6 w-6 text-white" />,
       change: "",
-      // breakdown: {
-      //   admins: realStats.totalAdmins,
-      //   superAdmins: realStats.totalSuperAdmins
-      // }
+      changeType: "neutral",
     },
     {
       title: "Holidays",
       value: stats.holidays,
       icon: <Calendar className="h-6 w-6 text-white" />,
       change: "",
+      changeType: "neutral",
     },
     {
       title: "Events",
       value: stats.events,
       icon: <Calendar className="h-6 w-6 text-white" />,
       change: "",
+      changeType: "neutral",
     },
     {
       title: "Todos",
       value: todos.length,
       icon: <BarChart3 className="h-6 w-6 text-white" />,
       change: "",
+      changeType: "neutral",
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Main Content */}
       <main className="p-4 sm:p-6">
+        {/* Page Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              Dashboard Overview
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Monitor team performance, attendance, and key HR metrics at a glance.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefreshStats}
+              disabled={syncLoading}
+              className="flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {syncLoading ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span>{syncLoading ? 'Refreshing...' : 'Refresh Data'}</span>
+            </button>
+          </div>
+        </div>
+
         {/* Quick Stats */}
-        {role !== 'Employee' && (
+        {isAdmin && (
           <>
-            {statsLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                {Array(5).fill(0).map((_, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <BaseSkeleton className="h-4 w-16 mb-2" />
-                        <BaseSkeleton className="h-8 w-12 mb-1" />
+            <div className="mb-8">
+              {statsLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+                  {Array(5).fill(0).map((_, index) => (
+                    <div
+                      key={index}
+                      className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="h-4 w-24 bg-slate-200 rounded mb-3 animate-pulse" />
+                          <div className="h-8 w-32 bg-slate-200 rounded mb-1 animate-pulse" />
+                          <div className="h-8 w-16 bg-slate-200 rounded animate-pulse" />
+                        </div>
+                        <div className="h-10 w-10 rounded-full bg-slate-100 animate-pulse" />
                       </div>
-                      <BaseSkeleton className="h-10 w-10 rounded-full" />
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                {statCards.map((card, index) => (
-                  <div
-                    key={card.title}
-                    className={`bg-white rounded shadow-sm border-t-4  ${getBorderColor(index)} p-4 sm:p-6 hover:shadow-md transition-shadow`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-600 truncate">
-                          {card.title}
-                        </p>
-                        <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
-                          {card.value}
-                        </p>
-                        {/* {card.breakdown && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        <div>Admins: {card.breakdown.admins}</div>
-                        <div>Super Admins: {card.breakdown.superAdmins}</div>
-                      </div>
-                    )} */}
-                        <p
-                          className={`text-xs mt-1 ${card.change.startsWith("+")
-                            ? "text-green-600"
-                            : "text-red-600"
-                            }`}
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+                  {statCards.map((card, index) => (
+                    <div
+                      key={card.title}
+                      className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1"
+                    >
+                      <div className="absolute inset-y-0 right-0 h-full w-1/3 bg-gradient-to-r from-transparent to-slate-50/50" />
+                      <div className="relative z-10 flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                              {card.title}
+                            </p>
+                            {card.change && (
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                card.changeType === 'positive'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-rose-50 text-rose-700'
+                              }`}>
+                                {card.change}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                            {card.value}
+                          </p>
+                        </div>
+                        <div
+                          className={`p-2 sm:p-3 rounded-xl flex-shrink-0 ml-3 ${getStatCardColor(index)}`}
                         >
-                          {/* {card.change} from last month */}
-                        </p>
-                      </div>
-                      <div
-                        className={`p-2 sm:p-3 rounded-full ${getStatCardColor(
-                          index
-                        )} flex-shrink-0 ml-3`}
-                      >
-                        {card.icon}
+                          {card.icon}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </>
         )}
 
         {/* Current Month Leaves */}
-        {role !== 'SuperAdmin' && role !== 'Admin' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-
-            {/* Card 1 */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow">
+        {!isAdmin && (
+          <div className="mb-8">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-600 truncate">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Current Month Leaves
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
+                  <p className="text-3xl font-bold tracking-tight text-slate-900 mt-1">
                     {leavesCount}
                   </p>
                 </div>
-                <div className="p-2 sm:p-3 rounded-full bg-blue-500 flex-shrink-0 ml-3">
-                  <Calendar className="h-6 w-6 text-white" />
+                <div className="p-3 rounded-full bg-blue-50 flex-shrink-0">
+                  <Calendar className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
             </div>
-
-            {/* Card 2 */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow">
-              <p className="text-sm font-medium text-gray-600">Card 2</p>
-            </div>
-
-            {/* Card 3 */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow">
-              <p className="text-sm font-medium text-gray-600">Card 3</p>
-            </div>
-
-            {/* Card 4 */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow">
-              <p className="text-sm font-medium text-gray-600">Card 4</p>
-            </div>
-
           </div>
         )}
 
         {/* Projects Table */}
         {dashboardPreferences.projects && (
-          <div className="mb-6 sm:mb-8">
-            <DashboardTable />
+          <div className="mb-8">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="p-6 sm:p-8">
+                <h2 className="text-lg font-bold text-slate-900 mb-4">Projects Overview</h2>
+                <DashboardTable />
+              </div>
+            </div>
           </div>
         )}
 
         {/* Teams Dashboard */}
-        {dashboardPreferences.teams && <TeamDashboard />}
+        {dashboardPreferences.teams && (
+          <div className="mb-8">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="p-6 sm:p-8">
+                <h2 className="text-lg font-bold text-slate-900 mb-4">Team Management</h2>
+                <TeamDashboard />
+              </div>
+            </div>
+          </div>
+        )}
 
         {dashboardPreferences.todos && todos.length > 0 && (
-          <div className="p-5 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-            <div className="mb-6 sm:mb-8">
-              <h1 className="text-xl sm:text-2xl font-bold mb-4 px-4 sm:px-0">Employee Todos Overview</h1>
-              <EmployeeTodos todos={todos} />
+          <div className="mb-8">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="p-6 sm:p-8">
+                <div className="mb-6 sm:mb-8">
+                  <h1 className="text-lg sm:text-xl font-bold mb-4 px-4 sm:px-0">Employee Todos Overview</h1>
+                  <EmployeeTodos todos={todos} />
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {dashboardPreferences.tickets && tickets.length > 0 && (
-          <div className="mt-[50px] p-5 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-            <div className="mb-6 sm:mb-8">
-              <h1 className="text-xl sm:text-2xl font-bold mb-4 px-4 sm:px-0">Employee Tickets Overview</h1>
-              <DashboardTickets tickets={tickets} />
+          <div className="mb-8">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="p-6 sm:p-8">
+                <div className="mb-6 sm:mb-8">
+                  <h1 className="text-lg sm:text-xl font-bold mb-4 px-4 sm:px-0">Employee Tickets Overview</h1>
+                  <DashboardTickets tickets={tickets} />
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 gap-6">
           <div className="dashboard-performance">
             {dashboardPreferences.performance && (
-              <div className="mt-[50px]">
-                <DashboardPerformance />
+              <div className="mb-8">
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="p-6 sm:p-8">
+                    <DashboardPerformance />
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
 
-
         <div className={gridClass}>
           <div className="dashboard-leaves">
             {dashboardPreferences.leaves && (
-              <div className="mt-[50px]">
-                <DashboardLeaves />
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="p-6 sm:p-8">
+                  <DashboardLeaves />
+                </div>
               </div>
             )}
           </div>
           <div className="dashboard-activities">
             {dashboardPreferences.activities && role === 'Employee' && (
-              <div className="mt-[50px]">
-                <DashboardActivities />
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="p-6 sm:p-8">
+                  <DashboardActivities />
+                </div>
               </div>
             )}
           </div>

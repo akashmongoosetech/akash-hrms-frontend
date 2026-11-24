@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Download, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Eye, Download, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
 import { formatDate } from '../../Common/Commonfunction';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '../ui/pagination';
 import { UniversalSkeleton, BaseSkeleton } from '../ui/skeleton';
+import { useToast } from '@/components/ui/toast';
 
 import {
   Table,
@@ -12,6 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Candidate {
   _id: string;
@@ -33,6 +43,17 @@ interface Candidate {
   updatedAt: string;
 }
 
+interface SyncSummary {
+  status: string;
+  totalFetched: number;
+  new: number;
+  updated: number;
+  unchanged: number;
+  deleted: number;
+  newCareers: Array<{ title: string }>;
+  updatedCareers: Array<{ title: string }>;
+}
+
 export default function CandidateTable() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +61,9 @@ export default function CandidateTable() {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncSummary, setSyncSummary] = useState<SyncSummary | null>(null);
+  const { notify } = useToast();
 
   useEffect(() => {
     fetchCandidates(currentPage);
@@ -88,26 +112,76 @@ export default function CandidateTable() {
     }
   };
 
-  const fetchAndSaveCandidates = async () => {
+  const syncCareerData = async () => {
+    setSyncLoading(true);
+    setSyncSummary(null);
     try {
-      setLoading(true);
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/candidates/fetch-save`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000'}/candidates/sync`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
       if (response.ok) {
-        const result = await response.json();
-        alert(`Fetched and saved ${result.savedCount} new candidates`);
+        const result: SyncSummary = await response.json();
+        setSyncSummary(result);
+
+        if (result.status === 'Success') {
+          if (result.summary.new === 0 && result.summary.updated === 0) {
+            notify({
+              title: 'Career Data Up to Date',
+              description: 'Career data is already up to date. No new or updated requirements found.',
+              variant: 'info',
+            });
+          } else {
+            let description = `Synchronization completed!\n`;
+            description += `• Total Fetched: ${result.summary.totalFetched}\n`;
+            description += `• New Records: ${result.summary.new}\n`;
+            description += `• Updated Records: ${result.summary.updated}\n`;
+            description += `• Unchanged Records: ${result.summary.unchanged}\n\n`;
+
+            if (result.newCareers.length > 0) {
+              description += `New Careers:\n${result.newCareers.map((c, i) => `${i + 1}. ${c.title}`).join('\n')}\n\n`;
+            }
+            if (result.updatedCareers.length > 0) {
+              description += `Updated Careers:\n${result.updatedCareers.map((c, i) => `${i + 1}. ${c.title}`).join('\n')}\n`;
+            }
+
+            notify({
+              title: 'Career Data Synchronized Successfully',
+              description,
+              variant: 'success',
+            });
+          }
+        } else {
+          notify({
+            title: 'Synchronization Failed',
+            description: result.error || 'Unknown error occurred during synchronization',
+            variant: 'destructive',
+          });
+        }
+
         fetchCandidates(currentPage); // Refresh the list
       } else {
-        setError('Failed to fetch and save candidates');
+        const errorData = await response.json().catch(() => ({}));
+        const detail = errorData.error || errorData.message || 'Failed to sync career data';
+        const stageInfo = errorData.stage ? ` (stage: ${errorData.stage})` : '';
+        notify({
+          title: 'Synchronization Failed',
+          description: `${detail}${stageInfo}`,
+          variant: 'destructive',
+        });
       }
     } catch (err) {
-      setError('Error fetching and saving candidates');
+      notify({
+        title: 'Synchronization Failed',
+        description: 'Network error. Please check your connection and try again.',
+        variant: 'destructive',
+      });
     } finally {
-      setLoading(false);
+      setSyncLoading(false);
     }
   };
 
@@ -185,8 +259,8 @@ export default function CandidateTable() {
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <BaseSkeleton className="h-5 w-16" />
                   </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex items-center space-x-2">
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 relative">
+                    <div className="flex space-x-2">
                       <BaseSkeleton className="h-5 w-5 rounded-full" />
                       <BaseSkeleton className="h-5 w-16" />
                     </div>
@@ -217,13 +291,38 @@ export default function CandidateTable() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Candidates</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Candidates</h3>
+          {syncSummary && (
+            <div className="mt-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm">
+              <div className="flex items-center space-x-2 mb-1">
+                <RefreshCw className="h-4 w-4 text-blue-600" />
+                <span className="font-semibold text-blue-800">Last Sync Summary</span>
+              </div>
+              <div className="flex flex-wrap gap-4 text-xs">
+                <span className="text-blue-700">New: <span className="font-semibold">{syncSummary.summary.new}</span></span>
+                <span className="text-emerald-700">Updated: <span className="font-semibold">{syncSummary.summary.updated}</span></span>
+                <span className="text-slate-700">Unchanged: <span className="font-semibold">{syncSummary.summary.unchanged}</span></span>
+              </div>
+            </div>
+          )}
+        </div>
         <button
-          onClick={fetchAndSaveCandidates}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          onClick={syncCareerData}
+          disabled={syncLoading}
+          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Download className="h-4 w-4" />
-          <span>Fetch & Save Candidates</span>
+          {syncLoading ? (
+            <>
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span>Syncing...</span>
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4" />
+              <span>Sync Career Data</span>
+            </>
+          )}
         </button>
       </div>
 
